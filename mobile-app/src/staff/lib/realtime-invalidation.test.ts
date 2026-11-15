@@ -26,9 +26,10 @@ describe('realtime invalidation', () => {
     expect(queueEventKeys(client, { sessionId: SID, entryId: 'e1', seq: 1 })).toEqual([
       ['queue', 'session', SID],
       ['queue', 'next-preview', SID],
+      ['appointments', 'arrivals'],
       ['queue', 'ticket', 'e1'],
     ]);
-    expect(queueEventKeys(client, { sessionId: SID, entryId: null, seq: 1 })).toHaveLength(2);
+    expect(queueEventKeys(client, { sessionId: SID, entryId: null, seq: 1 })).toHaveLength(3);
   });
 
   it('access.changed invalidates the access keys', () => {
@@ -49,7 +50,12 @@ describe('realtime invalidation', () => {
     const { spy, inv } = setup();
     inv.all();
     jest.advanceTimersByTime(COALESCE_MS);
-    expect(invalidatedKeys(spy)).toEqual([['queue'], ['access'], ['notifications']]);
+    expect(invalidatedKeys(spy)).toEqual([
+      ['queue'],
+      ['appointments', 'arrivals'],
+      ['access'],
+      ['notifications'],
+    ]);
   });
 
   it('skips a session snapshot already at or above the event seq', () => {
@@ -106,8 +112,8 @@ describe('realtime invalidation', () => {
 
     jest.advanceTimersByTime(1);
     const keys = invalidatedKeys(spy);
-    expect(keys).toHaveLength(4); // session, next-preview, ticket + access, each once
-    expect(new Set(keys.map((k) => JSON.stringify(k))).size).toBe(4);
+    expect(keys).toHaveLength(5); // session, next-preview, arrivals, ticket + access, each once
+    expect(new Set(keys.map((k) => JSON.stringify(k))).size).toBe(5);
 
     spy.mockClear();
     inv.accessChanged(); // a new window

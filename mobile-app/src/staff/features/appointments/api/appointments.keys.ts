@@ -38,6 +38,8 @@ export const appointmentKeys = {
       : (['appointments', 'list', orgId, locationId, ymd] as const),
   stats: (orgId: Id, locationId: Id, ymd: string) =>
     ['appointments', 'stats', orgId, locationId, ymd] as const,
+  /** Prefix of every arrivals list: queue realtime invalidates it (a check-in elsewhere changes it). */
+  arrivalsAll: () => ['appointments', 'arrivals'] as const,
   arrivals: (orgId: Id, locationId: Id, ymd: string) =>
     ['appointments', 'arrivals', orgId, locationId, ymd] as const,
   /** Next-N from now: moves with the clock, never persisted. */

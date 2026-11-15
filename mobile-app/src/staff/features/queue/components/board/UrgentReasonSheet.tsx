@@ -5,13 +5,16 @@ import { useUrgentReasonForm } from './useUrgentReasonForm';
 export interface UrgentReasonSheetProps {
   open: boolean;
   onClose: () => void;
-  tokenLabel: string;
+  tokenLabel?: string;
+  /** Overrides the default "Mark <token> urgent" (arrivals check-in). */
+  title?: string;
+  submitLabel?: string;
   /** Resolves on success (the sheet closes); rejects on failure (stays open). */
   onSubmit: (reason: string) => Promise<unknown>;
 }
 
 /** "Mark urgent" needs a reason (S-02b). */
-export function UrgentReasonSheet({ open, onClose, tokenLabel, onSubmit }: UrgentReasonSheetProps) {
+export function UrgentReasonSheet({ open, onClose, tokenLabel, title, submitLabel, onSubmit }: UrgentReasonSheetProps) {
   const { form, isDirty, canSubmit, isSubmitting } = useUrgentReasonForm(async (reason) => {
     await onSubmit(reason);
     onClose();
@@ -21,7 +24,7 @@ export function UrgentReasonSheet({ open, onClose, tokenLabel, onSubmit }: Urgen
     <FormSheet
       open={open}
       onClose={onClose}
-      title={`Mark ${tokenLabel} urgent`}
+      title={title ?? `Mark ${tokenLabel ?? 'patient'} urgent`}
       isDirty={isDirty}
       closeLabel="Close"
       discard={{
@@ -31,7 +34,7 @@ export function UrgentReasonSheet({ open, onClose, tokenLabel, onSubmit }: Urgen
         cancelLabel: 'Keep editing',
       }}
       submit={{
-        label: 'Mark urgent',
+        label: submitLabel ?? 'Mark urgent',
         disabled: !canSubmit,
         pending: isSubmitting,
         onPress: () => void form.handleSubmit(),

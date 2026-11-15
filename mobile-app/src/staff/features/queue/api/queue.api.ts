@@ -6,6 +6,7 @@ import type {
   BoardResponse,
   CallNextResult,
   CloseSessionInput,
+  DoctorChoice,
   EntryResult,
   IdemOptions,
   MutationOptions,
@@ -96,6 +97,12 @@ export async function fetchPatientVisits(patientId: string): Promise<PatientVisi
     `/queue/patients/${id(patientId)}/visits`,
   );
   return res.data.data;
+}
+
+/** Doctors at the active location — the transfer picker of the close-session sheet. */
+export async function fetchDoctorChoices(): Promise<DoctorChoice[]> {
+  const res = await staffApi.get<ApiResponse<DoctorChoice[]>>('/appointments/doctors');
+  return res.data.data.map((d) => ({ id: d.id, fullName: d.fullName }));
 }
 
 // ─── Session (doctor) ────────────────────────────────────────────

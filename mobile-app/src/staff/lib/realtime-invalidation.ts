@@ -3,6 +3,7 @@ import type { QueryClient, QueryKey } from '@tanstack/react-query';
 // Key modules are imported directly, not through the feature barrels: this file is
 // pure logic and must not drag screens / native UI into the realtime layer.
 import { accessKeys } from '@/staff/features/access/hooks/useMyAccess';
+import { appointmentKeys } from '@/staff/features/appointments/api/appointments.keys';
 import { notificationKeys } from '@/staff/features/notifications/api/notifications.keys';
 import { queueKeys } from '@/staff/features/queue/api/queue.keys';
 import type { BoardResponse, SessionSnapshot } from '@/staff/features/queue/types/queue.types';
@@ -59,6 +60,9 @@ export function queueEventKeys(
     if (behind(seqOf(mine, e.sessionId), e.seq)) keys.push(key);
   }
 
+  // A check-in / walk-in conversion changes who is still due to arrive (S-03).
+  keys.push(appointmentKeys.arrivalsAll());
+
   if (e.entryId) keys.push(queueKeys.ticket(e.entryId));
   return keys;
 }
@@ -66,6 +70,7 @@ export function queueEventKeys(
 /** Keys re-fetched after a (re)connect or a long background: every realtime-driven key. */
 export const ALL_REALTIME_KEYS: readonly QueryKey[] = [
   queueKeys.all,
+  appointmentKeys.arrivalsAll(),
   accessKeys.all,
   notificationKeys.all,
 ];

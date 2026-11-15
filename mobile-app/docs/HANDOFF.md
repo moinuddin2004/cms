@@ -2367,3 +2367,47 @@ none.
 - Clinic switch picks the org's primary location (else first); the card does not say which.
 - `QueueTabPage` users with only one queue permission ignore the param (they have one segment).
 - Tapping a push/notification link to `/queue` with no segment is unaffected.
+
+---
+## M1-10 — Arrivals check-in (S-03) and close session — 2026-11-15
+Branch: `claude/upbeat-hopper-2688e6` (based on `mobile/develop` 1ab8e4f) · Status: review
+
+### What was built
+- **Arrivals screen** `ArrivalsPage` (route `(staff)/(main)/queue/arrivals.tsx`): today's `scheduled|confirmed` bookings without a queue entry (`useArrivals`, earliest first), row = clinic-clock time, patient, doctor · type, **[Check in]** and a triangle icon button "check in as urgent" (reason sheet, reuses `UrgentReasonSheet` with `title` / `submitLabel` props). `LATE_LIMIT_EXCEEDED` → existing `LateWalkInDialog` → convert-to-walk-in; the urgent reason is kept for the convert. Loading / empty / error (+ stale banner) states; offline disables the buttons.
+- **Board**: Arrivals row un-hidden for `queue.checkin` and pushes `/queue/arrivals` (TODO(M1-10) removed).
+- **Close session** (doctor view, S-02a): session menu → "Close session" (`queue.doctor.own`, destructive; toast "Finish the current patient first." while someone is with the doctor) → `CloseSessionSheet`: per leftover (waiting / skipped / on hold) cancel or transfer + doctor chips (own doctor excluded, list from `GET /appointments/doctors`). Backend rule mirrored: only waiting patients can transfer, skipped / on-hold are cancelled without a tap; no other doctor → all cancel. Submit stays disabled until every CURRENT leftover is decided; the body is built from live leftovers. TanStack Form + `closeSessionSchema` as validators; one Idempotency-Key per tap (`useCloseSession`); failure keeps the sheet and choices.
+
+### Deviations
+- `ArrivalsPage` lives in `features/appointments` (not `queue`): it needs `useArrivals` / `useCheckInFlow`, and appointments already imports the queue barrel — placing it in queue would create an import cycle. The route imports it from the appointments barrel.
+- `useCheckInFlow.start(id, urgentReason?)` gained an optional reason (backward compatible; the convert reuses it).
+- The close sheet's doctor list uses its own `useDoctorChoices` (queue key `['queue-doctors', org, loc]`, outside `queue.all`) for the same reason (queue cannot import appointments).
+- `UrgentReasonSheet` exported from the queue barrel; `DoctorQueueView.test.tsx` got sonner + `useDoctorChoices` mocks.
+
+### Files
+- New: `appointments/{pages/ArrivalsPage(.test),components/ArrivalRow}`, `queue/{components/doctor/CloseSessionSheet(.test),hooks/useCloseSessionForm,hooks/useDoctorChoices,lib/close-decisions(.test),schemas/close-session.schema}`, route `arrivals.tsx`.
+- Modified: `BoardView(.test)`, `DoctorQueueView(.test)`, `useDoctorQueueActions`, `UrgentReasonSheet`, queue `api/types/keys/index`, appointments `index`, `useCheckInFlow`.
+
+### Install commands
+none.
+
+### Verification
+typecheck ✓ · `expo lint` 0 errors (4 old warnings, none in touched files) · lint:fences ✓ · full jest 83 suites green. NO DEVICE: screenshots / two-phone check wait on gate M0-D.
+
+### Acceptance
+- [x] late check-in converts (dialog flow, tested via flow mock) · [x] closing with 3 leftovers sends 3 decisions (sheet + lib tests) · [x] errors mapped via `queueErrorMessage`
+
+---
+## Rework M1-10 #1 — 2026-11-15
+Branch: `claude/upbeat-hopper-2688e6` · Status stays: review
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| 1 | No visible pending on Check in | `ArrivalRow` shows a Spinner in the button while that row's check-in runs (label per patient for screen readers). |
+| 2 | Stale Transfer draft blocks close | Validators prune drafts to the currently listed leftovers; `canSubmit` derives from live leftovers; the form revalidates when the leftover id set changes. Test: Transfer chosen without a doctor, patient leaves, close works with `[]`. |
+| 3 | Doctors-only transfer picker | `GET /appointments/doctors` (`appointments.service.getDoctors`) returns `{ id, fullName, designation, profilePictureUrl }` for EVERY active assignment at the location; `designation` is free text from the assignment, not a doctor marker. Left as is. **Backend follow-up:** add an `isDoctor` flag (or filter by employment role type / doctor profile) to that endpoint, then filter the picker. The server still validates the target (`assertDoctorAtLocation`). |
+| 4 | Gating | `ArrivalsPage` needs `queue.checkin` AND `appointments.view`; without them "You don't have access" empty state, no buttons and the arrivals query is disabled (`useArrivals(ymd, allowed)`). Board Arrivals row needs both too. Tests for both. |
+| 5 | Destructive submit | Close-session submit is `destructive`. |
+| 6 | Realtime | `queueEventKeys` and `ALL_REALTIME_KEYS` now also invalidate `appointmentKeys.arrivalsAll()` (`['appointments','arrivals']`) through the existing invalidator (no new listener); `realtime-invalidation.test.ts` updated. |
+
+Skipped: count on the Arrivals row (optional; would need the arrivals query on the board).
+Verification: typecheck ✓ · lint 0 errors · lint:fences ✓ · full jest green. No device.

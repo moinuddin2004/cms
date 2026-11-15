@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { EllipsisVertical, Stethoscope, UserX } from 'lucide-react-native';
 import { useState } from 'react';
 import { View } from 'react-native';
+import { toast } from 'sonner-native';
 
 import {
   ActionSheet,
@@ -22,6 +23,7 @@ import type { EntryActionId } from '../lib/entry-actions';
 import { queueErrorCode } from '../lib/queue-errors';
 import type { EntryView } from '../types/queue.types';
 import { DoctorQueueList, waitingEntries } from './doctor/DoctorQueueList';
+import { CloseSessionSheet } from './doctor/CloseSessionSheet';
 import { ReasonSheet, type ReasonRequest } from './doctor/ReasonSheet';
 import { ClosedSummaryCard, StartSessionCard } from './doctor/SessionPanels';
 import { useDoctorQueueActions } from './doctor/useDoctorQueueActions';
@@ -46,6 +48,7 @@ export function DoctorQueueView() {
   const [refreshing, setRefreshing] = useState(false);
   const [rowMenu, setRowMenu] = useState<EntryView | null>(null);
   const [sessionMenu, setSessionMenu] = useState(false);
+  const [closeOpen, setCloseOpen] = useState(false);
   const [target, setTarget] = useState<ReasonTarget | null>(null);
   // Abort asks twice: the reason sheet, then this confirmation (nothing is sent before it).
   const [abortConfirm, setAbortConfirm] = useState<{ entryId: string; reason?: string } | null>(
@@ -208,6 +211,16 @@ export function DoctorQueueView() {
     });
   }
 
+  // Close needs nobody with the doctor (server rule); the owner of the session closes it.
+  if (session.status !== 'closed' && can('queue.doctor.own')) {
+    sessionActions.push({
+      label: 'Close session',
+      destructive: true,
+      onPress: () =>
+        current ? toast('Finish the current patient first.') : setCloseOpen(true),
+    });
+  }
+
   const summary =
     session.status === 'open'
       ? `Session open · ${waiting.length} waiting`
@@ -309,6 +322,13 @@ export function DoctorQueueView() {
             },
           },
         ]}
+      />
+      <CloseSessionSheet
+        open={closeOpen}
+        onClose={() => setCloseOpen(false)}
+        session={session}
+        entries={snapshot.entries}
+        onConfirm={(decisions) => actions.closeSession(session.id, decisions)}
       />
       <ReasonSheet request={request} onClose={() => setTarget(null)} />
       <ConfirmDialog
