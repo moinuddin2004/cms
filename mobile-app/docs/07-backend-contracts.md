@@ -229,7 +229,7 @@ Issuing a new token invalidates older unused tokens for the same patient. Patien
 caller's scope (`@PatientInScope`). Feature `patient_app` must be active.
 
 **As built (M2-04):** token = 32 random bytes base64url (43 chars), only its sha256 is stored, valid
-**30 min**, single use. Audit rows are ids only (never the token). Revoke is allowed for a suspended
+**15 min**, single use. Audit rows are ids only (never the token). Revoke is allowed for a suspended
 clinic; create is not.
 
 | Error | When |

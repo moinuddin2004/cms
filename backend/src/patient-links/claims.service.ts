@@ -75,7 +75,7 @@ export interface AcceptedLink {
   profileId: string;
   clinic: ClinicRef;
   location: LocationRef | null;
-  status: 'active';
+  status: 'active' | 'frozen';
   linkedAt: Date;
   linkMethod: 'staff_qr';
   linkedByLabel: string;
@@ -170,10 +170,11 @@ export class ClaimsService {
       id: string;
       profile_id: string;
       account_id: string;
+      status: 'active' | 'frozen';
       linked_at: Date;
     }>(
       m,
-      `SELECT l.id, l.profile_id, p.account_id,
+      `SELECT l.id, l.profile_id, p.account_id, l.status,
               COALESCE(l.verified_at, l.created_at) AS linked_at
          FROM patient_record_links l
          JOIN patient_profiles p ON p.id = l.profile_id
@@ -200,7 +201,7 @@ export class ClaimsService {
         gender: string | null;
       }>(
         m,
-        `SELECT id, relation, full_name, dob, gender FROM patient_profiles
+        `SELECT id, relation, full_name, dob::text AS dob, gender FROM patient_profiles
           WHERE id = $1 AND account_id = $2`,
         [dto.profileId, ctx.accountId],
       );
@@ -223,7 +224,7 @@ export class ClaimsService {
               gender: string | null;
             }>(
               m,
-              `SELECT id, relation, full_name, dob, gender FROM patient_profiles
+              `SELECT id, relation, full_name, dob::text AS dob, gender FROM patient_profiles
                 WHERE account_id = $1 AND relation = 'self'`,
               [ctx.accountId],
             )
@@ -252,7 +253,7 @@ export class ClaimsService {
           m,
           `INSERT INTO patient_profiles (account_id, relation, full_name, dob, gender)
            VALUES ($1, $2, $3, $4, $5)
-           RETURNING id, relation, full_name, dob, gender`,
+           RETURNING id, relation, full_name, dob::text AS dob, gender`,
           [
             ctx.accountId,
             dto.relation,
@@ -273,11 +274,13 @@ export class ClaimsService {
     );
     let linkId: string;
     let linkedAt: Date;
+    let linkStatus: 'active' | 'frozen' = 'active';
 
     if (existing) {
       // Same account scanned again: idempotent, nothing new is created.
       linkId = existing.id;
       linkedAt = existing.linked_at;
+      linkStatus = existing.status;
     } else {
       const [link] = await sqlRows<{ id: string; linked_at: Date }>(
         m,
@@ -346,7 +349,7 @@ export class ClaimsService {
         profileId: profile.id,
         clinic,
         location,
-        status: 'active',
+        status: linkStatus,
         linkedAt,
         linkMethod: 'staff_qr',
         linkedByLabel: LINKED_BY_LABEL,
@@ -365,7 +368,7 @@ export class ClaimsService {
     const [row] = await sqlRows<ClaimRow>(
       m,
       `SELECT t.id, t.organization_id, t.patient_id, t.created_by_user_id,
-              p.full_name AS patient_full_name, p.dob AS patient_dob,
+              p.full_name AS patient_full_name, p.dob::text AS patient_dob,
               p.gender::text AS patient_gender, p.is_minor AS patient_is_minor,
               p.is_active AS patient_is_active, p.primary_location_id
          FROM patient_claim_tokens t
@@ -399,7 +402,7 @@ export class ClaimsService {
       gender: string | null;
     }>(
       m,
-      `SELECT id, relation, full_name, dob, gender FROM patient_profiles WHERE id = $1`,
+      `SELECT id, relation, full_name, dob::text AS dob, gender FROM patient_profiles WHERE id = $1`,
       [id],
     );
     return toProfile(row);

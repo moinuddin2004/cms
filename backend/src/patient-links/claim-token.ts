@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from 'crypto';
 
 /** How long a QR claim token stays valid (staff hand the phone over at the desk). */
-export const CLAIM_TOKEN_TTL_MINUTES = 30;
+export const CLAIM_TOKEN_TTL_MINUTES = 15;
 
 /** Version of the "link this record" consent text stored with each link. */
 export const LINK_CONSENT_VERSION = '1.0';

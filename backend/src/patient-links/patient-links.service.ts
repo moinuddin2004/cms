@@ -2,13 +2,13 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { ActorRef, AuditAction } from 'src/common/audit/audit.enums';
 import { AuditService } from 'src/common/audit/audit.service';
 import { sqlRows } from 'src/common/database/sql';
-import { Patient } from 'src/patients/entities/patient.entity';
 import { PatientAccessLog } from 'src/patient-app/entities/patient-access-log.entity';
 import { PatientRecordLink } from 'src/patient-app/entities/patient-record-link.entity';
 import { PatientClaimToken } from './entities/patient-claim-token.entity';
@@ -54,15 +54,22 @@ export class PatientLinksService {
       await this.eligibility.check(organizationId),
       false,
     );
+    const createdByUserId = actor.userId;
+    if (!createdByUserId) throw new UnauthorizedException();
     const token = generateClaimToken();
     const expiresAt = new Date(Date.now() + CLAIM_TOKEN_TTL_MINUTES * 60_000);
 
     await this.dataSource.transaction(async (m) => {
-      const patient = await m.getRepository(Patient).findOne({
-        where: { id: patientId, organizationId },
-        select: { id: true, isActive: true },
-      });
-      if (!patient?.isActive) throw new NotFoundException('Patient not found');
+      // Lock the patient row: concurrent token creations / accepts queue here.
+      const [patient] = await sqlRows<{ id: string }>(
+        m,
+        `SELECT id FROM patients
+          WHERE id = $1 AND organization_id = $2
+            AND is_active = true AND deleted_at IS NULL
+          FOR UPDATE`,
+        [patientId, organizationId],
+      );
+      if (!patient) throw new NotFoundException('Patient not found');
 
       const linked = await m
         .getRepository(PatientRecordLink)
@@ -91,7 +98,7 @@ export class PatientLinksService {
           organizationId,
           patientId,
           tokenHash: hashClaimToken(token),
-          createdByUserId: actor.userId ?? '',
+          createdByUserId,
           expiresAt,
         }),
       );

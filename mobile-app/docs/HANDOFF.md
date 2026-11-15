@@ -2491,3 +2491,19 @@ none.
 - `LocationRef.whatsapp` is always `null` (locations have no WhatsApp column).
 - Clinic logo/brand colour are read from `config_values` (`theme.*`), default brand `#2563eb`.
 - Patient-side audit row uses actor side `system` with `userId: null` (ids of account/profile in `changes.after`).
+
+---
+## Rework M2-04 #1 — 2026-11-15
+Branch: claude/m2-04-patient-links-46d50e · Status stays: review
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| 1 | `dob` came back as a JS Date | Every dob the claim code reads is cast `::text` (claim lookup `p.dob::text AS patient_dob`; profile selects and `RETURNING` use `dob::text AS dob`). `claims.service.spec.ts`: text dob → `ageBand '18-39'`; asserts the cast is in the SQL; a Date-typed row would not band (documents the failure). Int-spec expectations (`18-39`, `0-12`) unchanged. |
+| 2 | TTL | `CLAIM_TOKEN_TTL_MINUTES = 15`; docs/07 says 15 min. (The plan section above says 30; superseded.) |
+| 3 | Tokens in logs | `maskTokens` (now exported) also masks `/patient-api/claims/<token>[/accept]` and `/c/<token>`, `/v/<token>`; `mask-tokens.spec.ts`. The handler logs `maskTokens(request.url)` for every status, so 403/409 on the claim routes log the masked path. |
+| 4 | Revoke with `patient_app` off | The M2-03 context does NOT hide links when the feature is off: `PatientLinkGuard` keeps active/frozen links and only sets `patientAppEnabled=false` (read-only for the patient). On the staff side `patients.app_link.manage` belongs to feature `patient_app`, so `AccessResolver` drops it while the feature is inactive and `@Can` refuses revoke (403) — the clinic must re-enable the feature first. **Left as is**: a revoke that bypasses the feature needs an access-layer exception (a permission not tied to the feature, or a resolver carve-out) which is outside this card. Follow-up for the architect: decide whether `patients.app_link.manage` revoke should survive a disabled feature. |
+| 5 | Re-accept status | Idempotent re-accept returns the existing link's real status (`active` or `frozen`). |
+| 6 | `createdByUserId ?? ''` | `createClaimToken` throws 401 when the actor has no user id. |
+| 7 | Patient row lock | `createClaimToken` locks the patient row (`SELECT … FOR UPDATE`, also checks org / active / not deleted) before invalidating old tokens. |
+
+Verification: tsc clean for changed files · changed specs green · full backend unit suite (`jest -i`): 104 suites / 1038 tests green · int spec still NOT RUN (no local Postgres).
