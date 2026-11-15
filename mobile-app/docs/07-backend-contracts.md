@@ -338,6 +338,17 @@ interface MedicationSchedule {
 }
 ```
 
+### 6.4 Read endpoints as built (M2-08) — notes
+
+- `ClinicRef` returned by these endpoints also carries `clinicStatus: 'active' | 'suspended'` (A-19) and `brandColor` may be `null`. A clinic that was never approved (pending/rejected) returns **no** records; a suspended clinic (`organizations.is_active = false`) stays readable with `clinicStatus: 'suspended'`.
+- Every record carries `location.timezone` (IANA); show instants on that clock. `visits[].date` is already the `YYYY-MM-DD` on the location's clock. `location.whatsapp` is always `null` for now (no column).
+- `GET /patient-api/appointments`: newest first, at most 300 rows, not paginated. `patientConfirmedAt` is `null` and `canConfirm` is `false` until M3-08.
+- `GET /patient-api/visits`: `diagnosis` and `treatments` are **omitted** (keys absent) for clinics with `patient_app.show_diagnosis` off.
+- `GET /patient-api/prescriptions[/:id]`: only `FINALIZED`/`AMENDED` with `signed_at`; `issuedAt` = `signed_at`; detail `pdfUrl` is the stored file URL (or `null` → `hasPdf: false`).
+- `GET /patient-api/billing/summary`: clinics with `show_billing` off are absent; cancelled invoices are never shown or counted; per-invoice `status` is `paid | partial | unpaid | overdue` (overdue on the clinic's local day); each invoice also has `profileId`; at most 50 newest invoices per clinic, totals cover all. `*Minor` = decimal amount × 100.
+- `profileId` filters (query) must be one of the account's profiles, otherwise `404 NOT_FOUND`. `:id` not visible through the account's links → `404 NOT_FOUND`.
+- Each successful list/detail read writes `patient_access_log` (`view_list` one row per distinct clinic patient, `view_detail` with `resource_id`); the write is best effort.
+
 ### 6.3 Public visit page — `GET /visit/:token/state` (`@Public`, rate-limited, M3-05)
 
 `{ clinicName, locationName, token, status, peopleAhead, nowServingToken, updatedAt }` — **no names**.

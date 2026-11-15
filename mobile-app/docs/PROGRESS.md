@@ -58,6 +58,7 @@
 | M2-02 | Patient auth: email code, sessions, JWT, guard | BE | L | M2-01 | done (in develop) | mobile/M2-02-patient-auth | | 2026-11-11 |
 | M2-02b | Patient Google sign-in | BE | S | M2-02 | done | Sonnet session | 2026-11-15 | rework-1 (link-conflict hardening) |
 | M2-03 | Patient link guard + isolation tests | BE | M | M2-02 | done (in develop) | | | |
+| M2-08 | Patient read services | BE | L | M2-03 | review | claude/m2-08-patient-reads-d759cf | Sonnet session | 2026-11-15 |
 | M2-04 … M2-16 (rest) | Patient core | — | — | see 10 | spec | | | |
 | M3-01 … M3-09 | Patient hook | — | — | see 10 | spec | | | |
 | M4-01 … M4-06 | Release | — | — | see 10 | spec | | | |

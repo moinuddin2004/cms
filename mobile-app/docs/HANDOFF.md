@@ -2454,3 +2454,37 @@ Branch: `mobile/M1-15-today-ui` · Status stays: review
 Follow-up (accepted as-is): the doctor row opens `/queue` without a lane param; the queue tab has no lane param yet.
 
 Verification: `npm run typecheck` clean · eslint 0 errors (4 old warnings) · `lint:fences` ok · full jest 82 suites / 624 tests green. No device.
+
+---
+## M2-08 — Patient read services (BE)  ·  2026-11-15  ·  Claude Sonnet 5.5
+Branch: claude/m2-08-patient-reads-d759cf (from mobile/develop)   Status set to: in-progress
+
+### Plan (written before coding)
+1. Module `src/patient-app/reads/` inside `PatientAppModule`: `PatientReadsController` (`GET /patient-api/appointments | visits | prescriptions | prescriptions/:id | billing/summary`), `PatientReadsService`, `PatientClinicsService`, pure mappers + DTO interfaces, `PatientAccessLogService`.
+2. Scope: `PatientClinicsService.visibleContext(ctx)` loads the clinics of the account's links (name, approval, is_active, currency, theme logo/brand, `patient_app.show_*`). Approved clinics only (A-19: pending/rejected → no records); `is_active = false` → kept, `clinicStatus: 'suspended'`. The result is a *filtered* `PatientContext`; every query then goes through `linkedPatientWhere()` with it (no id from URL/query is trusted; `profileId` goes through `assertProfile`).
+3. Visibility rules (07 §3) live in pure functions (`visibility.ts`): prescriptions = FINALIZED/AMENDED + `signed_at`; billing only when the clinic's `show_billing`; diagnosis/treatments only when `show_diagnosis`; cancelled invoices never shown.
+4. DTOs are explicit-allowlist mappers from narrow raw rows (SQL selects only the needed columns); snapshot specs prove no extra keys.
+5. Times: instants as UTC ISO; visit `date` computed in SQL with `AT TIME ZONE locations.timezone`; each record carries `location.timezone`. Money: decimal columns → `*Minor` via `toMinor`.
+6. Access log (`patient_access_log`, table already exists from M2-01 → no schema change): `view_list` per distinct (org, patient) in the result, `view_detail` with resource id; best effort, never fails a read, no PHI in logs.
+7. Specs: visibility tables, clinic status, mappers + snapshots, service (mocked query builders), controller metadata; int spec written (not run unless disposable local Postgres).
+
+### Done (M2-08)
+- `backend/src/patient-app/reads/`: `PatientReadsController` (`GET /patient-api/appointments | visits | prescriptions | prescriptions/:id | billing/summary`), `PatientReadsService`, `PatientClinicsService` (clinic status + `patient_app.show_billing/show_diagnosis` per org), `PatientAccessLogService`, pure `visibility.ts` + `patient-reads.mappers.ts`, query DTOs. Registered in `PatientAppModule`.
+- Scope: every query uses `linkedPatientWhere()` over the visible context (approved clinics only). A-19: pending/rejected clinic = nothing; `organizations.is_active = false` = readable with `clinicStatus: 'suspended'`. `profileId` goes through `assertProfile` (404); unknown/unlinked ids → 404 `NOT_FOUND`.
+- Visibility (07 §3): prescriptions FINALIZED/AMENDED + `signed_at`; billing only for `show_billing` clinics, cancelled invoices never; `diagnosis`/`treatments` keys absent when `show_diagnosis` is off. Money → `*Minor`; visit date on the location's clock in SQL.
+- Access log: `view_list` (one row per distinct clinic patient) / `view_detail` (resource id); best effort, warning carries no ids. No schema change (table from M2-01).
+- 07 §6.4 documents the as-built behaviour.
+
+### Verification
+- jest `src/patient-app`: 9 suites / 108 tests green (incl. DTO allow-list tests with polluted rows, visibility tables, clinic-status, scoping with a recording query-builder double). Full backend unit suite: 103 suites / 1064 tests green.
+- `tsc --noEmit`: 4 errors, none in `src/` and none from this card (`nestjs-cli/` templates need mongoose; `test/labs/access.int-spec.ts` type mismatch). `nest build` not run separately.
+- NOT RUN: the SQL against Postgres — no local Postgres here, no integration spec written. The raw selects/joins (`AT TIME ZONE`, `json_agg`, `COALESCE(ap.doctor_id, qs.doctor_id)`) are unproven; run a smoke on a disposable local DB before relying on them.
+
+### Deviations / notes
+- `canConfirm: false`, `patientConfirmedAt: null` until M3-08 (no column). `location.whatsapp: null` (no column).
+- `ClinicRef` gained `clinicStatus`; invoices gained `profileId`.
+- Visit `doctorName` = appointment doctor, else the queue session's doctor (encounters have no doctor column).
+- Did not touch `src/patient-links` or `PatientLinkGuard` (A-19 filtering is in the read layer). A later card may move it into the guard.
+
+### Questions for architect
+- "Suspended" = `organizations.is_active = false` — confirm that is the intended flag.
