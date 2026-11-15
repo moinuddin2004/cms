@@ -61,6 +61,8 @@
 | M2-08 | Patient read services | BE | L | M2-03 | done | Sonnet session | 2026-11-15 | rework-1 |
 | M2-04 | Patient links + claim API | BE | M | M2-03 | done | Sonnet session | 2026-11-15 | rework-1; int spec not run (no local Postgres) |
 | M2-06 | Patient space foundation | MOB | L | M2-02, M0-04 | done | Sonnet session | 2026-11-15 | rework-1 (sign-out generation guard in core client, both spaces) |
+| M2-09 | Patient Records tab | MOB | L | M2-08, M2-06 | review | claude/m2-09-records-ff83ad | Sonnet session | 2026-11-15 | PDF share + profile chips pending (see HANDOFF) |
+
 | M2-07 | Claim flow P-01 | MOB | M | M2-04, M2-06 | done | Sonnet session | 2026-11-15 | rework-1 |
 | M2-15 | Staff "Link app" QR screen (S-09) | MOB | S | M2-04, M1-12 | done | Sonnet session (with M2-07) | 2026-11-15 | rework-1 |
 | M2-04 … M2-16 (rest) | Patient core | — | — | see 10 | spec | | | |
