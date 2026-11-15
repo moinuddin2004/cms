@@ -77,13 +77,13 @@ export function useDoctors() {
  * S-03: the day's `scheduled | confirmed` bookings with no queue entry,
  * earliest first. Loads every page of the day's bookings, then filters.
  */
-export function useArrivals(ymd: string) {
+export function useArrivals(ymd: string, allowed = true) {
   const { orgId, locationId, ready } = useScope();
   return useQuery({
     queryKey: appointmentKeys.arrivals(orgId, locationId, ymd),
     queryFn: () => fetchAllDayBookings(ymd),
     select: selectArrivals,
-    enabled: ready,
+    enabled: ready && allowed,
     staleTime: 15_000,
   });
 }

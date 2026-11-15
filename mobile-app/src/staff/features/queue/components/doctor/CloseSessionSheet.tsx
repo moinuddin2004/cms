@@ -84,6 +84,7 @@ export function CloseSessionSheet({ open, onClose, session, entries, onConfirm }
       }
       submit={{
         label: 'Close session',
+        destructive: true,
         disabled: !canSubmit || doctorsLoading,
         pending: isSubmitting,
         onPress: () => void form.handleSubmit(),

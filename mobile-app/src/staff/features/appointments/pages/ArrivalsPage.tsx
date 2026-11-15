@@ -1,5 +1,5 @@
 import { FlashList } from '@shopify/flash-list';
-import { UserCheck } from 'lucide-react-native';
+import { Lock, UserCheck } from 'lucide-react-native';
 import { useState } from 'react';
 import { View } from 'react-native';
 
@@ -12,6 +12,7 @@ import {
 } from '@/core/components';
 import { useCanMutate } from '@/core/http';
 import { Text } from '@/core/ui/text';
+import { useAccess } from '@/staff/features/access';
 import { UrgentReasonSheet } from '@/staff/features/queue';
 import { useClinicToday } from '@/staff/lib/clinic-today';
 import { formatInClinic } from '@/staff/lib/datetime';
@@ -30,9 +31,11 @@ import type { AppointmentListItem } from '../types/appointments.types';
  * offers "Add as walk-in". Opened from the board's Arrivals row (`queue.checkin`).
  */
 export function ArrivalsPage() {
+  const { can } = useAccess();
+  const allowed = can('queue.checkin') && can('appointments.view');
   const today = useClinicToday();
   const canMutate = useCanMutate();
-  const query = useArrivals(today);
+  const query = useArrivals(today, allowed);
   const flow = useCheckInFlow(() => undefined);
   const [urgentFor, setUrgentFor] = useState<AppointmentListItem | null>(null);
   const [checkingId, setCheckingId] = useState<string | null>(null);
@@ -46,7 +49,15 @@ export function ArrivalsPage() {
   const savedAt = query.dataUpdatedAt ? formatInClinic(query.dataUpdatedAt, 'HH:mm') : undefined;
 
   let body;
-  if (query.isPending) {
+  if (!allowed) {
+    body = (
+      <EmptyState
+        icon={Lock}
+        title="You don't have access"
+        description="Ask your clinic owner if you need to check patients in."
+      />
+    );
+  } else if (query.isPending) {
     body = <LoadingSkeleton />;
   } else if (query.isError && rows.length === 0) {
     body = <ErrorState onRetry={() => void query.refetch()} />;
@@ -92,7 +103,7 @@ export function ArrivalsPage() {
       header={
         <ScreenHeader
           title="Arrivals"
-          subtitle={rows.length > 0 ? `${rows.length} waiting to arrive` : undefined}
+          subtitle={allowed && rows.length > 0 ? `${rows.length} waiting to arrive` : undefined}
           back
         />
       }>

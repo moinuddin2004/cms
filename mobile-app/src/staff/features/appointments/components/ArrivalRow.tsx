@@ -1,7 +1,9 @@
 import { TriangleAlert } from 'lucide-react-native';
 import { View } from 'react-native';
 
-import { IconButton, OfflineAwareButton } from '@/core/components';
+import { IconButton, Spinner } from '@/core/components';
+import { useCanMutate } from '@/core/http';
+import { Button } from '@/core/ui/button';
 import { Text } from '@/core/ui/text';
 import { formatTime } from '@/staff/lib/datetime';
 
@@ -22,6 +24,7 @@ export interface ArrivalRowProps {
 
 /** S-03 row: clinic-clock time, patient, doctor · type, [Check in] and an urgent variant. */
 export function ArrivalRow({ row, checkingIn, locked, onCheckIn, onCheckInUrgent }: ArrivalRowProps) {
+  const canMutate = useCanMutate();
   const time = formatTime(row.startTime);
   const sub = `${doctorLabel(row)} · ${typeLabel(row.type)}`;
 
@@ -45,13 +48,15 @@ export function ArrivalRow({ row, checkingIn, locked, onCheckIn, onCheckInUrgent
         disabled={locked}
         onPress={() => onCheckInUrgent(row)}
       />
-      <OfflineAwareButton
-        label="Check in"
+      <Button
         className="min-h-11"
-        disabled={locked}
-        accessibilityState={{ busy: checkingIn }}
-        onPress={() => onCheckIn(row)}
-      />
+        disabled={locked || !canMutate}
+        accessibilityLabel={`Check in ${row.patient.fullName}`}
+        accessibilityState={{ busy: checkingIn, disabled: locked || !canMutate }}
+        onPress={() => onCheckIn(row)}>
+        {checkingIn ? <Spinner tone="primary-foreground" /> : null}
+        <Text>{canMutate ? 'Check in' : 'Offline'}</Text>
+      </Button>
     </View>
   );
 }

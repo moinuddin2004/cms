@@ -7,6 +7,8 @@ const mockStart = jest.fn();
 const mockConvert = jest.fn();
 let mockArrivals: Record<string, unknown> = {};
 let mockLate = false;
+let mockCan: (p: string) => boolean = () => true;
+jest.mock('@/staff/features/access', () => ({ useAccess: () => ({ can: (p: string) => mockCan(p) }) }));
 
 jest.mock('../hooks/useAppointments', () => ({ useArrivals: () => mockArrivals }));
 jest.mock('../hooks/useCheckInFlow', () => ({
@@ -92,12 +94,13 @@ describe('ArrivalsPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockLate = false;
+    mockCan = () => true;
     mockArrivals = ok([row('a1')]);
   });
 
   it('check in sends the booking id with no urgent reason', async () => {
     await render(<ArrivalsPage />);
-    await fireEvent.press(screen.getByLabelText('Check in'));
+    await fireEvent.press(screen.getByLabelText('Check in Patient a1'));
     expect(mockStart).toHaveBeenCalledWith('a1', undefined);
   });
 
@@ -124,5 +127,12 @@ describe('ArrivalsPage', () => {
     mockLate = true;
     await render(<ArrivalsPage />);
     expect(screen.getByText('Too late for this appointment')).toBeTruthy();
+  });
+
+  it('without queue.checkin the page shows no access and no buttons', async () => {
+    mockCan = (p) => p !== 'queue.checkin';
+    await render(<ArrivalsPage />);
+    expect(screen.getByText("You don't have access")).toBeTruthy();
+    expect(screen.queryByLabelText('Check in Patient a1')).toBeNull();
   });
 });

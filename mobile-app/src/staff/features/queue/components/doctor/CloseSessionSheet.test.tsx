@@ -105,4 +105,25 @@ describe('CloseSessionSheet', () => {
     await fireEvent.press(screen.getByLabelText('Submit close'));
     await waitFor(() => expect(onConfirm).toHaveBeenCalledWith([]));
   });
+
+  it('a transfer choice left for a patient who has since left does not block closing', async () => {
+    const onConfirm = jest.fn(() => Promise.resolve());
+    const one = [entry('1', 'waiting', '2026-11-15T05:00:00Z')];
+    const view = await render(
+      <CloseSessionSheet open onClose={jest.fn()} session={session} entries={one} onConfirm={onConfirm} />,
+    );
+    // Transfer picked, no doctor yet: invalid and blocked.
+    await fireEvent.press(screen.getByText('Transfer'));
+    expect(screen.getByLabelText('Submit close').props.accessibilityState.disabled).toBe(true);
+
+    // The patient leaves the queue meanwhile (called / cancelled elsewhere).
+    await view.rerender(
+      <CloseSessionSheet open onClose={jest.fn()} session={session} entries={[]} onConfirm={onConfirm} />,
+    );
+    await waitFor(() =>
+      expect(screen.getByLabelText('Submit close').props.accessibilityState.disabled).toBe(false),
+    );
+    await fireEvent.press(screen.getByLabelText('Submit close'));
+    await waitFor(() => expect(onConfirm).toHaveBeenCalledWith([]));
+  });
 });

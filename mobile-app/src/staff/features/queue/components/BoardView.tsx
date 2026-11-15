@@ -68,6 +68,8 @@ export function BoardView() {
   const closed = closedLaneDoctors(data);
   const lane = pickActiveLane(lanes, selectedDoctorId);
   const canWalkIn = can('queue.checkin');
+  // The arrivals list reads appointments, so it needs that permission too.
+  const canArrivals = canWalkIn && can('appointments.view');
 
   const openLaneFor = (doctorId: string) =>
     openSession.mutate({ doctorId }, { onSuccess: () => selectDoctor(doctorId) });
@@ -116,7 +118,7 @@ export function BoardView() {
 
   const groups = groupLane(lane.snapshot);
   // Arrivals check in through `queue.checkin`, the same permission as a walk-in.
-  const items = buildLaneItems(lane.snapshot.session, groups, canWalkIn);
+  const items = buildLaneItems(lane.snapshot.session, groups, canArrivals);
   const doctors = data.lanes.map((l) => l.doctor);
 
   return (

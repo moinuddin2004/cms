@@ -2331,3 +2331,19 @@ typecheck ✓ · `expo lint` 0 errors (4 old warnings, none in touched files) ·
 
 ### Acceptance
 - [x] late check-in converts (dialog flow, tested via flow mock) · [x] closing with 3 leftovers sends 3 decisions (sheet + lib tests) · [x] errors mapped via `queueErrorMessage`
+
+---
+## Rework M1-10 #1 — 2026-11-15
+Branch: `claude/upbeat-hopper-2688e6` · Status stays: review
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| 1 | No visible pending on Check in | `ArrivalRow` shows a Spinner in the button while that row's check-in runs (label per patient for screen readers). |
+| 2 | Stale Transfer draft blocks close | Validators prune drafts to the currently listed leftovers; `canSubmit` derives from live leftovers; the form revalidates when the leftover id set changes. Test: Transfer chosen without a doctor, patient leaves, close works with `[]`. |
+| 3 | Doctors-only transfer picker | `GET /appointments/doctors` (`appointments.service.getDoctors`) returns `{ id, fullName, designation, profilePictureUrl }` for EVERY active assignment at the location; `designation` is free text from the assignment, not a doctor marker. Left as is. **Backend follow-up:** add an `isDoctor` flag (or filter by employment role type / doctor profile) to that endpoint, then filter the picker. The server still validates the target (`assertDoctorAtLocation`). |
+| 4 | Gating | `ArrivalsPage` needs `queue.checkin` AND `appointments.view`; without them "You don't have access" empty state, no buttons and the arrivals query is disabled (`useArrivals(ymd, allowed)`). Board Arrivals row needs both too. Tests for both. |
+| 5 | Destructive submit | Close-session submit is `destructive`. |
+| 6 | Realtime | `queueEventKeys` and `ALL_REALTIME_KEYS` now also invalidate `appointmentKeys.arrivalsAll()` (`['appointments','arrivals']`) through the existing invalidator (no new listener); `realtime-invalidation.test.ts` updated. |
+
+Skipped: count on the Arrivals row (optional; would need the arrivals query on the board).
+Verification: typecheck ✓ · lint 0 errors · lint:fences ✓ · full jest green. No device.
