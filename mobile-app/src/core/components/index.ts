@@ -12,6 +12,7 @@ export { TokenBadge, type TokenBadgeProps } from './data-display/TokenBadge';
 export { Avatar, type AvatarProps } from './data-display/Avatar';
 export { AVATAR_TINTS, avatarTintIndex, initialsOf } from './data-display/avatar-tint';
 export { StatTile, type StatTileProps } from './data-display/StatTile';
+export { QrCode, type QrCodeProps } from './data-display/QrCode';
 export * from './data-display/status-tones';
 
 export { EmptyState } from './feedback/EmptyState';

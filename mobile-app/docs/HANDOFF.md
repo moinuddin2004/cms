@@ -2665,3 +2665,35 @@ Branch: `claude/m2-06-patient-space-982123` · Status stays: review
 | 6 | Note for M0-D | Both spaces have an `/offline` route (`(staff)/offline`, `(patient)/offline`): check the device run for a duplicate-route warning. |
 
 Verification: `tsc --noEmit` clean · eslint 0 errors (pre-existing warnings only) · `lint:fences` ok · full jest 101 suites / 741 tests green (`-i --forceExit`). No device.
+
+---
+## M2-07 + M2-15 — Claim flow (patient) and staff "Link app" QR  ·  2026-11-15  ·  Claude Sonnet 5.5
+Branch: claude/m2-07-claim-flow-b5aeae (from mobile/develop)   Status set to: review (both rows)
+
+### Done
+- **Deep link**: `src/app/claim/[token].tsx` (and `c/[token].tsx` for the web link shape) → `ClaimLinkPage` (patient feature): token shape check → `usePendingClaimStore` (`core/claim`, memory only) → `switchSpace('patient')` → `/`. Bad token → kind "doesn't work" screen. `buildClaimLink(token)` (`core/claim`) = `Linking.createURL('claim/<token>')`, the same scheme for every build variant.
+- **Sign-in detour**: patient layout guards unchanged; sign-in page shows "Sign in to link your record." while a token is pending; `PatientMainLayout` redirects to `/claim/confirm` while a token is pending. Sign-out clears the token.
+- **Confirm page (P-01)** `features/claims`: preview (`GET /patient-api/claims/:token`, no retry, no cache), relation choice (Me hidden for minors), name for dependents, consent switch, accept → "Linked. You'll now see visits and medicines from <clinic>" → home. Error codes → `claim.errors.*` via `claimErrorInfo` (CLAIM_INVALID, CLINIC_SUSPENDED, PATIENT_APP_DISABLED, ALREADY_LINKED = terminal, token dropped; NAME_REQUIRED, RELATION_MISMATCH, 429, offline, other = stay and retry). Strings in `en`/`ur` (ur copies English, TODO).
+- **Staff S-09** `staff/features/app-link`: route `(staff)/(main)/app-link/[patientId]`, gated `patients.app_link.manage`; status polled every 5 s; Generate QR → QR + m:ss countdown (15 min) + regenerate; linked state shows masked email + since + Revoke (ConfirmDialog, destructive). The raw token lives only in component state. S-05 only gained the "Link app" menu entry (needs the permission).
+- `core/components/QrCode` added and exported.
+- eslint fence: `src/app/c/**` added next to `src/app/claim/**` (patient route fence).
+
+### INSTALL NEEDED (user runs)
+No QR library is installed (only `react-native-svg`). Until then `QrCode` shows the link as text. Run:
+```
+npx expo install react-native-qrcode-svg
+```
+then in `src/core/components/data-display/QrCode.tsx` replace the text body with `<QRCode value={value} size={size} />` (keep the wrapper `View` for the label).
+
+### Decisions to review
+- The QR encodes the app deep link (`clinicapp[-dev|-preview]://claim/<token>`), NOT the backend `url` (`FRONTEND_URL/c/<token>`): no web landing page / universal-link association exists yet, so a camera scan of the web URL would open a browser. Phone camera → installed app works with the custom scheme. Switch to `claim.url` once the landing page exists (the `c/[token]` route is ready for it). "Share via WhatsApp" from docs/06 is not built for the same reason.
+- Pending token is memory only (not SecureStore): a killed app asks for a new QR (15 min TTL).
+- Existing-profile picker not built: `GET /patient-api/profiles` is M2-10. "Me" uses the account's self profile; other relations create a new profile from the typed name.
+- Sign-in hint does not name the clinic (preview needs a signed-in patient).
+
+### Verification
+`tsc --noEmit` clean (only the pre-existing generated `global.css` message appears before `expo start` generates it; clean after) · eslint 0 errors (3 old warnings) · `lint:fences` ok · full jest 107 suites / 770 tests green · `CI=1 npx expo start --offline` ran to generate route types.
+New tests: claim token/link/store, claim error mapping (all codes), claim form schema, countdown.
+
+### Needs a device
+Scanning the QR with the phone camera and the app opening on `claim/<token>` (cold start and warm); sign-in detour (email code) resuming at the confirm page; keyboard on the name field; the staff QR once the library is installed; both spaces on one phone (staff creates, patient space accepts).
