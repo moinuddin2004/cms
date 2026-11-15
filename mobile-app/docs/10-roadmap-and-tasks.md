@@ -781,6 +781,8 @@ Write `docs/reviews/M1-16/report.md` with numbers.
 - M1-13 `NotificationsPage.tsx:157` Mark-all is disabled while the unread count loads/fails: use `unread.data === 0` or loaded unread rows.
 - M1-08 waiting minutes freeze between refetches: tick a local offset from `snapshot.now` each minute.
 - Jest "worker failed to exit gracefully": find the open handle (`--detectOpenHandles`) and fix it.
+- core `formatMoney` uses plain `toLocaleString`, so decimal amounts show float noise ("PKR 84,000.5"): fix to 0 or 2 fraction digits consistently.
+- M1-15 Today doctor row opens `/queue` without a lane: once the Queue tab takes a `doctorId` param, pass it.
 
 ---
 
