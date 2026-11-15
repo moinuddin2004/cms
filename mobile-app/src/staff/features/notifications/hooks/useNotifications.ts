@@ -91,7 +91,12 @@ export function useMarkRead() {
       }
       toast.error(apiErrorMessage(err, 'Could not mark as read.'));
     },
-    onSettled: () => client.invalidateQueries({ queryKey: notificationKeys.all }),
+    // List + count only: the prefs query is not affected by reading a row.
+    onSettled: () =>
+      Promise.all([
+        client.invalidateQueries({ queryKey: notificationKeys.list() }),
+        client.invalidateQueries({ queryKey: notificationKeys.unreadCount() }),
+      ]),
   });
 }
 

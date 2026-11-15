@@ -1,4 +1,6 @@
-export { NotificationBell, type NotificationBellProps } from './components/NotificationBell';
+export { NotificationBell, NotificationBellButton } from './components/NotificationBell';
+export { NotificationSoundRow } from './components/NotificationSoundRow';
+export { NotificationsPage } from './pages/NotificationsPage';
 export { notificationKeys } from './api/notifications.keys';
 export {
   useMarkAllRead,

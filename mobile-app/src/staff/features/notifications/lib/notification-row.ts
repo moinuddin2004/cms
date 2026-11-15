@@ -5,7 +5,7 @@ import type { NotificationItem } from '../types/notifications.types';
 export interface NotificationRowModel {
   title: string;
   body: string;
-  /** Clinic-clock time, e.g. "Nov 14, 2026, 3:05 PM". */
+  /** Clinic-clock time (the ACTIVE location's clock, also for other-clinic rows), e.g. "Nov 14, 2026, 3:05 PM". */
   time: string;
   unread: boolean;
   /** Clinic name when the row belongs to another clinic than the active one, else null. */

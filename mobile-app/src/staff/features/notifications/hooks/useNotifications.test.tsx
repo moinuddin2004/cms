@@ -141,6 +141,22 @@ describe('useMarkRead', () => {
   });
 });
 
+describe('useMarkRead invalidation', () => {
+  it('refreshes list + unread count but not prefs', async () => {
+    mockApi.markNotificationRead.mockResolvedValue(undefined);
+    const { client, wrapper } = seededClient();
+    const spy = jest.spyOn(client, 'invalidateQueries');
+    const { result } = await renderHook(() => useMarkRead(), { wrapper });
+    await act(async () => {
+      await result.current.mutateAsync('a');
+    });
+    const keys = spy.mock.calls.map((c) => (c[0] as { queryKey: unknown }).queryKey);
+    expect(keys).toContainEqual(notificationKeys.list());
+    expect(keys).toContainEqual(notificationKeys.unreadCount());
+    expect(keys).not.toContainEqual(notificationKeys.all);
+  });
+});
+
 describe('useMarkAllRead', () => {
   it('invalidates every notifications query on success', async () => {
     mockApi.markAllNotificationsRead.mockResolvedValue({ updated: 3 });

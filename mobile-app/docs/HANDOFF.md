@@ -2340,3 +2340,30 @@ none left. `expo-clipboard ~58.0.4` was added by the team lead/user for this car
 ### Questions for the architect
 - None.
 
+
+---
+## M1-13 — Notifications inbox and bell (S-07), UI  ·  2026-11-15  ·  Claude Sonnet 5.5
+Branch: `claude/heuristic-torvalds-98bdbd` (card name `mobile/M1-13-notifications`, based on develop 1ab8e4f)   Commit(s): see `git log`   Status set to: review
+
+### Done
+- Step 4 `pages/NotificationsPage.tsx` + route `(staff)/(main)/notifications.tsx`: FlashList inbox (`NotificationRow`: unread = bold + dot), "Mark all as read" header icon (disabled at 0 unread, pending spinner), tap → optimistic mark read → `resolveStaffLink` → `router.navigate` (unknown link: stay). States: skeleton, error + retry, "You're all caught up" empty, refresh-error banner, load-more error/spinner footer, pull to refresh. No filters on this screen, so no "no results" state.
+- Other-clinic rows show the clinic name; tapping one with a known link asks "Switch to <clinic>?" (`ConfirmDialog`), then `useSwitchLocation` (M1-02 flow, deep import of its hook, no cycle) to that clinic's primary/first location, then navigates. A failed switch keeps the dialog open. Helper `lib/clinic-switch-target.ts`.
+- Step 5 `NotificationBell` now self-wired (`useUnreadCount`, push `/notifications`); presentational `NotificationBellButton` (badge hidden at 0, 99+ cap). All existing header call sites (`<NotificationBell />`) pick it up with no edits to other features.
+- Step 6 `NotificationSoundRow` in More (Switch, optimistic via `useSetNotificationSound`, disabled until prefs load).
+- Nits: link-router UUID regex (+ `/patients/new` and non-UUID → null tests); `useMarkRead` invalidates list + unread-count only (test); `QueueTabPage` honours `params.segment` over the saved pref when the user has both permissions, tab switch updates the param; clinic-clock comment in `notification-row.ts`.
+
+### Files
+- Created: `notifications/pages/NotificationsPage(.test).tsx`, `components/NotificationRow|NotificationSoundRow.tsx`, `NotificationBell.test.tsx`, `lib/clinic-switch-target(.test).ts`, route file.
+- Modified: `NotificationBell.tsx`, `index.ts`, `useNotifications.ts(+test)`, `notification-row.ts`, `staff/lib/link-router.ts(+test)`, `MorePage.tsx` (one row), `QueueTabPage.tsx` (segment param only), PROGRESS.
+
+### Install commands for the user
+none.
+
+### Verification
+- `npm run typecheck` clean (router types regenerated with `CI=1 npx expo start --offline`) · eslint 0 errors (4 old warnings) · `lint:fences` ok · full jest 83 suites / 628 tests green (`npx jest -i --forceExit`).
+- NO DEVICE: realtime badge increment (acceptance) is covered only by the existing invalidation unit tests; live check, screenshots, the switch-clinic flow and the sound switch on a phone join gate M0-D.
+
+### Deviations / notes
+- Clinic switch picks the org's primary location (else first); the card does not say which.
+- `QueueTabPage` users with only one queue permission ignore the param (they have one segment).
+- Tapping a push/notification link to `/queue` with no segment is unaffected.

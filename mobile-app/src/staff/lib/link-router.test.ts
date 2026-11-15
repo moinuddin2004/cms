@@ -1,5 +1,7 @@
 import { resolveStaffLink } from './link-router';
 
+const ID = '3f2b8c1e-9d4a-4e6b-8a7c-1b2d3e4f5a6b';
+
 describe('resolveStaffLink', () => {
   const cases: [string | null | undefined, ReturnType<typeof resolveStaffLink>][] = [
     ['/queue/doctor', { pathname: '/queue', params: { segment: 'doctor' } }],
@@ -7,8 +9,10 @@ describe('resolveStaffLink', () => {
     ['/queue/doctor?x=1#top', { pathname: '/queue', params: { segment: 'doctor' } }],
     ['/queue', { pathname: '/queue', params: { segment: 'board' } }],
     ['/appointments', { pathname: '/queue', params: { segment: 'board' } }],
-    ['/patients/abc-123', { pathname: '/patients/abc-123' }],
-    ['/patients/abc-123?tab=rx', { pathname: '/patients/abc-123' }],
+    [`/patients/${ID}`, { pathname: `/patients/${ID}` }],
+    [`/patients/${ID}?tab=rx`, { pathname: `/patients/${ID}` }],
+    ['/patients/new', null],
+    ['/patients/abc-123', null],
     ['/patients', null],
     ['/patients/a/b', null],
     ['/patients/../etc', null],

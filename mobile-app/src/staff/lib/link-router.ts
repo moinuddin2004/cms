@@ -4,7 +4,7 @@ export interface StaffRoute {
   params?: Record<string, string>;
 }
 
-const PATIENT_ID = /^\/patients\/([A-Za-z0-9-]+)$/;
+const PATIENT_ID = /^\/patients\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i;
 
 /**
  * Maps a notification `link` (set by the backend) to an app route, or `null` when the app has no

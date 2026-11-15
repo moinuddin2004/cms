@@ -8,7 +8,7 @@ import { EmptyState, ListRow, Screen, ScreenHeader, Spinner } from '@/core/compo
 import { switchSpace } from '@/core/space/switch-space';
 import { Icon } from '@/core/ui/icon';
 import { AccessErrorState, useAccess } from '@/staff/features/access';
-import { NotificationBell } from '@/staff/features/notifications';
+import { NotificationBell, NotificationSoundRow } from '@/staff/features/notifications';
 import { visibleTabs } from '@/staff/navigation';
 import { activeOrganization, useStaffAuthStore } from '@/staff/store/useStaffAuthStore';
 
@@ -61,6 +61,7 @@ export function MorePage() {
             onPress={() => setSheetOpen(true)}
           />
         ) : null}
+        <NotificationSoundRow />
         <ListRow
           leading={<Icon as={UserRound} className="text-muted-foreground size-5" />}
           title="Switch to patient space"
