@@ -240,6 +240,7 @@ describe('patient read DTOs expose only allow-listed fields', () => {
       profileId: 'prof-1',
       number: 'INV-1',
       issuedAt: '2026-11-01T05:00:00.000Z',
+      timezone: 'Asia/Karachi',
       totalMinor: 150050,
       paidMinor: 50000,
       balanceMinor: 100050,

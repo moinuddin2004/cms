@@ -6,8 +6,10 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { BackButton } from '@/components/shared/BackButton'
 import { TooltipButton } from '@/components/shared/TooltipButton'
 import { usePageTitle } from '@/hooks/useBackNavigation'
-import { History, Phone, Mail } from 'lucide-react'
+import { History, Phone, Mail, Smartphone } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { PatientAuditSheet } from './PatientAuditSheet'
+import { AppLinkDialog } from './AppLinkDialog'
 import type { Patient } from '../types'
 
 interface PatientDetailHeaderProps {
@@ -88,8 +90,34 @@ export function PatientDetailHeader({ patient }: PatientDetailHeaderProps) {
         </div>
       </div>
 
+      <AppLinkButton patient={patient} />
       <PatientAuditButton patient={patient} />
     </div>
+  )
+}
+
+/** Opens the QR claim dialog that links the patient's app account (M2-05). */
+function AppLinkButton({ patient }: { patient: Patient }) {
+  const canLink = useAccess().can('patients.app_link.manage')
+  const [open, setOpen] = useState(false)
+  if (!canLink) return null
+  return (
+    <>
+      <Button
+        variant="outline"
+        size="sm"
+        className="shrink-0 gap-1.5"
+        onClick={() => setOpen(true)}
+      >
+        <Smartphone size={14} /> Link app
+      </Button>
+      <AppLinkDialog
+        patientId={patient.id}
+        patientName={patient.fullName}
+        open={open}
+        onOpenChange={setOpen}
+      />
+    </>
   )
 }
 

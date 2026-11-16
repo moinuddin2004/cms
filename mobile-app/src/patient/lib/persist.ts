@@ -7,10 +7,14 @@ export const PERSIST_MAX_AGE = 24 * 60 * 60 * 1000;
 /**
  * Query roots the patient space may write to its encrypted cache (docs/02 §9:
  * links, profiles, today feed, medications, upcoming appointments, prescription
- * list). Empty in M2-06 — no data queries exist yet; each feature card adds its
+ * list). Each feature card adds its
  * root here together with the query.
  */
-const PERSISTABLE_ROOTS: ReadonlySet<string> = new Set<string>();
+const PERSISTABLE_ROOTS: ReadonlySet<string> = new Set<string>([
+  // M2-09: UPCOMING appointments + prescription list (docs/02 sec. 9). Past appointments, visits, details and bills are online-only.
+  'records-appointments-upcoming',
+  'records-prescriptions',
+]);
 
 export function isPersistableKey(key: QueryKey): boolean {
   return typeof key[0] === 'string' && PERSISTABLE_ROOTS.has(key[0]);

@@ -23,6 +23,7 @@ import { PrescriptionPresetController } from './controllers/prescription-preset.
 import { DoctorSignatureController } from './controllers/doctor-signature.controller';
 import { PrescriptionController } from './controllers/prescription.controller';
 
+import { PrescriptionEvents } from './events/prescription-events';
 import { StorageModule } from 'src/common/storage/storage.module';
 
 @Module({
@@ -54,9 +55,11 @@ import { StorageModule } from 'src/common/storage/storage.module';
     PrescriptionService,
     PrescriptionPdfService,
     PrescriptionHistoryService,
+    PrescriptionEvents,
   ],
   exports: [
     PrescriptionService,
+    PrescriptionEvents,
     PrescriptionPdfService,
     MedicineDirectoryService,
   ],

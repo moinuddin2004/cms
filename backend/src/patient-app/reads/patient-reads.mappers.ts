@@ -202,6 +202,7 @@ export function mapInvoice(
     profileId,
     number: row.invoiceNumber,
     issuedAt: iso(row.issuedAt)!,
+    timezone: row.locationTimezone,
     totalMinor: toMinor(row.totalAmount),
     paidMinor: toMinor(row.paidAmount),
     balanceMinor: toMinor(row.balanceDue),
