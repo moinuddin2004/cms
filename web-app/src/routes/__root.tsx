@@ -43,6 +43,9 @@ const OPEN_PATHS = [
   '/lab-link/',
   '/verify-email',
   '/join/',
+  '/privacy', // legal pages: public, for the store listing (M4-04)
+  '/terms',
+  '/delete-account',
   '/c/', // patient app claim landing (the token is the credential)
   '/v/', // patient visit state (the token is the credential)
   '/lab-email/', // a lab confirms its contact address (often no login)
