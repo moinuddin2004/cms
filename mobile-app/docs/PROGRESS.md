@@ -72,7 +72,7 @@
 | M2-04 … M2-16 (rest) | Patient core | — | — | see 10 | spec | | | |
 | M3-01 | Medication schedules from finalized prescriptions (parsers + event handler) | BE | L | M2-08 | done | Sonnet session | 2026-11-15 | rework-1 |
 | M3-02 | Patient medications endpoints (list, patch, dose events) | BE | M | M3-01 | done | Sonnet session (with M3-01) | 2026-11-15 | rework-1 |
-| M3-03 | Reminder engine | MOB | L | M3-02 | review | claude/m3-03-reminders-033e68 | Sonnet session | 2026-11-16 | rework-1 |
+| M3-03 | Reminder engine | MOB | L | M3-02 | done | Sonnet session | 2026-11-15 | rework-1 | rework-1 |
 | M3-04 | Today screen P-02 | MOB | L | M3-03 | review | claude/m3-03-reminders-033e68 | Sonnet session | 2026-11-16 | rework-1 |
 | M3-05 | Patient realtime gateway + queue/active + visit tokens | BE | M | M2-03 | done | Sonnet session | 2026-11-15 | rework-1 |
 | M3-06 … M3-09 | Patient hook | — | — | see 10 | spec | | | |
