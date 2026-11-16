@@ -17,6 +17,7 @@ import type {
   PatientVisit,
 } from '../types/records.types';
 import { ClinicChip } from './ClinicChip';
+import { ConfirmAppointment } from './ConfirmAppointment';
 import { RecordCard } from './RecordCard';
 
 const APPOINTMENT_STATUSES = new Set([
@@ -56,6 +57,7 @@ export function AppointmentCard({
       ) : null}
       <ClinicChip clinic={item.clinic} place={item.location.name} />
       <StatusBadge tone={appointmentTone(item.status)} label={label} />
+      <ConfirmAppointment appointment={item} compact />
     </RecordCard>
   );
 }

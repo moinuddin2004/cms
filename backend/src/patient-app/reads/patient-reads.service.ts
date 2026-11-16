@@ -13,6 +13,7 @@ import { PatientAccessLogService } from './patient-access-log.service';
 import { PatientClinicsService, VisibleScope } from './patient-clinics.service';
 import {
   AppointmentRow,
+  CONFIRMABLE_STATUSES,
   InvoiceRow,
   mapAppointment,
   mapInvoice,
@@ -140,6 +141,7 @@ export class PatientReadsService {
         'a.end_time AS "endTime"',
         'a.status AS "status"',
         'a.type AS "type"',
+        'a.patient_confirmed_at AS "patientConfirmedAt"',
         'd.full_name AS "doctorName"',
         ...LOCATION_COLUMNS,
       ])
@@ -156,10 +158,22 @@ export class PatientReadsService {
       .getRawMany<AppointmentRow & Scoped>();
 
     const profileOf = this.profileLookup(scope.ctx, q.profileId);
+    const now = this.clock.now().getTime();
+    const writable = new Set(
+      scope.ctx.links
+        .filter((l) => l.status === 'active' && l.patientAppEnabled)
+        .map((l) => `${l.organizationId}:${l.patientId}`),
+    );
     const out = rows.flatMap((r) => {
       const profileId = profileOf(r);
       const clinic = scope.clinics.get(r.organizationId)?.ref;
-      return profileId && clinic ? [mapAppointment(r, profileId, clinic)] : [];
+      if (!profileId || !clinic) return [];
+      const canConfirm =
+        clinic.clinicStatus === 'active' &&
+        writable.has(`${r.organizationId}:${r.patientId}`) &&
+        CONFIRMABLE_STATUSES.includes(r.status) &&
+        new Date(r.startTime).getTime() > now;
+      return [mapAppointment(r, profileId, clinic, canConfirm)];
     });
     await this.accessLog.record(
       ctx.accountId,

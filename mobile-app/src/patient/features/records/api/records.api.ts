@@ -51,6 +51,16 @@ export async function fetchPrescription(id: string): Promise<PatientPrescription
   return res.data.data;
 }
 
+/** `POST /patient-api/appointments/:id/confirm` (idempotent; 409 once it is past / cancelled). */
+export async function confirmAppointment(
+  id: string,
+): Promise<{ id: string; patientConfirmedAt: string }> {
+  const res = await patientApi.post<ApiResponse<{ id: string; patientConfirmedAt: string }>>(
+    `/patient-api/appointments/${encodeURIComponent(id)}/confirm`,
+  );
+  return res.data.data;
+}
+
 /** `GET /patient-api/billing/summary` — only clinics with billing shown. */
 export async function fetchBilling(profileId: string | null): Promise<BillingClinic[]> {
   const res = await patientApi.get<ApiResponse<BillingClinic[]>>('/patient-api/billing/summary', {

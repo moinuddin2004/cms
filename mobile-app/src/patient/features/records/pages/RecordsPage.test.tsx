@@ -41,6 +41,10 @@ jest.mock('@/core/components/overlays/sheet-parts', () => ({
 jest.mock('@/core/components/overlays/FormSheet', () => ({ FormSheet: () => null }));
 jest.mock('@/core/components/overlays/ActionSheet', () => ({ ActionSheet: () => null }));
 jest.mock('@/core/components/overlays/ConfirmDialog', () => ({ ConfirmDialog: () => null }));
+jest.mock('@/patient/features/contact', () => ({ ContactButton: () => null }));
+jest.mock('../hooks/useConfirmAppointment', () => ({
+  useConfirmAppointment: () => ({ isPending: false, mutate: jest.fn() }),
+}));
 const mockPush = jest.fn();
 jest.mock('expo-router', () => ({
   useRouter: () => ({ push: mockPush, back: jest.fn(), canGoBack: () => false }),

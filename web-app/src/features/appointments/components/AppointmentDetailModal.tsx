@@ -170,6 +170,11 @@ function DetailBody({
           </div>
           <div className="flex flex-wrap gap-1.5">
             {appt.isEmergency && <Badge variant="destructive">Emergency</Badge>}
+            {appt.patientConfirmedAt && (
+              <Badge variant="secondary" data-testid="patient-confirmed">
+                Confirmed by patient
+              </Badge>
+            )}
             <Badge variant="outline" className="capitalize">
               {appt.type.replace('_', ' ')}
             </Badge>

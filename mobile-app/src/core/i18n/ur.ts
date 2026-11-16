@@ -210,6 +210,26 @@ export const ur: Messages = {
       failed: "We couldn't delete your account. Check your connection and try again.", // TODO(ur)
     },
   },
+  contact: {
+    open: 'Contact and emergency', // TODO(ur)
+    title: 'Contact and emergency', // TODO(ur)
+    close: 'Close contact sheet', // TODO(ur)
+    clinics: 'Your clinics', // TODO(ur)
+    none: 'No contact details yet for your linked clinics.', // TODO(ur)
+    loadFailed: "We couldn't load your clinics", // TODO(ur)
+    call: 'Call', // TODO(ur)
+    whatsapp: 'WhatsApp',
+    directions: 'Directions', // TODO(ur)
+    callA11y: 'Call {name}', // TODO(ur)
+    whatsappA11y: 'WhatsApp {name}', // TODO(ur)
+    directionsA11y: 'Directions to {name}', // TODO(ur)
+    openFailed: 'Could not open this link', // TODO(ur)
+    emergency: {
+      title: 'Emergency', // TODO(ur)
+      body: 'In an emergency call your local emergency number first, not your clinic.', // TODO(ur)
+      default: 'Emergency services', // TODO(ur)
+    },
+  },
   records: {
     title: 'ریکارڈ',
     tab: 'ریکارڈ',
@@ -274,6 +294,11 @@ export const ur: Messages = {
       type: 'Type', // TODO(ur)
       callClinic: 'Call clinic', // TODO(ur)
       directions: 'Directions', // TODO(ur)
+      confirm: 'Confirm appointment', // TODO(ur)
+      confirming: 'Confirming…', // TODO(ur)
+      confirmed: 'You confirmed this appointment', // TODO(ur)
+      confirmFailed: 'Could not confirm. Please try again.', // TODO(ur)
+      confirmGone: 'This appointment can no longer be confirmed.', // TODO(ur)
     },
     visit: {
       followUp: 'Follow-up on {date}', // TODO(ur)

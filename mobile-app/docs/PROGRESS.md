@@ -72,7 +72,9 @@
 | M2-04 … M2-16 (rest) | Patient core | — | — | see 10 | spec | | | |
 | M3-01 | Medication schedules from finalized prescriptions (parsers + event handler) | BE | L | M2-08 | done | Sonnet session | 2026-11-15 | rework-1 |
 | M3-02 | Patient medications endpoints (list, patch, dose events) | BE | M | M3-01 | review | Sonnet session (with M3-01) | 2026-11-15 | |
-| M3-03 … M3-09 | Patient hook | — | — | see 10 | spec | | | |
+| M3-08 | Appointment confirm (`patient_confirmed_at`) | BE+MOB+WEB | S | M2-09 | review | Sonnet session | 2026-11-16 | |
+| M3-09 | Emergency/contact sheet (P-07) | MOB | S | M2-09 | review | Sonnet session (with M3-08) | 2026-11-16 | |
+| M3-03 … M3-07 | Patient hook | — | — | see 10 | spec | | | |
 | M4-01 … M4-06 | Release | — | — | see 10 | spec | | | |
 
 ## Gates

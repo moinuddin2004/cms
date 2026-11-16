@@ -3068,3 +3068,34 @@ Branch: claude/m2-13-product-events-f86696 - Status stays: review
 
 Verification: backend build clean, product-events + patient-app + access specs green (260 tests); mobile lint 0 errors (4 old warnings), lint:fences ok, jest on core/analytics + staff/patient auth + queue + lib + shell green (43 suites). tsc: only the known `@/global.css` message (expo-env.d.ts not generated; I did not run expo start - my attempt to kill its node process was refused by the sandbox). Full-suite runs were not completed on this memory-starved machine.
 Note: my first pass re-encoded three existing files through PowerShell (mojibake); restored from HEAD and re-edited byte-safely - the final diff touches only the intended lines.
+
+
+---
+## M3-08 + M3-09 — Appointment confirm, contact/emergency sheet  ·  2026-11-16  ·  Sonnet 5.5
+Branch: claude/m3-08-confirm-contact-1551df · Status: review
+
+### M3-08 (BE + MOB + WEB)
+- **Schema:** `appointments.patient_confirmed_at timestamptz` — entity, `schema/02_tables.sql`, `changes/2026-11-16_appointment_patient_confirmed.sql` (idempotent). Appointment `status` is NOT changed by a patient confirm (staff status flow untouched).
+- **Backend:** `POST /patient-api/appointments/:id/confirm` (`patient-app/appointments/`), rate-limited, 200 with `{ id, patientConfirmedAt }`. Scoped with `linkedPatientWhere` over ACTIVE, app-enabled links of ACTIVE clinics (frozen link / other family / other clinic = 404); row lock; idempotent (second call returns the first timestamp, no write, no audit); 409 `APPOINTMENT_NOT_CONFIRMABLE` for past / cancelled / checked-in / completed / no-show; audited (`audit_logs`, entity `appointment`, actor system, `confirmedBy: patient_app`).
+- **Read API:** `GET /patient-api/appointments` now returns the real `patientConfirmedAt` and `canConfirm` (future, scheduled|confirmed, link active + app enabled, clinic active).
+- **Mobile:** `records/components/ConfirmAppointment.tsx` on appointment cards (compact) and the detail page; `useConfirmAppointment` invalidates both appointment lists, toasts a calm error (409 → "can no longer be confirmed", refreshes). Confirmed state shows "You confirmed this appointment".
+- **Web (staff):** "Confirmed by patient" badge on the appointment detail modal and calendar card, and a timeline step in the patient history appointment sheet (`patientConfirmedAt` added to the `Appointment` type).
+
+### M3-09 (MOB)
+- New feature `src/patient/features/contact/`: `ContactSheet` (bottom `ReadOnlySheet`), `ContactButton` (header icon, "Contact and emergency"). Lists one card per linked (clinic, location) from `useLinks()` — Call (`tel:`), WhatsApp (`wa.me`, only if the API sends `whatsapp`), Directions (maps search on the address). Emergency block on top.
+- **Data check:** the patient read/link API carries `location.phone` and `location.address`; **`whatsapp` is always null** because `locations` has no WhatsApp column — the button appears automatically once the backend fills it (no change needed in the app).
+- **Emergency numbers:** configured with `EXPO_PUBLIC_EMERGENCY_NUMBERS` (`Label:number;Label:number`, e.g. `Ambulance:1122;Police:15`). Default if unset: **112** (documented in `lib/emergency-numbers.ts`; the GSM-wide number, no country assumption beyond that).
+- **Entry points:** Records header (done). **For the Today session (M3-03/04):** put `<ContactButton />` from `@/patient/features/contact` in Today's `ScreenHeader actions`; I did not touch `features/today` or `features/medications`.
+
+### Install commands for the user
+none
+
+### Verification
+- Backend: `nest build` clean; full backend jest 117 suites / 1320 tests green (new `patient-appointments.service.spec.ts`: scope, idempotent, 404, 409 x3; reads spec covers `canConfirm`).
+- Mobile: eslint 0 errors (4 old warnings) · `lint:fences` ok · new `contact/lib/contacts.test.ts`. tsc: only the known `@/global.css` message. Full jest: 131/132 suites on the first run, the one failure (RecordsPage.test: new contact import) fixed by mocking; records + contact suites re-run green.
+- Web: `tsc` has no errors in touched files (other old ones exist). **`vite build` / `vitest` could not start**: `@rolldown/binding-*` native module missing in the linked web-app node_modules (environment, needs the user's reinstall) — web changes are unverified by tests/build.
+
+### Deviations / notes
+- No component test for ConfirmAppointment / ContactSheet (needs the sheet + query mocks; logic is in tested pure helpers).
+- Not run against Postgres; the confirm SQL is covered by mocks only.
+

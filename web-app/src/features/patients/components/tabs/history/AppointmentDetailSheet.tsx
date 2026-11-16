@@ -70,6 +70,7 @@ function Body({
   const steps = appt
     ? [
         { label: 'Booked', at: appt.createdAt },
+        { label: 'Confirmed by patient', at: appt.patientConfirmedAt },
         { label: 'Checked in', at: appt.checkedInAt },
         { label: 'Completed', at: appt.completedAt },
         { label: 'Cancelled', at: appt.cancelledAt, tone: 'danger' as const },

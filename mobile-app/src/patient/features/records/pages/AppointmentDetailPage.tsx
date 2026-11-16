@@ -16,6 +16,7 @@ import { Icon } from '@/core/ui/icon';
 import { Text } from '@/core/ui/text';
 
 import { ClinicChip } from '../components/ClinicChip';
+import { ConfirmAppointment } from '../components/ConfirmAppointment';
 import { useAppointmentStatusLabel } from '../components/RecordCards';
 import { useRecordAppointment } from '../hooks/useRecords';
 import { appointmentTone, appointmentTypeKey, formatRecordTime } from '../lib/records-format';
@@ -91,6 +92,8 @@ export function AppointmentDetailPage({ id }: { id: string }) {
           }
         />
       ) : null}
+
+      <ConfirmAppointment appointment={appointment} />
 
       {location.phone ? (
         <Button size="lg" onPress={() => void open(`tel:${location.phone}`, failed)}>
