@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { DataSource } from 'typeorm';
 import { AuthorizationService } from 'src/auth/services/authorization.service';
 import { PatientSessionService } from 'src/patient-auth/patient-session.service';
+import { PatientSessionEvents } from 'src/patient-auth/patient-session-events';
 import { PatientTokenService } from 'src/patient-auth/patient-token.service';
 import { QueueGateway } from 'src/queue/realtime/queue.gateway';
 import { PatientQueueService } from '../queue/patient-queue.service';
@@ -99,6 +100,7 @@ describe('socket auth — both directions', () => {
 
 describe('PatientRealtimeGateway — rooms and fan-out', () => {
   let queue: { subscribableSession: jest.Mock };
+  let isAlive: jest.Mock;
   let gateway: PatientRealtimeGateway;
   let emitted: { room: string; event: string; payload: unknown }[];
   let roomSizes: Map<string, Set<string>>;
@@ -106,9 +108,10 @@ describe('PatientRealtimeGateway — rooms and fan-out', () => {
 
   beforeEach(() => {
     queue = { subscribableSession: jest.fn() };
+    isAlive = jest.fn().mockResolvedValue(true);
     gateway = new PatientRealtimeGateway(
       {} as PatientTokenService,
-      {} as PatientSessionService,
+      { isAlive } as unknown as PatientSessionService,
       queue as unknown as PatientQueueService,
     );
     emitted = [];
@@ -127,6 +130,7 @@ describe('PatientRealtimeGateway — rooms and fan-out', () => {
   const authed = (accountId = 'acct-1') => {
     const s = fakeSocket();
     s.data.accountId = accountId;
+    s.data.sessionId = 'sess-1';
     return s;
   };
 
@@ -260,5 +264,95 @@ describe('PatientRealtimeGateway — rooms and fan-out', () => {
       kinds: ['links'],
     });
     expect(spy).toHaveBeenCalledWith('acct-1');
+  });
+
+  it('re-checks the session on every subscribe and drops the socket when it ended', async () => {
+    isAlive.mockResolvedValue(false);
+    const s = authed();
+    const r = await gateway.subscribe(s as never, { room: `entry:${E1}` });
+    expect(r).toMatchObject({ ok: false });
+    expect(isAlive).toHaveBeenCalledWith('sess-1', 'acct-1');
+    expect(s.disconnect).toHaveBeenCalledWith(true);
+    expect(queue.subscribableSession).not.toHaveBeenCalled();
+  });
+
+  it('disconnects only the revoked session of an account, or all on account deletion', async () => {
+    const a = { ...authed(), data: { sessionId: 'sess-1' }, disconnect: jest.fn(), emit: jest.fn() };
+    const b = { ...authed(), data: { sessionId: 'sess-2' }, disconnect: jest.fn(), emit: jest.fn() };
+    remoteSockets = [a, b] as never;
+    await gateway.disconnectAccount('acct-1', 'sess-1');
+    expect(a.disconnect).toHaveBeenCalledWith(true);
+    expect(b.disconnect).not.toHaveBeenCalled();
+    await gateway.disconnectAccount('acct-1');
+    expect(b.disconnect).toHaveBeenCalledWith(true);
+  });
+
+  it('keeps at most 5 sockets per account: the oldest are disconnected', async () => {
+    const mk = (n: number) => ({
+      ...fakeSocket(),
+      data: { connectedAt: n } as Record<string, unknown>,
+    });
+    const all = [3, 1, 6, 2, 5, 4, 7].map(mk);
+    remoteSockets = all as never;
+    await (gateway as unknown as { enforceCap(a: string): Promise<void> }).enforceCap('acct-1');
+    const dropped = all.filter((s) => s.disconnect.mock.calls.length).map((s) => s.data.connectedAt);
+    expect(dropped.sort()).toEqual([1, 2]);
+  });
+});
+
+describe('PatientRealtimeGateway — lifetime and availability', () => {
+  const jwt = new JwtService({});
+  const tokens = new PatientTokenService(jwt, PATIENT_SECRET);
+  const sessions = { isAlive: jest.fn().mockResolvedValue(true) };
+
+  afterEach(() => jest.useRealTimers());
+
+  it('disconnects the socket when its access token expires', async () => {
+    const s = fakeSocket(await tokens.sign('acct-1', 'sess-1')); // 15 min token
+    jest.useFakeTimers({ doNotFake: ['nextTick', 'setImmediate'] });
+    const gateway = new PatientRealtimeGateway(
+      tokens,
+      sessions as unknown as PatientSessionService,
+      {} as PatientQueueService,
+    );
+    await gateway.handleConnection(s as never);
+    expect(s.disconnect).not.toHaveBeenCalled();
+    jest.advanceTimersByTime(14 * 60_000);
+    expect(s.disconnect).not.toHaveBeenCalled();
+    jest.advanceTimersByTime(2 * 60_000);
+    expect(s.emit).toHaveBeenCalledWith('auth_error', expect.anything());
+    expect(s.disconnect).toHaveBeenCalledWith(true);
+    gateway.handleDisconnect(s as never);
+  });
+
+  it('a revoked-session event reaches the gateway and drops that session', async () => {
+    const events = new PatientSessionEvents();
+    const gateway = new PatientRealtimeGateway(
+      tokens,
+      sessions as unknown as PatientSessionService,
+      {} as PatientQueueService,
+      events,
+    );
+    const spy = jest.spyOn(gateway, 'disconnectAccount').mockResolvedValue();
+    gateway.onModuleInit();
+    events.revoked({ accountId: 'acct-1', sessionId: 'sess-1' });
+    expect(spy).toHaveBeenCalledWith('acct-1', 'sess-1');
+    gateway.onModuleDestroy();
+    events.revoked({ accountId: 'acct-1' });
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it('an unavailable bus sends "unavailable", not auth_error, and keeps no room', async () => {
+    const gateway = new PatientRealtimeGateway(
+      tokens,
+      sessions as unknown as PatientSessionService,
+      {} as PatientQueueService,
+    );
+    gateway.setAvailable(false);
+    const s = fakeSocket(await tokens.sign('acct-1', 'sess-1'));
+    await gateway.handleConnection(s as never);
+    expect(s.emit).toHaveBeenCalledWith('unavailable', expect.anything());
+    expect(s.emit).not.toHaveBeenCalledWith('auth_error', expect.anything());
+    expect(s.join).not.toHaveBeenCalled();
   });
 });

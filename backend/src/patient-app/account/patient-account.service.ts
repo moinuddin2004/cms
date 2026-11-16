@@ -1,9 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { ActorSide, AuditAction } from 'src/common/audit/audit.enums';
 import { AuditService } from 'src/common/audit/audit.service';
 import { sqlRows } from 'src/common/database/sql';
+import { PatientSessionEvents } from 'src/patient-auth/patient-session-events';
 import type { PatientContext } from '../context/patient-context';
 import {
   LockedLink,
@@ -34,6 +35,7 @@ export class PatientAccountService {
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly audit: AuditService,
+    @Optional() private readonly sessionEvents?: PatientSessionEvents,
   ) {}
 
   async deleteAccount(ctx: PatientContext): Promise<{ deleted: true }> {
@@ -122,6 +124,7 @@ export class PatientAccountService {
         },
       );
     });
+    this.sessionEvents?.revoked({ accountId: ctx.accountId });
     return { deleted: true };
   }
 }
