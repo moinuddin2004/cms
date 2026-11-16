@@ -14,6 +14,9 @@ const PERSISTABLE_ROOTS: ReadonlySet<string> = new Set<string>([
   // M2-09: UPCOMING appointments + prescription list (docs/02 sec. 9). Past appointments, visits, details and bills are online-only.
   'records-appointments-upcoming',
   'records-prescriptions',
+  // M3-03: medicine schedules + dose events — the reminder plan and Today must work offline.
+  'medications',
+  'dose-events',
 ]);
 
 export function isPersistableKey(key: QueryKey): boolean {

@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router/js-tabs';
-import { FileText, House } from 'lucide-react-native';
+import { CalendarCheck, FileText, House } from 'lucide-react-native';
 import { useCSSVariable } from 'uniwind';
 
 import { useT } from '@/core/i18n';
@@ -34,6 +34,14 @@ export function PatientTabs() {
           title: t('records.homeTab'),
           tabBarIcon: ({ color }) => <House size={26} color={color} />,
           tabBarAccessibilityLabel: t('records.homeTab'),
+        }}
+      />
+      <Tabs.Screen
+        name="today"
+        options={{
+          title: t('today.title'),
+          tabBarIcon: ({ color }) => <CalendarCheck size={26} color={color} />,
+          tabBarAccessibilityLabel: t('today.title'),
         }}
       />
       <Tabs.Screen

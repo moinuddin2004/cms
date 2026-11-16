@@ -1,5 +1,6 @@
 import { Redirect, Stack } from 'expo-router';
 
+import { ReminderSync } from '@/patient/features/medications';
 import { freshPendingToken, usePendingClaimStore } from '@/core/claim/usePendingClaimStore';
 
 /**
@@ -13,6 +14,7 @@ export function PatientMainLayout() {
 
   return (
     <>
+      <ReminderSync />
       <Stack screenOptions={{ headerShown: false }} />
       {hasPendingClaim ? <Redirect href="/claim/confirm" /> : null}
     </>
