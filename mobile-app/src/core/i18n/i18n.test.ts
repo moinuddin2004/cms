@@ -69,6 +69,22 @@ describe('i18n', () => {
   // `// TODO(ur)` AND list its dotted key here so the gap is visible. Remove it from here when done.
   const UR_TODO_ALLOW_LIST: readonly string[] = [];
 
+  it('every Urdu string has Urdu script unless its key is allow-listed', () => {
+    const LATIN_OK = new Set([
+      'auth.signIn.emailPlaceholder',
+      'auth.verify.codePlaceholder',
+      'account.delete.typePlaceholder',
+    ]);
+    const flat = (o: object, prefix = ''): [string, string][] =>
+      Object.entries(o).flatMap(([k, v]): [string, string][] =>
+        typeof v === 'string' ? [[prefix + k, v]] : flat(v as object, `${prefix}${k}.`),
+      );
+    const bad = flat(ur)
+      .filter(([k, v]) => !LATIN_OK.has(k) && !/[؀-ۿ]/.test(v))
+      .map(([k]) => k);
+    expect(bad).toEqual([]);
+  });
+
   it('has no untranslated TODO(ur) markers outside the allow-list', () => {
     const source = readFileSync(join(__dirname, 'ur.ts'), 'utf8');
     const markers = source.split('\n').filter((l) => l.includes('// TODO(ur)') && !l.trimStart().startsWith('*'));

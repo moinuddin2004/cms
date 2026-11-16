@@ -16,6 +16,7 @@ export {
   URDU_FONT_BOLD,
   URDU_FONT_REGULAR,
   URDU_LEADING_CLASS,
+  UrduFontScope,
   useUrduFont,
   type UrduFont,
 } from './urdu-font';

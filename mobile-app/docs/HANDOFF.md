@@ -3144,3 +3144,22 @@ Branch: claude/m3-05-followup (from mobile/develop)   Status: review
 ### Verification
 tsc clean; patient-app/auth/queue + rest of the backend unit suite green in chunks (90 + 32 suites, 1,345 tests). New specs: gateway lifetime/cap/unavailable, session events, publisher isolation.
 Mobile note: handle `unavailable` (poll, keep session) separately from `auth_error` (refresh token, reconnect).
+
+
+---
+## Rework M4-01 #1 - 2026-11-16
+Branch: claude/m4-01-urdu-46c4ef - Status stays: review
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| merge | mobile/develop merged (HANDOFF conflict: kept both sides; PROGRESS clean) | done |
+| 1 | Urdu font leaked to staff Text | `UrduFontScope` (core/i18n) wraps the patient space in `PatientProviders`; `useUrduFont()` is inactive outside it. `text.test.tsx`: staff Text unaffected under `ur`. Device check: portals/sheets that render outside the provider tree would stay on the system font. |
+| 2 | load during render | load now starts in `UrduFontScope`'s `useEffect` |
+| 3 | caller `style` dropped Urdu font | `style` destructured and merged after `{...props}`; test |
+| 4 | Latin-only Urdu values | new test, allow-list = 3 placeholders |
+| 5 | wording | suspended/clinicPaused, howLong, consent, relOther updated |
+| 6 | no bold weight | `bold` falls back to the regular family |
+
+Also fixed a bug of mine: the bold-detection regex contained a stray backspace char and never matched (found via the new test).
+Note: `@expo-google-fonts/noto-nastaliq-urdu` is now present in node_modules but NOT in package.json - the install command in the previous entry is still needed.
+Verification: tsc clean · eslint 0 errors · lint:fences ok · core/i18n + core/ui jest green; the full `src/core src/patient src/staff` run exceeded the tool timeout on this machine - lead to re-run.

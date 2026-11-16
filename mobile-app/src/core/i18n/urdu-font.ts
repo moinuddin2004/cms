@@ -1,7 +1,14 @@
-import * as Font from 'expo-font';
-import { useSyncExternalStore } from 'react';
+import * as Font from "expo-font";
+import {
+  createContext,
+  createElement,
+  useContext,
+  useEffect,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 
-import { useT, type Locale } from './i18n';
+import { useT, type Locale } from "./i18n";
 
 /**
  * Noto Nastaliq Urdu for the patient space when the language is Urdu (DECISIONS O-06).
@@ -12,11 +19,11 @@ import { useT, type Locale } from './i18n';
  * font, so the app builds and runs either way. Once installed nothing else needs to change.
  */
 
-export const URDU_FONT_REGULAR = 'NotoNastaliqUrdu_400Regular';
-export const URDU_FONT_BOLD = 'NotoNastaliqUrdu_700Bold';
+export const URDU_FONT_REGULAR = "NotoNastaliqUrdu_400Regular";
+export const URDU_FONT_BOLD = "NotoNastaliqUrdu_700Bold";
 
 /** Nastaliq's tall, stacked glyphs need ~1.7-2x line height: the Text wrapper adds Tailwind `leading-loose` (2x) for Urdu. */
-export const URDU_LEADING_CLASS = 'leading-loose';
+export const URDU_LEADING_CLASS = "leading-loose";
 
 type FontModule = Record<string, Font.FontSource | undefined>;
 
@@ -24,14 +31,15 @@ function loadFontModule(): FontModule | null {
   try {
     // Optional dependency: Metro treats a `require` inside try/catch as optional.
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    return require('@expo-google-fonts/noto-nastaliq-urdu') as FontModule;
+    return require("@expo-google-fonts/noto-nastaliq-urdu") as FontModule;
   } catch {
     return null;
   }
 }
 
-type FontState = 'idle' | 'loading' | 'ready' | 'unavailable';
-let state: FontState = 'idle';
+type FontState = "idle" | "loading" | "ready" | "unavailable";
+let state: FontState = "idle";
+let boldLoaded = false;
 const listeners = new Set<() => void>();
 
 function setState(next: FontState): void {
@@ -41,14 +49,14 @@ function setState(next: FontState): void {
 
 /** Start loading once (idempotent). Resolves to whether the font is usable. */
 export async function loadUrduFont(): Promise<boolean> {
-  if (state === 'ready') return true;
-  if (state === 'unavailable' || state === 'loading') return false;
-  setState('loading');
+  if (state === "ready") return true;
+  if (state === "unavailable" || state === "loading") return false;
+  setState("loading");
   const mod = loadFontModule();
   const regular = mod?.NotoNastaliqUrdu_400Regular;
   const bold = mod?.NotoNastaliqUrdu_700Bold;
   if (!regular) {
-    setState('unavailable');
+    setState("unavailable");
     return false;
   }
   try {
@@ -56,10 +64,11 @@ export async function loadUrduFont(): Promise<boolean> {
       [URDU_FONT_REGULAR]: regular,
       ...(bold ? { [URDU_FONT_BOLD]: bold } : {}),
     });
-    setState('ready');
+    boldLoaded = Boolean(bold);
+    setState("ready");
     return true;
   } catch {
-    setState('unavailable');
+    setState("unavailable");
     return false;
   }
 }
@@ -72,35 +81,48 @@ function subscribe(listener: () => void): () => void {
 }
 
 export type UrduFont = {
-  /** True only for locale `ur` AND the font is loaded — the Text wrapper switches on this. */
+  /** True only inside the patient space, for locale `ur`, once the font is loaded. */
   active: boolean;
   locale: Locale;
   regular: string;
+  /** Falls back to the regular family when the package has no bold weight. */
   bold: string;
 };
 
+const UrduScopeContext = createContext(false);
+
 /**
- * Font state for the current language. Triggers loading the first time Urdu is the active locale;
- * falls back to the system font (`active: false`) when the package is missing or loading failed.
+ * Wrap the patient space in this: only Text inside it gets Nastaliq (staff screens stay as they are).
+ * Also starts loading the font (once) when the language is Urdu.
  */
+export function UrduFontScope({ children }: { children: ReactNode }) {
+  const { locale } = useT();
+  useEffect(() => {
+    if (locale === "ur") void loadUrduFont();
+  }, [locale]);
+  return createElement(UrduScopeContext.Provider, { value: true }, children);
+}
+
+/** Font state for the current language; `active: false` = use the system font. */
 export function useUrduFont(): UrduFont {
   const { locale } = useT();
+  const inScope = useContext(UrduScopeContext);
   const fontState = useSyncExternalStore(
     subscribe,
     () => state,
     () => state,
   );
-  if (locale === 'ur' && fontState === 'idle') void loadUrduFont();
   return {
-    active: locale === 'ur' && fontState === 'ready',
+    active: inScope && locale === "ur" && fontState === "ready",
     locale,
     regular: URDU_FONT_REGULAR,
-    bold: URDU_FONT_BOLD,
+    bold: boldLoaded ? URDU_FONT_BOLD : URDU_FONT_REGULAR,
   };
 }
 
 /** Test helper. */
 export function __resetUrduFontForTests(): void {
-  state = 'idle';
+  state = "idle";
+  boldLoaded = false;
   listeners.clear();
 }
