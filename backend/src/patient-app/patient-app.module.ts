@@ -12,6 +12,8 @@ import { PatientQueueController } from './queue/patient-queue.controller';
 import { PatientQueueService } from './queue/patient-queue.service';
 import { ProductEventsModule } from 'src/product-events/product-events.module';
 import { PatientEventsController } from './events.controller';
+import { PatientDevicesModule } from 'src/patient-devices/patient-devices.module';
+import { PatientDevicesController } from './devices/patient-devices.controller';
 import { MedicationsModule } from 'src/medications/medications.module';
 import { PatientMedicationsController } from './medications/patient-medications.controller';
 import { PatientMedicationsService } from './medications/patient-medications.service';
@@ -42,6 +44,7 @@ import './patient-app.settings';
     PatientLinksModule,
     QueueModule,
     ProductEventsModule,
+    PatientDevicesModule,
     MedicationsModule,
     TypeOrmModule.forFeature([
       PatientAccount,
@@ -60,6 +63,7 @@ import './patient-app.settings';
     PatientProfilesController,
     PatientAccountLinksController,
     PatientEventsController,
+    PatientDevicesController,
     PatientAppointmentsController,
   ],
   providers: [

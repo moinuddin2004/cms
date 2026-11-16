@@ -29,6 +29,7 @@ import { RejoinPolicy } from '../enums/queue.enums';
 @Check(`"walkin_starvation_min" > 0`)
 @Check(`"call_timeout_sec" IS NULL OR "call_timeout_sec" >= 30`)
 @Check(`"max_late_min" >= "late_grace_min"`)
+@Check(`"patient_turn_near_ahead" BETWEEN 0 AND 20`)
 export class QueuePolicy {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -77,6 +78,10 @@ export class QueuePolicy {
   /** Local time a service day starts, e.g. "04:00" for a night-shift clinic. */
   @Column({ name: 'service_day_cutoff', type: 'time', default: '00:00' })
   serviceDayCutoff: string;
+
+  /** "Your turn is near" is pushed to a patient when this many people (or fewer) are ahead (M3-07). */
+  @Column({ name: 'patient_turn_near_ahead', type: 'int', default: 2 })
+  patientTurnNearAhead: number;
 
   @Column({ name: 'version', type: 'int', default: 0 })
   version: number;

@@ -9,6 +9,8 @@ import { Location } from 'src/locations/entities/location.entity';
 import { LocationSettings } from 'src/locations/entities/location-settings.entity';
 import { AppointmentsController } from './appointments.controller';
 import { AppointmentsService } from './appointments.service';
+import { AppointmentReminderService } from './appointment-reminders.service';
+import { PatientDevicesModule } from 'src/patient-devices/patient-devices.module';
 import { QueueModule } from 'src/queue/queue.module';
 
 import { NotificationsModule } from 'src/notifications/notifications.module';
@@ -26,9 +28,10 @@ import { NotificationsModule } from 'src/notifications/notifications.module';
     ]),
     QueueModule,
     NotificationsModule,
+    PatientDevicesModule,
   ],
   controllers: [AppointmentsController],
-  providers: [AppointmentsService],
+  providers: [AppointmentsService, AppointmentReminderService],
   exports: [AppointmentsService],
 })
 export class AppointmentsModule {}

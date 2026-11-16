@@ -20,6 +20,7 @@ import { DoctorQueueController } from './controllers/doctor-queue.controller';
 import { DisplayController } from './controllers/display.controller';
 import { EncountersModule } from 'src/encounters/encounters.module';
 import { BillingModule } from 'src/billing/billing.module';
+import { PatientDevicesModule } from 'src/patient-devices/patient-devices.module';
 
 /**
  * Doctor-wise clinic queue: everything after a patient arrives.
@@ -41,6 +42,7 @@ import { BillingModule } from 'src/billing/billing.module';
       QueueVisitToken,
     ]),
     NotificationsModule,
+    PatientDevicesModule,
     EncountersModule,
     BillingModule,
   ],

@@ -26,6 +26,7 @@ import {
   useNotificationPermission,
   useReminderProfiles,
 } from '@/patient/features/medications';
+import { LiveTokenSection } from '@/patient/features/queue';
 import { useRecordUpcomingAppointments } from '@/patient/features/records';
 
 import { AppointmentRow } from '../components/AppointmentRow';
@@ -104,6 +105,9 @@ export function TodayPage() {
         void appointments.refetch();
       }}>
       <View className="gap-4 px-4 pb-8 pt-2">
+        {/* Live token (M3-06): pinned while any linked entry is active today. */}
+        <LiveTokenSection />
+
         {queue.length > 0 ? (
           <Text variant="muted">
             {queue.length === 1 ? t('today.unsentOne') : t('today.unsentMany', { count: queue.length })}

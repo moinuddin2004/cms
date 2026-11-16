@@ -52,6 +52,7 @@ const message = (
 function setup(
   opts: {
     tokens?: string[];
+    patientTokens?: string[];
     tickets?: unknown[];
     receipts?: Record<string, unknown>;
   } = {},
@@ -65,6 +66,13 @@ function setup(
       removed.push(list);
       return Promise.resolve(list.length);
     }),
+  };
+  const patientDevices = {
+    pushTokensForPatient: jest.fn(() =>
+      Promise.resolve(opts.patientTokens ?? []),
+    ),
+    // A dead token is removed from both tables; `removed` tracks the staff one.
+    removeTokens: jest.fn(() => Promise.resolve(0)),
   };
   const client: ExpoClient = {
     chunkPushNotifications: (messages) => [messages],
@@ -86,8 +94,12 @@ function setup(
   const factory = {
     get: () => Promise.resolve(client),
   } as unknown as ExpoPushClientFactory;
-  const provider = new ExpoPushProvider(devices as never, factory);
-  return { provider, devices, client, sent, removed };
+  const provider = new ExpoPushProvider(
+    devices as never,
+    patientDevices as never,
+    factory,
+  );
+  return { provider, devices, patientDevices, client, sent, removed };
 }
 
 describe('ExpoPushProvider', () => {
@@ -210,10 +222,64 @@ describe('ExpoPushProvider', () => {
     }
   });
 
-  it('a push to a non-user recipient is permanent', async () => {
+  it('a push to a lab recipient is permanent', async () => {
     const { provider } = setup();
     await expect(
-      provider.send(message({ recipientType: RecipientType.PATIENT })),
+      provider.send(message({ recipientType: RecipientType.LAB })),
     ).rejects.toBeInstanceOf(PermanentSendError);
+  });
+
+  describe('patient recipients (M3-07)', () => {
+    const patientMessage = () =>
+      message({
+        eventCode: 'queue.turn_near',
+        audience: NotificationAudience.PATIENT,
+        recipientType: RecipientType.PATIENT,
+        recipientId: 'patient-1',
+        payload: {
+          ...message().payload,
+          title: 'Your turn is near',
+          body: 'City Dental: 2 people ahead of you',
+          link: '/visit/entry-1',
+        },
+      });
+
+    it("sends to the account's phones with the patient space and the visit route", async () => {
+      const { provider, sent, patientDevices, devices } = setup({
+        patientTokens: [TOKEN],
+      });
+      await provider.send(patientMessage());
+
+      expect(patientDevices.pushTokensForPatient).toHaveBeenCalledWith(
+        'org-1',
+        'patient-1',
+      );
+      expect(devices.pushTokensOf).not.toHaveBeenCalled();
+      expect(sent[0][0]).toMatchObject({
+        to: TOKEN,
+        title: 'Your turn is near',
+        body: 'City Dental: 2 people ahead of you',
+        channelId: 'queue',
+        data: {
+          space: 'patient',
+          type: 'queue.turn_near',
+          route: '/visit/entry-1',
+          entityId: 'entry-1',
+        },
+      });
+    });
+
+    it('skips a patient whose link or phone is gone', async () => {
+      const { provider, client } = setup({ patientTokens: [] });
+      const err = await provider
+        .send(patientMessage())
+        .catch((e: unknown) => e);
+      expect((err as SkipSendError).status).toBe(OutboxStatus.SKIPPED_NO_DEVICE);
+      expect(client.sendPushNotificationsAsync).not.toHaveBeenCalled();
+    });
+
+    it('the reminder goes out on the reminders channel', () => {
+      expect(channelIdFor('appointment.reminder')).toBe('reminders');
+    });
   });
 });

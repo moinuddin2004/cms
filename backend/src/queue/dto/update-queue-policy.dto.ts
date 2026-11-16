@@ -71,4 +71,11 @@ export class UpdateQueuePolicyDto {
   @Matches(/^([01]\d|2[0-3]):[0-5]\d$/)
   @IsOptional()
   serviceDayCutoff?: string;
+
+  /** Push "your turn is near" when this many people (or fewer) are ahead. */
+  @IsInt()
+  @Min(0)
+  @Max(20)
+  @IsOptional()
+  patientTurnNearAhead?: number;
 }

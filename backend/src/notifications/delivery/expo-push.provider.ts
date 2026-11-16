@@ -7,6 +7,7 @@ import type {
   ExpoPushTicket,
 } from 'expo-server-sdk';
 import { DevicesService } from 'src/devices/devices.service';
+import { PatientDevicesService } from 'src/patient-devices/patient-devices.service';
 import {
   NotificationChannel,
   OutboxStatus,
@@ -76,6 +77,7 @@ export class ExpoPushProvider implements ChannelProvider, OnModuleDestroy {
 
   constructor(
     private readonly devices: DevicesService,
+    private readonly patientDevices: PatientDevicesService,
     private readonly clients: ExpoPushClientFactory,
   ) {}
 
@@ -85,14 +87,11 @@ export class ExpoPushProvider implements ChannelProvider, OnModuleDestroy {
   }
 
   async send(n: OutgoingNotification): Promise<SendResult> {
-    if (n.recipientType !== RecipientType.USER) {
-      throw new PermanentSendError('Push notifications need a user recipient');
-    }
-    const tokens = await this.devices.pushTokensOf(n.recipientId);
+    const tokens = await this.tokensFor(n);
     if (!tokens.length) {
       throw new SkipSendError(
         OutboxStatus.SKIPPED_NO_DEVICE,
-        `User ${n.recipientId} has no registered push device`,
+        `Recipient ${n.recipientId} has no registered push device`,
       );
     }
 
@@ -111,7 +110,7 @@ export class ExpoPushProvider implements ChannelProvider, OnModuleDestroy {
       offset += chunk.length;
     }
 
-    if (unregistered.length) await this.devices.removeTokens(unregistered);
+    if (unregistered.length) await this.removeTokens(unregistered);
     if (!receiptIds.length) {
       if (failures.length) {
         throw new PermanentSendError(`Push rejected: ${failures[0]}`);
@@ -129,6 +128,31 @@ export class ExpoPushProvider implements ChannelProvider, OnModuleDestroy {
     }
     this.scheduleReceiptCheck(client, receiptIds);
     return { providerMessageId: receiptIds.join(',') };
+  }
+
+  /**
+   * Staff (a user) → that user's devices. Patient (a clinic patient) → the
+   * phones of the app account behind its ACTIVE link (M3-07).
+   */
+  private tokensFor(n: OutgoingNotification): Promise<string[]> {
+    if (n.recipientType === RecipientType.USER) {
+      return this.devices.pushTokensOf(n.recipientId);
+    }
+    if (n.recipientType === RecipientType.PATIENT) {
+      return this.patientDevices.pushTokensForPatient(
+        n.organizationId,
+        n.recipientId,
+      );
+    }
+    throw new PermanentSendError(
+      'Push notifications need a user or patient recipient',
+    );
+  }
+
+  /** A dead token can sit in either table (the same phone may be both). */
+  private async removeTokens(tokens: string[]): Promise<void> {
+    await this.devices.removeTokens(tokens);
+    await this.patientDevices.removeTokens(tokens);
   }
 
   private collect(
@@ -191,7 +215,7 @@ export class ExpoPushProvider implements ChannelProvider, OnModuleDestroy {
           );
         }
       }
-      if (unregistered.length) await this.devices.removeTokens(unregistered);
+      if (unregistered.length) await this.removeTokens(unregistered);
     } catch (err) {
       this.logger.warn(`Push receipt check failed: ${(err as Error).message}`);
     }
@@ -204,7 +228,7 @@ export class ExpoPushProvider implements ChannelProvider, OnModuleDestroy {
       body: n.payload.body,
       channelId: channelIdFor(n.eventCode),
       data: {
-        space: 'staff',
+        space: n.recipientType === RecipientType.PATIENT ? 'patient' : 'staff',
         type: n.eventCode,
         route: n.payload.link ?? null,
         organizationId: n.organizationId,
@@ -220,5 +244,6 @@ export class ExpoPushProvider implements ChannelProvider, OnModuleDestroy {
  * are allowed to banner on the lock screen, everything else is quieter.
  */
 export function channelIdFor(eventCode: string): string {
+  if (eventCode === 'appointment.reminder') return 'reminders';
   return eventCode.startsWith('queue.') ? 'queue' : 'general';
 }
