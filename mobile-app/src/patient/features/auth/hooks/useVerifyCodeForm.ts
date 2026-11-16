@@ -8,6 +8,7 @@ import { usePatientAuthStore } from '@/patient/store/usePatientAuthStore';
 import { startEmail, verifyEmail } from '../api/auth.api';
 import { startErrorKey, verifyErrorKey } from '../lib/auth-errors';
 import { verifyCodeSchema, type VerifyCodeFormValues } from '../schemas/auth.schema';
+import { trackPatient } from '@/patient/lib/analytics';
 
 export const RESEND_AFTER_SECONDS = 60;
 
@@ -40,7 +41,9 @@ export function useVerifyCodeForm() {
       setGlobalError('');
       setNotice('');
       try {
-        await persistSession(await verifyEmail(email, value.code));
+        const session = await verifyEmail(email, value.code);
+        await persistSession(session);
+        trackPatient('patient_signed_in', { method: 'email', isNewAccount: session.isNewAccount });
       } catch (err) {
         setGlobalError(t(verifyErrorKey(err)));
       }

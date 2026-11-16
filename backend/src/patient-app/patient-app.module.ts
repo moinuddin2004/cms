@@ -10,6 +10,8 @@ import { PatientRecordLink } from './entities/patient-record-link.entity';
 import { QueueModule } from 'src/queue/queue.module';
 import { PatientQueueController } from './queue/patient-queue.controller';
 import { PatientQueueService } from './queue/patient-queue.service';
+import { ProductEventsModule } from 'src/product-events/product-events.module';
+import { PatientEventsController } from './events.controller';
 import { MedicationsModule } from 'src/medications/medications.module';
 import { PatientMedicationsController } from './medications/patient-medications.controller';
 import { PatientMedicationsService } from './medications/patient-medications.service';
@@ -32,6 +34,7 @@ import './patient-app.settings';
     PrescriptionsModule,
     PatientLinksModule,
     QueueModule,
+    ProductEventsModule,
     MedicationsModule,
     TypeOrmModule.forFeature([
       PatientAccount,
@@ -47,6 +50,7 @@ import './patient-app.settings';
     PatientQueueController,
     PatientMedicationsController,
     ClaimsController,
+    PatientEventsController,
   ],
   providers: [
     PatientMeService,
