@@ -6,6 +6,7 @@ import { apiErrorMessage } from '@/core/http/api-error';
 import { persistSession } from '@/staff/lib/api';
 
 import { fetchGoogleConfig, googleSignIn, type GoogleSignInResult } from '../api/auth.api';
+import { trackStaff } from '@/staff/lib/analytics';
 
 export const GOOGLE_NO_ACCOUNT_MESSAGE =
   'No account found for this Google address. Register your clinic on the web, or ask your clinic owner for an invite link.';
@@ -55,6 +56,7 @@ export function useGoogleSignIn() {
       const result = await googleSignIn(idToken);
       if (result.outcome === 'signed_in') {
         await persistSession(result.session);
+        trackStaff('staff_signed_in', { method: 'google' });
         return;
       }
       setError(googleOutcomeMessage(result) ?? '');
