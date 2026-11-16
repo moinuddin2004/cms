@@ -1,4 +1,8 @@
 import { postDoseEvents } from '../api/medications.api';
+import { QueryClient } from '@tanstack/react-query';
+
+import { medicationKeys } from '../api/medications.keys';
+import { mergeDoseEvents } from './dose-events-cache';
 import { chunk, flushDoseQueue, removeSent, upsertQueued, useDoseQueueStore } from './dose-queue';
 import { at, event } from './test-fixtures';
 
@@ -30,7 +34,9 @@ describe('queue helpers', () => {
 });
 
 describe('flushDoseQueue', () => {
+  let client: QueryClient;
   beforeEach(async () => {
+    client = new QueryClient();
     post.mockReset();
     useDoseQueueStore.getState().reset();
     await useDoseQueueStore.getState().hydrate('acc-1');
@@ -40,7 +46,7 @@ describe('flushDoseQueue', () => {
     useDoseQueueStore.getState().enqueue(event('s', D1));
     expect(useDoseQueueStore.getState().items).toHaveLength(1);
     post.mockResolvedValue(1);
-    expect(await flushDoseQueue()).toBe(true);
+    expect(await flushDoseQueue(client)).toBe(true);
     expect(post).toHaveBeenCalledTimes(1);
     expect(useDoseQueueStore.getState().items).toEqual([]);
   });
@@ -49,10 +55,10 @@ describe('flushDoseQueue', () => {
     useDoseQueueStore.getState().enqueue(event('s', D1));
     useDoseQueueStore.getState().enqueue(event('s', D2, 'skipped'));
     post.mockRejectedValueOnce(Object.assign(new Error('Network Error'), { isAxiosError: true }));
-    expect(await flushDoseQueue()).toBe(false);
+    expect(await flushDoseQueue(client)).toBe(false);
     expect(useDoseQueueStore.getState().items).toHaveLength(2);
     post.mockResolvedValue(2);
-    expect(await flushDoseQueue()).toBe(true);
+    expect(await flushDoseQueue(client)).toBe(true);
     expect(post).toHaveBeenLastCalledWith(expect.arrayContaining([expect.objectContaining({ action: 'skipped' })]));
     expect(useDoseQueueStore.getState().items).toEqual([]);
   });
@@ -60,7 +66,7 @@ describe('flushDoseQueue', () => {
   it('keeps events on a server error', async () => {
     useDoseQueueStore.getState().enqueue(event('s', D1));
     post.mockRejectedValue(httpError(503));
-    await flushDoseQueue();
+    await flushDoseQueue(client);
     expect(useDoseQueueStore.getState().items).toHaveLength(1);
   });
 
@@ -71,14 +77,40 @@ describe('flushDoseQueue', () => {
       if (events.length > 1 || events[0].scheduleId === 'bad') throw httpError(404);
       return 1;
     });
-    expect(await flushDoseQueue()).toBe(true);
+    expect(await flushDoseQueue(client)).toBe(true);
     expect(useDoseQueueStore.getState().items).toEqual([]);
   });
 
-  it('ignores enqueue before an account is known and after reset', () => {
+  it('refuses (returns false) to enqueue before an account is known or after reset', () => {
     useDoseQueueStore.getState().reset();
-    useDoseQueueStore.getState().enqueue(event('s', D1));
+    expect(useDoseQueueStore.getState().enqueue(event('s', D1))).toBe(false);
     expect(useDoseQueueStore.getState().items).toEqual([]);
+  });
+
+  it('patches the cached dose-events BEFORE the event leaves the queue (no flash back to pending)', async () => {
+    const key = medicationKeys.doseEvents('acc-1', '2026-11-15');
+    const other = event('o', D2);
+    client.setQueryData(key, [other]);
+    const taken = event('s', D1);
+    useDoseQueueStore.getState().enqueue(taken);
+    post.mockResolvedValue(1);
+    let cachedWhenRemoved: unknown = null;
+    const unsub = useDoseQueueStore.subscribe((state, prev) => {
+      if (prev.items.length === 1 && state.items.length === 0) cachedWhenRemoved = client.getQueryData(key);
+    });
+    await flushDoseQueue(client);
+    unsub();
+    expect(cachedWhenRemoved).toEqual(expect.arrayContaining([other, taken]));
+    expect(client.getQueryData(key)).toEqual(expect.arrayContaining([other, taken]));
+  });
+
+  it('creates the current window query when none is cached', async () => {
+    useDoseQueueStore.getState().enqueue(event('s', D1));
+    post.mockResolvedValue(1);
+    await flushDoseQueue(client);
+    const all = client.getQueriesData<unknown[]>({ queryKey: ['dose-events', 'acc-1'] });
+    expect(all).toHaveLength(1);
+    expect(all[0][1]).toHaveLength(1);
   });
 
   it('survives an app restart: a new store reads the encrypted copy', async () => {
@@ -88,5 +120,16 @@ describe('flushDoseQueue', () => {
     await useDoseQueueStore.getState().hydrate('acc-1');
     expect(useDoseQueueStore.getState().items).toHaveLength(1);
     useDoseQueueStore.getState().remove(useDoseQueueStore.getState().items);
+  });
+});
+
+describe('mergeDoseEvents', () => {
+  it('newer actedAt wins per dose; others are kept', () => {
+    const old = event('s', D1, 'taken', 1000);
+    const newer = event('s', D1, 'skipped', 2000);
+    const stale = event('s', D1, 'taken', 500);
+    const other = event('o', D2);
+    expect(mergeDoseEvents([old, other], [newer])).toEqual(expect.arrayContaining([newer, other]));
+    expect(mergeDoseEvents([newer], [stale])).toEqual([newer]);
   });
 });

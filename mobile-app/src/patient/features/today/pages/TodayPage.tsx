@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { BellOff, CalendarCheck, Link2, Settings } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
-import { Linking, View } from 'react-native';
+import { Linking, Pressable, View } from 'react-native';
 
 import { deviceTimezone, formatInZone } from '@/core/datetime';
 import {
@@ -43,12 +43,12 @@ export function TodayPage() {
   const router = useRouter();
   const now = useNow();
   const medications = useMedications();
-  const { events, refetch: refetchEvents } = useEffectiveDoseEvents();
+  const { events, isError: statusFailed, refetch: refetchEvents } = useEffectiveDoseEvents();
   const appointments = useRecordUpcomingAppointments();
   const profiles = useReminderProfiles();
   const permission = useNotificationPermission();
   const queue = useDoseQueueStore((s) => s.items);
-  const record = useDoseActions();
+  const { record, ready } = useDoseActions();
   const [menuFor, setMenuFor] = useState<TodayDose | null>(null);
 
   const schedules = medications.data;
@@ -110,11 +110,21 @@ export function TodayPage() {
           </Text>
         ) : null}
 
+        {statusFailed ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('today.statusFailed')}
+            onPress={refetchEvents}
+            className="bg-card border-destructive min-h-11 justify-center rounded-xl border p-3">
+            <Text className="text-destructive">{t('today.statusFailed')}</Text>
+          </Pressable>
+        ) : null}
+
         {hasReminders && permission.state === 'undetermined' ? (
           <View className="bg-card border-border gap-2 rounded-xl border p-4">
             <Text variant="large">{t('today.turnOnTitle')}</Text>
             <Text variant="muted">{t('today.turnOnBody')}</Text>
-            <Button onPress={() => void permission.request()}>
+            <Button className="min-h-11" onPress={() => void permission.request()}>
               <Text>{t('reminders.settings.turnOn')}</Text>
             </Button>
           </View>
@@ -126,7 +136,7 @@ export function TodayPage() {
               <Text variant="large">{t('today.deniedTitle')}</Text>
             </View>
             <Text variant="muted">{t('today.deniedBody')}</Text>
-            <Button variant="outline" onPress={() => void Linking.openSettings()}>
+            <Button variant="outline" className="min-h-11" onPress={() => void Linking.openSettings()}>
               <Text>{t('reminders.settings.openSettings')}</Text>
             </Button>
           </View>
@@ -154,6 +164,7 @@ export function TodayPage() {
                         dose={dose}
                         profileName={profiles.nameOf(dose.profileId)}
                         waitingToSync={queuedKeys.has(dose.key)}
+                        disabled={!ready}
                         onTaken={() => record(dose.scheduleId, dose.dueAt, 'taken')}
                         onMore={() => setMenuFor(dose)}
                       />

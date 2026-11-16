@@ -19,6 +19,7 @@ export function RemindersSettingsPage() {
   const permission = useNotificationPermission();
   const priv = useReminderSettings((s) => s.privateReminders);
   const setPriv = useReminderSettings((s) => s.setPrivateReminders);
+  const ready = useReminderSettings((s) => s.hydrated);
   const on = permission.state === 'granted';
 
   return (
@@ -37,12 +38,12 @@ export function RemindersSettingsPage() {
             </View>
           </View>
           {permission.state === 'undetermined' ? (
-            <Button onPress={() => void permission.request()}>
+            <Button className="min-h-11" onPress={() => void permission.request()}>
               <Text>{t('reminders.settings.turnOn')}</Text>
             </Button>
           ) : null}
           {permission.state === 'denied' ? (
-            <Button variant="outline" onPress={() => void Linking.openSettings()}>
+            <Button variant="outline" className="min-h-11" onPress={() => void Linking.openSettings()}>
               <Text>{t('reminders.settings.openSettings')}</Text>
             </Button>
           ) : null}
@@ -54,6 +55,7 @@ export function RemindersSettingsPage() {
             <Text variant="muted">{t('reminders.settings.privateBody')}</Text>
           </View>
           <Switch
+            disabled={!ready}
             checked={priv}
             onCheckedChange={setPriv}
             accessibilityLabel={t('reminders.settings.privateTitle')}

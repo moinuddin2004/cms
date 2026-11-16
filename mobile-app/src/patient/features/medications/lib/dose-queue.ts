@@ -1,9 +1,11 @@
+import type { QueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
 import { create } from 'zustand';
 
 import { openSecureCache } from '@/core/storage/secure-cache';
 
 import { postDoseEvents } from '../api/medications.api';
+import { applySentToCache } from './dose-events-cache';
 import type { DoseEvent } from '../types/medications.types';
 
 /**
@@ -43,7 +45,8 @@ interface DoseQueueState {
   items: DoseEvent[];
   /** Load the saved queue of this account (called once the session is known). */
   hydrate: (accountId: string) => Promise<void>;
-  enqueue: (event: DoseEvent) => void;
+  /** `false` (nothing saved) until `hydrate` has named the account — callers keep the action disabled until then. */
+  enqueue: (event: DoseEvent) => boolean;
   remove: (sent: readonly DoseEvent[]) => void;
   /** Sign-out: memory only — the encrypted cache is wiped by the caller. */
   reset: () => void;
@@ -79,10 +82,11 @@ export const useDoseQueueStore = create<DoseQueueState>((set, get) => ({
   },
   enqueue(event) {
     const { accountId } = get();
-    if (!accountId) return;
+    if (!accountId) return false;
     const items = upsertQueued(get().items, event);
     set({ items });
     void persist(accountId, items);
+    return true;
   },
   remove(sent) {
     const { accountId } = get();
@@ -112,15 +116,21 @@ let flushing: Promise<boolean> | null = null;
  * - 400 / 404 on a batch: the server rejects the WHOLE batch for one bad event, so the events are
  *   sent one by one and only the rejected ones are dropped
  */
-export function flushDoseQueue(): Promise<boolean> {
+export function flushDoseQueue(client: QueryClient): Promise<boolean> {
   if (flushing) return flushing;
   flushing = (async () => {
     let any = false;
-    const { items, remove } = useDoseQueueStore.getState();
+    const { items, remove, accountId } = useDoseQueueStore.getState();
+    if (!accountId) return false;
+    // The server copy is patched BEFORE the local one is dropped (see `applySentToCache`).
+    const accept = (sent: DoseEvent[]) => {
+      applySentToCache(client, accountId, sent);
+      remove(sent);
+    };
     for (const batch of chunk(items, MAX_BATCH)) {
       try {
         await postDoseEvents(batch);
-        remove(batch);
+        accept(batch);
         any = true;
       } catch (error) {
         if (!isPermanent(error)) break;
@@ -128,7 +138,7 @@ export function flushDoseQueue(): Promise<boolean> {
           try {
             await postDoseEvents([one]);
             any = true;
-            remove([one]);
+            accept([one]);
           } catch (inner) {
             if (isPermanent(inner)) remove([one]);
             else return any;

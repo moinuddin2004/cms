@@ -50,7 +50,7 @@ export function BatteryGuidePage() {
           ))}
         </View>
 
-        <Button onPress={() => void Linking.openSettings()}>
+        <Button size="lg" onPress={() => void Linking.openSettings()}>
           <Text>{t('reminders.battery.openSettings')}</Text>
         </Button>
       </View>

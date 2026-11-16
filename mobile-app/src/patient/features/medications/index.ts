@@ -1,5 +1,6 @@
 export { ReminderSync } from './components/ReminderSync';
-// Screens live in './pages' (separate entry): this barrel stays free of UI/native imports so pure logic and sign-out can import it.
+// Screens live in './pages' (separate entry): this barrel exports no screens, so pure logic and sign-out
+// can import it without pulling in expo-router / keyboard-controller (jest cannot load those).
 export { clearMedicationLocalState } from './lib/clear-local-state';
 export { medicationKeys } from './api/medications.keys';
 export { useMedications, useEffectiveDoseEvents } from './hooks/useMedications';

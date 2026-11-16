@@ -1,30 +1,39 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { AppState } from 'react-native';
+import { create } from 'zustand';
 
 import { getPermissionState, requestPermission, type PermissionState } from '@/core/notifications/permissions';
 
-/** The OS notification permission, re-read whenever the app returns to the foreground (the user may have changed it in settings). */
-export function useNotificationPermission() {
-  const [state, setState] = useState<PermissionState | null>(null);
+/**
+ * One shared copy of the OS notification permission: the Today card, the settings screen and the
+ * reminder scheduler all read it, so the plan is re-synced the moment it is granted anywhere.
+ */
+interface PermissionStore {
+  state: PermissionState | null;
+  refresh: () => Promise<void>;
+  request: () => Promise<void>;
+}
 
-  const refresh = useCallback(() => getPermissionState().then(setState), []);
+const usePermissionStore = create<PermissionStore>((set) => ({
+  state: null,
+  refresh: async () => set({ state: await getPermissionState() }),
+  /** Shows the OS prompt (only ever from a deliberate tap, docs/02 §8). */
+  request: async () => set({ state: await requestPermission() }),
+}));
+
+/** The OS notification permission, re-read whenever the app returns to the foreground (it may have been changed in settings). */
+export function useNotificationPermission() {
+  const state = usePermissionStore((s) => s.state);
+  const refresh = usePermissionStore((s) => s.refresh);
+  const request = usePermissionStore((s) => s.request);
 
   useEffect(() => {
-    let alive = true;
-    void getPermissionState().then((s) => {
-      if (alive) setState(s);
-    });
+    void refresh();
     const sub = AppState.addEventListener('change', (s) => {
       if (s === 'active') void refresh();
     });
-    return () => {
-      alive = false;
-      sub.remove();
-    };
+    return () => sub.remove();
   }, [refresh]);
-
-  /** Shows the OS prompt (only ever from a deliberate tap, docs/02 §8). */
-  const request = useCallback(async () => setState(await requestPermission()), []);
 
   return { state, request, refresh };
 }

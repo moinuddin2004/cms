@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 
 import { useDoseQueueStore } from '@/patient/features/medications';
@@ -91,6 +91,7 @@ beforeEach(async () => {
   usePatientAuthStore.setState({ account: { id: 'acc-1', fullName: 'A', email: 'a@x.com' } });
   useDoseQueueStore.getState().reset();
   await useDoseQueueStore.getState().hydrate('acc-1');
+  useDoseQueueStore.getState().remove(useDoseQueueStore.getState().items); // the mocked encrypted cache outlives a test
 });
 
 describe('TodayPage', () => {
@@ -155,5 +156,33 @@ describe('TodayPage', () => {
     mockMeds.mockResolvedValue([schedule()]);
     fireEvent.press(screen.getByText('Try again'));
     expect(await screen.findByText('Morning')).toBeTruthy();
+  });
+
+  it('says so when the dose status cannot be loaded, instead of silently showing everything as pending', async () => {
+    mockMeds.mockResolvedValue([schedule({ times: ['08:00'] })]);
+    mockEvents.mockRejectedValue(new Error('offline'));
+    await wrap(<TodayPage />);
+    expect(await screen.findByText("Couldn't load dose status — tap to retry")).toBeTruthy();
+    mockEvents.mockResolvedValue([]);
+    fireEvent.press(screen.getByLabelText("Couldn't load dose status — tap to retry"));
+    await waitFor(() => expect(screen.queryByText("Couldn't load dose status — tap to retry")).toBeNull());
+  });
+
+  it('the row is not one accessible block: the buttons can be reached, the summary is its own element', async () => {
+    mockMeds.mockResolvedValue([schedule({ times: ['08:00'] })]);
+    await wrap(<TodayPage />);
+    const summary = await screen.findByLabelText('08:00, Amoxicillin, 500 mg · After meal');
+    expect(within(summary).queryByLabelText('Mark Amoxicillin as taken')).toBeNull();
+    expect(screen.getByLabelText('Mark Amoxicillin as taken')).toBeTruthy();
+  });
+
+  it('after Taken is sent, the row stays Taken even though the server list is still stale', async () => {
+    mockMeds.mockResolvedValue([schedule({ times: ['08:00'] })]);
+    mockPost.mockResolvedValue(1);
+    await wrap(<TodayPage />);
+    fireEvent.press(await screen.findByLabelText('Mark Amoxicillin as taken'));
+    await waitFor(() => expect(useDoseQueueStore.getState().items).toHaveLength(0));
+    expect(screen.queryByLabelText('Mark Amoxicillin as taken')).toBeNull();
+    expect(screen.getByText('Taken')).toBeTruthy();
   });
 });

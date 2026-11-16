@@ -18,10 +18,12 @@ export interface DoseRowProps {
   waitingToSync: boolean;
   onTaken: () => void;
   onMore: () => void;
+  /** Actions wait until the local dose queue knows the account (nothing could be saved before). */
+  disabled?: boolean;
 }
 
 /** One dose: time, medicine, dose text, meal hint, state and its actions (docs/06 P-02). */
-export function DoseRow({ dose, profileName, waitingToSync, onTaken, onMore }: DoseRowProps) {
+export function DoseRow({ dose, profileName, waitingToSync, onTaken, onMore, disabled = false }: DoseRowProps) {
   const { t } = useT();
   const meal = mealLabel(dose.mealRelation, t);
   const detail = [dose.doseText, meal].filter(Boolean).join(' · ');
@@ -36,27 +38,35 @@ export function DoseRow({ dose, profileName, waitingToSync, onTaken, onMore }: D
   const pending = dose.state === 'pending';
 
   return (
-    <View
-      accessible
-      accessibilityLabel={[dose.time, dose.name, detail, profileName].filter(Boolean).join(', ')}
-      className="bg-card border-border gap-2 rounded-xl border p-3">
+    <View className="bg-card border-border gap-2 rounded-xl border p-3">
       <View className="flex-row items-center gap-3">
-        <Text variant="large" className="w-14">
-          {dose.time}
-        </Text>
-        {profileName ? <Avatar name={profileName} size="sm" /> : null}
-        <View className="flex-1">
-          <Text variant="large" className={pending ? '' : 'text-muted-foreground'}>
-            {dose.name}
+        {/* The summary is one accessible block; the row itself is NOT, so VoiceOver / TalkBack can reach the buttons. */}
+        <View
+          accessible
+          accessibilityLabel={[dose.time, dose.name, detail, profileName].filter(Boolean).join(', ')}
+          className="flex-1 flex-row items-center gap-3">
+          <Text variant="large" className="w-14">
+            {dose.time}
           </Text>
-          {detail ? <Text variant="muted">{detail}</Text> : null}
+          {profileName ? <Avatar name={profileName} size="sm" /> : null}
+          <View className="flex-1">
+            <Text variant="large" className={pending ? '' : 'text-muted-foreground'}>
+              {dose.name}
+            </Text>
+            {detail ? <Text variant="muted">{detail}</Text> : null}
+          </View>
         </View>
         {pending ? (
           <View className="flex-row items-center gap-1">
-            <Button size="sm" className="min-h-11" onPress={onTaken} accessibilityLabel={t('today.markTaken', { medicine: dose.name })}>
+            <Button
+              size="sm"
+              className="min-h-11"
+              disabled={disabled}
+              onPress={onTaken}
+              accessibilityLabel={t('today.markTaken', { medicine: dose.name })}>
               <Text>{t('today.taken')}</Text>
             </Button>
-            <IconButton icon={MoreHorizontal} accessibilityLabel={t('today.more', { medicine: dose.name })} onPress={onMore} />
+            <IconButton icon={MoreHorizontal} disabled={disabled} accessibilityLabel={t('today.more', { medicine: dose.name })} onPress={onMore} />
           </View>
         ) : (
           <View className="flex-row items-center gap-1">

@@ -17,7 +17,6 @@ export type PrefKey =
   | 'staff.tips.dismissed'
   | 'staff.push.asked'
   | 'patient.language'
-  | 'patient.reminders.private'
   | 'patient.lastTab'
   | 'patient.tips.dismissed';
 

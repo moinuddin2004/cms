@@ -3161,3 +3161,23 @@ Branch: claude/m3-05-followup (from mobile/develop)   Status: review
 ### Verification
 tsc clean; patient-app/auth/queue + rest of the backend unit suite green in chunks (90 + 32 suites, 1,345 tests). New specs: gateway lifetime/cap/unavailable, session events, publisher isolation.
 Mobile note: handle `unavailable` (poll, keep session) separately from `auth_error` (refresh token, reconnect).
+
+---
+## Rework M3-03 + M3-04 #1 — 2026-11-16
+Branch: claude/m3-03-reminders-033e68 (merged `mobile/develop` first; HANDOFF/PROGRESS conflicts kept both sides) · Status stays: review
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| 1 | Sent events left the queue before the server copy was refetched (double-dose risk) | `flushDoseQueue(queryClient)` now calls `applySentToCache` BEFORE `remove`: existing `['dose-events', accountId, *]` queries are patched with `mergeDoseEvents` (newer `actedAt` wins); if none exists the current window's query is created with the sent events (the invalidate after a flush refetches). Tests: cache patched before removal (subscription order), created when absent, merge rules, Today stays "Taken" after the send. TodayPage shows a tappable "Couldn't load dose status — tap to retry" note when the events query failed and nothing is cached. |
+| 2 | A11y: row was one accessible block | `accessible` moved to the time/name block; Taken and ⋯ are separate focus targets (test). |
+| 3 | Re-plan after permission is granted | Permission is one shared zustand store (`useNotificationPermission`); `ReminderSync` depends on its state (test: nothing scheduled, press grant → scheduled). |
+| 4 | Cancelled / account re-check; per-account private pref | Re-checked inside the serialised task (before and after the permission read). `private reminders` moved from prefs MMKV to the account's encrypted patient cache (`reminderSettings:<accountId>`), reset on sign-out. The planner does not run until the choice is loaded (`hydrated`) — test. **Default stays OFF**: docs/03 §5 says the clinical text shows "unless the user enabled Private reminders"; flip `privateReminders: false` in `reminder-settings.ts` + docs/03 if you want private-by-default. |
+| 5 | DST tests | `today/lib/dst.test.ts` spawns a child jest with `TZ=America/New_York` on `dst.tzcase.ts` (a zone can't be changed from inside a test file): 23 h / 25 h days, skipped 02:30 and repeated 01:30, windows across both changes via `expandDoses` and `buildTodayDoses`. (Takes ~10 s.) |
+| 6 | enqueue with null account dropped silently | `enqueue` returns `false`; `useDoseActions` returns `{ record, ready }`; DoseRow Taken / ⋯ are disabled until the queue knows the account. |
+| 7 | 44 pt | `min-h-11` on the Today and settings buttons, `size="lg"` on the battery button. The private-reminders switch is the RNR switch (unchanged). |
+| 8 | Comment / barrel | Window comment fixed (`doseEventsWindow`: yesterday 00:00 → +6 days); barrel comment reworded: it exports no screens (ReminderSync / clear-local-state stay in it — they are native-free enough for jest and the layout needs them). |
+
+Test note: `ReminderSync.test.tsx` has two scenarios because a third render in the same file stopped running effects (RNTL/zustand interaction I could not pin down); the signed-out account guard is covered by code review only.
+
+### Verification
+typecheck clean (`CI=1 npx expo start --offline` run for the merged routes) · eslint 0 errors (4 old warnings) · `lint:fences` ok · jest (foreground, `--runInBand`): `src/patient src/core src/shell` 62 suites / 344 tests, `src/staff` 78 suites / 662 tests — all green.

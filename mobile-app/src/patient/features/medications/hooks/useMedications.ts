@@ -6,7 +6,7 @@ import { usePatientAuthStore } from '@/patient/store/usePatientAuthStore';
 
 import { fetchAllMedications, fetchDoseEvents } from '../api/medications.api';
 import { medicationKeys } from '../api/medications.keys';
-import { DAY_MS, localDayStart, localYmd } from '../lib/doses';
+import { doseEventsWindow } from '../lib/dose-events-cache';
 import { useDoseQueueStore } from '../lib/dose-queue';
 import type { DoseEvent } from '../types/medications.types';
 
@@ -23,23 +23,24 @@ export function useMedications() {
 }
 
 /**
- * Server-known dose events for yesterday … +4 days on the phone's calendar. The key is the first
- * day, so the query is stable within a day and rolls over at midnight.
+ * Server-known dose events from yesterday 00:00 through the end of day +4 on the phone's calendar
+ * (`doseEventsWindow`). The key is the first day, so the query is stable within a day and rolls over
+ * when the app returns to the foreground on a new day.
  */
 export function useDoseEvents() {
   const accountId = useAccountId();
   // The window starts yesterday; it rolls over when the app returns to the foreground on a new day.
-  const [fromMs, setFromMs] = useState(() => localDayStart(Date.now(), -1));
+  const [nowMs, setNowMs] = useState(() => Date.now());
   useEffect(() => {
     const sub = AppState.addEventListener('change', (s) => {
-      if (s === 'active') setFromMs(localDayStart(Date.now(), -1));
+      if (s === 'active') setNowMs(Date.now());
     });
     return () => sub.remove();
   }, []);
-  const fromYmd = localYmd(fromMs);
+  const { fromMs, toMs, fromYmd } = doseEventsWindow(nowMs);
   return useQuery({
     queryKey: medicationKeys.doseEvents(accountId, fromYmd),
-    queryFn: () => fetchDoseEvents(new Date(fromMs).toISOString(), new Date(fromMs + 6 * DAY_MS).toISOString()),
+    queryFn: () => fetchDoseEvents(new Date(fromMs).toISOString(), new Date(toMs).toISOString()),
     enabled: !!accountId,
   });
 }
@@ -52,7 +53,8 @@ export function useEffectiveDoseEvents(): { events: DoseEvent[]; isLoading: bool
   return {
     events,
     isLoading: server.isPending && queued.length === 0,
-    isError: server.isError,
+    /** The server's dose status could not be loaded and none is cached: every dose would look pending. */
+    isError: server.isError && !server.data,
     refetch: () => void server.refetch(),
   };
 }

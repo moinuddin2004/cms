@@ -418,6 +418,7 @@ export const en = {
     more: 'More actions for {medicine}',
     markTaken: 'Mark {medicine} as taken',
     waitingToSync: 'Will sync when you are back online',
+    statusFailed: "Couldn't load dose status — tap to retry",
     courseEnds: 'Course ends in {days} days',
     courseEndsToday: 'Last day of this course',
     courseEndsTomorrow: 'Course ends tomorrow',
