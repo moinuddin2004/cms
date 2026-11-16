@@ -15,6 +15,7 @@ import {
   ScreenHeader,
   Spinner,
 } from '@/core/components';
+import { useStableCallback } from '@/core/hooks/use-stable-callback';
 import { Button } from '@/core/ui/button';
 import { Text } from '@/core/ui/text';
 import { useSwitchLocation } from '@/staff/features/more/hooks/useSwitchLocation';
@@ -38,7 +39,7 @@ interface PendingSwitch {
   route: StaffRoute;
 }
 
-const keyOf = (n: NotificationItem) => n.id;
+const keyOf = (r: { id: string }) => r.id;
 
 /** S-07 Notifications inbox: infinite list, mark read / all, link routing, other-clinic prompt. */
 export function NotificationsPage() {
@@ -55,6 +56,12 @@ export function NotificationsPage() {
 
   const orgNames = useMemo(() => orgNameMap(organizations), [organizations]);
   const items = useMemo(() => query.data?.pages.flatMap((p) => p.data) ?? [], [query.data]);
+
+  // Models are built once per data change so memoised rows keep their props.
+  const rows = useMemo(
+    () => items.map((item) => ({ id: item.id, item, model: describeNotification(item, activeOrgId, orgNames) })),
+    [items, activeOrgId, orgNames],
+  );
 
   // Disabled only when we KNOW nothing is unread: a loading or failed count must not lock the button.
   const nothingUnread =
@@ -73,6 +80,11 @@ export function NotificationsPage() {
     }
     go(route);
   };
+
+  const openById = useStableCallback((id: string) => {
+    const item = items.find((n) => n.id === id);
+    if (item) open(item);
+  });
 
   const confirmSwitch = async () => {
     if (!pending) return;
@@ -100,13 +112,10 @@ export function NotificationsPage() {
   } else {
     body = (
       <FlashList
-        data={items}
+        data={rows}
         keyExtractor={keyOf}
         renderItem={({ item }) => (
-          <NotificationRow
-            model={describeNotification(item, activeOrgId, orgNames)}
-            onPress={() => open(item)}
-          />
+          <NotificationRow id={item.id} model={item.model} onPress={openById} />
         )}
         refreshing={pulling}
         onRefresh={() => {

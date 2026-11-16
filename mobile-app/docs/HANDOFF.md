@@ -3309,6 +3309,24 @@ Verification: tsc clean · eslint 0 errors · lint:fences ok · core/i18n + core
 ## Rework M4-01 #2 - 2026-11-16
 mobile/develop merged (clean; package + expo-font plugin now present). `urdu-font.ts` doc updated (optional `require` kept as a safety fallback); bold maps to `NotoNastaliqUrdu_700Bold`. Tests now use the REAL package: `text.test.tsx` (virtual mock removed) and new `urdu-font-installed.test.ts`. tsc clean, eslint 0 errors, core/i18n + core/ui jest 13/13. The install command from the first entry is no longer needed.
 
+
+---
+## M4-05 - release hardening (error-reporting seam, perf budgets, patient gate QA) - 2026-11-16
+Branch: claude/m4-05-release-hardening-d6067b - Status: review
+
+### What was done
+- **A-24** (DECISIONS): recommendation = no provider for the pilot (Play Console vitals); Sentry requirements written down. `src/core/observability` (`reportError`, `setErrorReporter`, `scrub*`) + tests, wired into a new root `ErrorBoundary` (`shell/RootErrorBoundary.tsx`) and the QueryCache/MutationCache `onError`. Release = no-op, dev = PHI-safe `log.warn`.
+- docs/09 section 5 performance budgets, section 6 patient gate checklist. `memo` on ArrivalRow / ScheduleRow / NotificationRow / WaitingRow.
+- Patient gate walk: `WelcomePage` + `UpdateRequiredPage` moved to `useT` (en + ur `shell.*`), `common.crashTitle/crashBody` added. Everything else passed. Table in `docs/reviews/M4-05/report.md`.
+
+### Install commands for the user
+none (only if Sentry is later chosen: `npx expo install @sentry/react-native`)
+
+### Device check needed (M0-D)
+Report section 4: cold start, bundle size, fling, TalkBack, Urdu on the new screens, forced render-crash retry.
+
+### Verification
+tsc: only the known `@/global.css` message · eslint 0 errors (4 old warnings) · lint:fences ok · jest in foreground chunks, all green: core 37 suites, patient 26/179, staff 78 suites, shell 4 suites (a plain `jest src/shell` hangs after finishing on open handles; `--forceExit` ends it).
 ### M3-06/07 rework-1
 1. Reminders: any change of time, length or patient, cancel and no-show first skip the appointment's queued/held `appointment.reminder` rows (`skipPending`), then schedule a fresh one when still > 24 h away. Send-time finalizer requires status scheduled/confirmed AND `patient_id = recipient` AND exact start + end stored in the row (value-compared "generation": covers duration-only change, patient change, move-back). Specs for each.
 2. `AND o.is_active` in both device queries (spec).
@@ -3320,3 +3338,18 @@ mobile/develop merged (clean; package + expo-font plugin now present). `urdu-fon
 8. `removeAllOfAccount` removed (account deletion deletes via SQL).
 Also: merged develop (conflicts: PatientMainLayout, patient-app module, docs); `<LiveTokenSection />` now pinned at the top of `TodayPage` (removed from the placeholder); Urdu for all strings (no TODO(ur)).
 Checks: backend build; specs patient-auth/patient-app/patient-devices/appointments (28 suites), queue/notifications/access/common (29 suites) green; mobile tsc, lint 0 errors, fences, jest core+patient+shell (71 suites) green.
+
+---
+## Rework M4-05 #1 - 2026-11-17
+Status stays: review. mobile/develop merged (HANDOFF conflict: kept both).
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| 1 | Staff could see Urdu | Welcome + Update pages English-only; crash boundary Urdu only in the patient space |
+| 2 | No Nastaliq outside scope | boundary wraps `UrduFontScope` in patient space; report corrected |
+| 3 | Names in messages | `scrubError` forwards name/code/status + known generic transport messages only; A-24 updated |
+| 4 | Scrubber gaps | JWT first, secret key=value pairs, route ids after known nouns of any length, segments string-scrubbed; tests for each |
+| 5 | memo without stable props | `useStableCallback` (core/hooks), `useCallback`, memoised notification models; row `onPress` now gets row/id |
+| 6 | Dev noise | expected failures (code/status/offline) not warned |
+
+Verification: tsc only the known global.css message; eslint 0 errors (5 warnings, 1 new from merged develop code in patient devices test); lint:fences ok; jest foreground chunks green: core 37 suites, patient 31, staff queue 19 + others 15 + 31, shell/appointments/notifications 17.
