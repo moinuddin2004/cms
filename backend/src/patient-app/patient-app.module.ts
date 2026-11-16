@@ -10,6 +10,9 @@ import { PatientRecordLink } from './entities/patient-record-link.entity';
 import { QueueModule } from 'src/queue/queue.module';
 import { PatientQueueController } from './queue/patient-queue.controller';
 import { PatientQueueService } from './queue/patient-queue.service';
+import { MedicationsModule } from 'src/medications/medications.module';
+import { PatientMedicationsController } from './medications/patient-medications.controller';
+import { PatientMedicationsService } from './medications/patient-medications.service';
 import { PatientLinksModule } from 'src/patient-links/patient-links.module';
 import { ClaimsController } from './claims.controller';
 import { PatientJwtGuard } from './guards/patient-jwt.guard';
@@ -22,13 +25,14 @@ import { PatientReadsController } from './reads/patient-reads.controller';
 import { PatientReadsService } from './reads/patient-reads.service';
 import './patient-app.settings';
 
-/** Patient-space API: `/patient-api/me` (M2-02), `/patient-api/claims` (M2-04), record reads (M2-08). */
+/** Patient-space API: `/patient-api/me` (M2-02), `/patient-api/claims` (M2-04), record reads (M2-08), medications (M3-02). */
 @Module({
   imports: [
     FeatureFlagsModule,
     PrescriptionsModule,
     PatientLinksModule,
     QueueModule,
+    MedicationsModule,
     TypeOrmModule.forFeature([
       PatientAccount,
       PatientProfile,
@@ -40,8 +44,9 @@ import './patient-app.settings';
   controllers: [
     PatientMeController,
     PatientReadsController,
-    ClaimsController,
     PatientQueueController,
+    PatientMedicationsController,
+    ClaimsController,
   ],
   providers: [
     PatientMeService,
@@ -51,6 +56,7 @@ import './patient-app.settings';
     PatientAccessLogService,
     PatientReadsService,
     PatientQueueService,
+    PatientMedicationsService,
   ],
   exports: [
     TypeOrmModule,

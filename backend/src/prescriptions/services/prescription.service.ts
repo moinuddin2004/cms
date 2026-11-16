@@ -25,6 +25,7 @@ import { PrescriptionTemplateService } from './prescription-template.service';
 import { DoctorSignatureService } from './doctor-signature.service';
 import { PrescriptionHistoryService } from './prescription-history.service';
 import { PrescriptionPdfService } from './prescription-pdf.service';
+import { PrescriptionEvents } from '../events/prescription-events';
 import type { AccessContext } from 'src/access/access-context';
 import { isPatientInScope, patientScope } from 'src/patients/access/patient-scope';
 import { assertInOrg } from 'src/common/tenancy/assert-in-org';
@@ -53,6 +54,7 @@ export class PrescriptionService {
     private readonly pdfService: PrescriptionPdfService,
     private readonly dataSource: DataSource,
     private readonly clock: ClockService,
+    private readonly events: PrescriptionEvents,
   ) {}
 
   // ═══════════════════════════════════════════════════════════
@@ -558,6 +560,10 @@ export class PrescriptionService {
       changeType: PrescriptionHistoryChangeType.FINALIZED,
       changeNotes: dto.changeNotes ?? null,
     });
+
+    // Fire-and-forget: patient medication schedules (M3-01) are derived by a
+    // subscriber, never inside this critical path.
+    this.events.issued({ prescriptionId: p.id, organizationId });
 
     return this.findOne(p.id, organizationId);
   }
