@@ -61,8 +61,8 @@
 | M2-08 | Patient read services | BE | L | M2-03 | done | Sonnet session | 2026-11-15 | rework-1 |
 | M2-04 | Patient links + claim API | BE | M | M2-03 | done | Sonnet session | 2026-11-15 | rework-1; int spec not run (no local Postgres) |
 | M2-06 | Patient space foundation | MOB | L | M2-02, M0-04 | done | Sonnet session | 2026-11-15 | rework-1 (sign-out generation guard in core client, both spaces) |
-| M2-10 | Profiles endpoints + Family tab (P-04) + profile detail | MOB+BE | M | M2-06 | review | claude/m2-10-family-clinics-5e4548 | Sonnet session | 2026-11-15 |
-| M2-11 | Linked clinics (P-08), unlink, link history, delete account (P-09) | MOB+BE | M | M2-06 | review | claude/m2-10-family-clinics-5e4548 | Sonnet session | 2026-11-15 |
+| M2-10 | Profiles endpoints + Family tab (P-04) + profile detail | MOB+BE | M | M2-06 | done | Sonnet session | 2026-11-15 | rework-1 |
+| M2-11 | Linked clinics (P-08), unlink, link history, delete account (P-09) | MOB+BE | M | M2-06 | done | Sonnet session (with M2-10) | 2026-11-16 | rework-1 (A-22 soft-delete) |
 | M2-09 | Patient Records tab | MOB | L | M2-08, M2-06 | done | Sonnet session | 2026-11-15 | rework-1 | PDF share + profile chips pending (see HANDOFF) |
 | M2-05 | Web "Link app" button + QR dialog | WEB | S | M2-04 | done | Sonnet session | 2026-11-16 | rework-1 |
 | M2-14 | Public landing pages /c/:token, /v/:token | WEB | S | M2-04 | done | Sonnet session (with M2-05) | 2026-11-16 | rework-1; /v waits on M3-05 |
