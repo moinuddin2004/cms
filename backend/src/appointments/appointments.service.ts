@@ -37,6 +37,7 @@ import { ClockService } from 'src/common/clock/clock.service';
 import { addDays, dayOfWeekOf } from 'src/common/clock/tz.util';
 import { assertEditable, assertTransition } from './appointment-transitions';
 import { pgError, sqlRows } from 'src/common/database/sql';
+import { AppointmentReminderService } from './appointment-reminders.service';
 
 /**
  * Which queue-entry statuses a booking-style status filter means for
@@ -127,6 +128,7 @@ export class AppointmentsService {
     private readonly dataSource: DataSource,
     private readonly clock: ClockService,
     private readonly notifications: NotificationService,
+    private readonly reminders: AppointmentReminderService,
   ) {}
 
   /**
@@ -245,6 +247,7 @@ export class AppointmentsService {
 
     const saved = await this.saveBooking(appointment);
     this.notifyDoctor('appointment.booked', saved, userId);
+    this.reminders.schedule(saved);
 
     return this.findOne(saved.id, ctx);
   }
@@ -417,6 +420,7 @@ export class AppointmentsService {
         reason: 'It moved to another doctor.',
       });
     }
+    if (timeChanged) this.reminders.schedule(existing);
     if (timeChanged || doctorChanged) {
       this.notifyDoctor('appointment.rescheduled', existing, userId, {
         previous_date: await this.notifications.clinicTime(

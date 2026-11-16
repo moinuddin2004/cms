@@ -18,6 +18,8 @@ export interface EffectivePolicy {
   callTimeoutSec: number | null;
   manualSelectReasonRequired: boolean;
   serviceDayCutoff: string;
+  /** Push "your turn is near" when this many people (or fewer) are ahead. */
+  patientTurnNearAhead: number;
   /** The location's timezone (not stored on the policy). */
   timezone: string;
   /** Where the values came from. */
@@ -35,6 +37,7 @@ export const POLICY_DEFAULTS: Omit<EffectivePolicy, 'timezone' | 'source'> = {
   callTimeoutSec: null,
   manualSelectReasonRequired: false,
   serviceDayCutoff: '00:00',
+  patientTurnNearAhead: 2,
 };
 
 const CACHE_MS = 60_000;
@@ -59,6 +62,8 @@ function policyChanges(dto: UpdateQueuePolicyDto): Partial<QueuePolicy> {
   }
   if (dto.serviceDayCutoff !== undefined)
     changes.serviceDayCutoff = dto.serviceDayCutoff;
+  if (dto.patientTurnNearAhead !== undefined)
+    changes.patientTurnNearAhead = dto.patientTurnNearAhead;
   return changes;
 }
 
@@ -206,6 +211,7 @@ export class QueuePoliciesService {
       callTimeoutSec: row.callTimeoutSec,
       manualSelectReasonRequired: row.manualSelectReasonRequired,
       serviceDayCutoff: (row.serviceDayCutoff ?? '00:00').slice(0, 5),
+      patientTurnNearAhead: row.patientTurnNearAhead ?? 2,
     };
   }
 
@@ -222,6 +228,7 @@ export class QueuePoliciesService {
       callTimeoutSec: p.callTimeoutSec,
       manualSelectReasonRequired: p.manualSelectReasonRequired,
       serviceDayCutoff: p.serviceDayCutoff,
+      patientTurnNearAhead: p.patientTurnNearAhead,
     };
   }
 }

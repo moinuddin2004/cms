@@ -746,6 +746,7 @@ CREATE TABLE queue_entries (
   urgent_reason           text,
   reason_for_visit        text,
   checked_in_at           timestamptz NOT NULL,
+  turn_near_notified_at   timestamptz,
   sort_anchor_at          timestamptz NOT NULL,
   called_at               timestamptz,
   consultation_started_at timestamptz,
@@ -1866,6 +1867,25 @@ CREATE TABLE patient_accounts (
 );
 CREATE UNIQUE INDEX uq_patient_accounts_email ON patient_accounts (lower(email)) WHERE deleted_at IS NULL;
 CREATE INDEX idx_patient_accounts_phone ON patient_accounts (phone);
+
+-- ------------------------------------------------------------------------
+-- patient_devices   (src/patient-devices/patient-device.entity.ts)
+-- Push targets of a patient ACCOUNT (M3-07); a token moves to the newest account.
+-- ------------------------------------------------------------------------
+CREATE TABLE patient_devices (
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id      uuid NOT NULL,
+  expo_push_token varchar(200) NOT NULL,
+  platform        varchar(10) NOT NULL,
+  device_label    varchar(80),
+  app_version     varchar(20),
+  last_seen_at    timestamptz NOT NULL DEFAULT now(),
+  created_at      timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT chk_patient_devices_platform CHECK ("platform" IN ('android', 'ios')),
+  CONSTRAINT fk_patient_devices_account_id FOREIGN KEY (account_id) REFERENCES patient_accounts (id) ON DELETE CASCADE
+);
+CREATE UNIQUE INDEX uq_patient_devices_token ON patient_devices (expo_push_token);
+CREATE INDEX idx_patient_devices_account_id ON patient_devices (account_id);
 
 -- ------------------------------------------------------------------------
 -- patient_account_identities   (src/patient-auth/entities/patient-account-identity.entity.ts)
@@ -4167,13 +4187,15 @@ CREATE TABLE queue_policies (
   call_timeout_sec              integer,
   manual_select_reason_required boolean NOT NULL DEFAULT false,
   service_day_cutoff            time NOT NULL DEFAULT '00:00',
+  patient_turn_near_ahead       integer NOT NULL DEFAULT 2,
   version                       integer NOT NULL DEFAULT 0,
   updated_at                    timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT chk_queue_policies_1 CHECK ("max_late_min" >= "late_grace_min"),
   CONSTRAINT chk_queue_policies_2 CHECK ("call_timeout_sec" IS NULL OR "call_timeout_sec" >= 30),
   CONSTRAINT chk_queue_policies_3 CHECK ("walkin_starvation_min" > 0),
   CONSTRAINT chk_queue_policies_4 CHECK ("late_grace_min" >= 0),
-  CONSTRAINT chk_queue_policies_5 CHECK ("early_window_min" BETWEEN 0 AND 240)
+  CONSTRAINT chk_queue_policies_5 CHECK ("early_window_min" BETWEEN 0 AND 240),
+  CONSTRAINT chk_queue_policies_6 CHECK ("patient_turn_near_ahead" BETWEEN 0 AND 20)
 );
 CREATE UNIQUE INDEX uq_queue_policy_location ON queue_policies (organization_id, location_id) WHERE "location_id" IS NOT NULL;
 CREATE UNIQUE INDEX uq_queue_policy_org_default ON queue_policies (organization_id) WHERE "location_id" IS NULL;

@@ -94,6 +94,10 @@ export class PatientAccountService {
           WHERE account_id = $1`,
         [ctx.accountId],
       );
+      // The phones stop receiving pushes (M3-07).
+      await m.query(`DELETE FROM patient_devices WHERE account_id = $1`, [
+        ctx.accountId,
+      ]);
       // Consent rows are the legal record; only the IP goes.
       await m.query(
         `UPDATE patient_account_consents SET ip = NULL WHERE account_id = $1`,

@@ -57,6 +57,8 @@ import {
 } from '../dto/queue.dto';
 
 import { pgError, sqlRows } from 'src/common/database/sql';
+import { PatientDevicesService } from 'src/patient-devices/patient-devices.service';
+import { patientPushRecipients } from 'src/notifications/recipients/patient-recipients';
 import {
   canHandleEntry,
   canOpenSession,
@@ -91,6 +93,7 @@ export class QueueOrchestrator {
     private readonly chargeSources: ChargeSourcesService,
     private readonly audit: AuditService,
     private readonly notifications: NotificationService,
+    private readonly patientDevices: PatientDevicesService,
   ) {}
 
   // ═══════════════════════════════════════════════════════════
@@ -388,6 +391,7 @@ export class QueueOrchestrator {
         { calledAt: tx.now },
         { eventType: 'CALLED', reasonCode: decision.reason },
       );
+      await this.notifyCalled(tx, session, entry);
       return {
         entry: this.query.toEntryView(entry, session.tokenPrefix),
         reason: decision.reason,
@@ -442,6 +446,7 @@ export class QueueOrchestrator {
         },
         ifMatch,
       );
+      await this.notifyCalled(tx, session, entry);
       return {
         entry: this.query.toEntryView(entry, session.tokenPrefix),
         reason: 'MANUAL_SELECT' as SelectionReason,
@@ -1139,6 +1144,7 @@ export class QueueOrchestrator {
 
         const tx = new QueueTx(manager, new Date(now), ctx, actor);
         const result = await work(tx);
+        await this.notifyTurnNear(tx);
         // Plain JSON — exactly what a replay of this key will return later.
         const body = JSON.parse(JSON.stringify(result ?? null)) as T;
 
@@ -1293,6 +1299,115 @@ export class QueueOrchestrator {
     }
     await this.notifyCheckIn(tx, session, entry);
     return entry;
+  }
+
+  /**
+   * "It's your turn" push to the patient's phone (M3-07). Only the clinic name,
+   * the doctor's name and the token — nothing clinical (docs/03 §5). Savepoint-safe.
+   */
+  private async notifyCalled(
+    tx: QueueTx,
+    session: QueueSession,
+    entry: QueueEntry,
+  ): Promise<void> {
+    const recipients = await patientPushRecipients(
+      this.patientDevices,
+      tx.manager,
+      session.organizationId,
+      [entry.patientId],
+    );
+    if (!recipients.length) return;
+    const [doctor] = await sqlRows<{ full_name: string | null }>(
+      tx.manager,
+      `SELECT full_name FROM employees WHERE id = $1`,
+      [session.doctorId],
+    );
+    await this.notifications.enqueueSafely(tx.manager, {
+      organizationId: session.organizationId,
+      locationId: session.locationId,
+      eventCode: 'queue.called',
+      recipients,
+      variables: {
+        token: this.tokens.format(session.tokenPrefix, entry.tokenNumber),
+        doctor_name: doctor?.full_name ?? 'your doctor',
+      },
+      link: `/visit/${entry.id}`,
+      entity: { type: 'queue_entry', id: entry.id },
+    });
+  }
+
+  /**
+   * "Your turn is near" push (M3-07), once per entry. Runs at the end of every
+   * mutation that moved the line (anything but a plain check-in): waiting
+   * patients with at most `patientTurnNearAhead` people ahead and no marker
+   * yet get the push; the marker is set in the same transaction, so a retry
+   * or a second mutation can never send it twice. Patients with no reachable
+   * phone are left unmarked and checked again on the next change.
+   */
+  private async notifyTurnNear(tx: QueueTx): Promise<void> {
+    if (![...tx.eventTypes].some((t) => t !== 'CHECKED_IN')) return;
+    for (const session of tx.touchedSessions.values()) {
+      const policy = await this.policies.getEffective(
+        session.organizationId,
+        session.locationId,
+      );
+      const waiting = await tx.sessionEntries(session.id, [
+        EntryStatus.WAITING,
+      ]);
+      if (!waiting.length) continue;
+      const order = this.query.engineOrder(waiting, session, policy, tx.now)
+        .order;
+      const near = order
+        .slice(0, policy.patientTurnNearAhead + 1)
+        .map((id, ahead) => ({
+          entry: waiting.find((w) => w.id === id)!,
+          ahead,
+        }))
+        .filter((n) => !n.entry.turnNearNotifiedAt);
+      if (!near.length) continue;
+
+      const reachable = new Set(
+        await this.patientDevices.patientsWithDevices(
+          tx.manager,
+          session.organizationId,
+          near.map((n) => n.entry.patientId),
+        ),
+      );
+      for (const { entry, ahead } of near) {
+        if (!reachable.has(entry.patientId)) continue;
+        const marked = await sqlRows<{ id: string }>(
+          tx.manager,
+          `UPDATE queue_entries SET turn_near_notified_at = $2
+            WHERE id = $1 AND turn_near_notified_at IS NULL RETURNING id`,
+          [entry.id, tx.now],
+        );
+        if (!marked.length) continue;
+        entry.turnNearNotifiedAt = tx.now;
+        await this.notifications.enqueueSafely(tx.manager, {
+          organizationId: session.organizationId,
+          locationId: session.locationId,
+          eventCode: 'queue.turn_near',
+          recipients: [
+            {
+              audience: NotificationAudience.PATIENT,
+              type: RecipientType.PATIENT,
+              id: entry.patientId,
+            },
+          ],
+          variables: {
+            token: this.tokens.format(session.tokenPrefix, entry.tokenNumber),
+            ahead_text:
+              ahead === 0
+                ? "You're next"
+                : ahead === 1
+                  ? '1 person ahead of you'
+                  : `${ahead} people ahead of you`,
+          },
+          link: `/visit/${entry.id}`,
+          entity: { type: 'queue_entry', id: entry.id },
+        });
+      }
+    }
   }
 
   /** "Patient waiting" to the session's doctor (in-app only; savepoint-safe). */

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CommonModule } from 'src/common/common.module';
 import { DevicesModule } from 'src/devices/devices.module';
+import { PatientDevicesModule } from 'src/patient-devices/patient-devices.module';
 import { EngineModule } from 'src/engine/engine.module';
 import { AddressVerifier } from './delivery/address-verifier';
 import { EmailChannelProvider } from './delivery/email.provider';
@@ -58,6 +59,7 @@ import { UserNotificationsService } from './services/user-notifications.service'
     EngineModule,
     CommonModule,
     DevicesModule,
+    PatientDevicesModule,
   ],
   controllers: [
     NotificationSettingsController,
