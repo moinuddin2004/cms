@@ -2844,6 +2844,39 @@ Verification: tsc clean · lint 0 errors (3 old warnings) · `lint:fences` ok ·
 ### Addendum — real QR (after rework 1)
 `react-native-qrcode-svg` (installed by the user, on mobile/develop) now renders the code in `core/components/QrCode` (black on white, quiet zone; the text fallback shows only if encoding fails). It encodes `claim.url`. The install note in the first M2-07 entry is obsolete. Tests: `QrCode.test.tsx` (renders for the value; falls back on error). Note for the lead: this worktree's own `node_modules` did not contain the package, so I copied `react-native-qrcode-svg`, `qrcode`, `text-encoding` and `dijkstrajs` from the main checkout's `node_modules` (untracked; no package.json/lockfile change by me).
 
+
+---
+## M3-01 + M3-02 — Medication schedules + patient medication endpoints — 2026-11-15
+Branch: claude/m3-01-medications-9171d2 · Status: in-progress (plan written before coding)
+
+### Plan
+**Tables** (docs/08 §5 as written, plus one column): `medication_schedules`, `medication_dose_events`; extra column `patient_edited boolean NOT NULL DEFAULT false` (set when the patient changes times/endDate/status via PATCH, so an amended prescription never overwrites the patient's choices). Entities in `src/medications/entities`; schema in `02_tables.sql`; `changes/2026-11-15_medications.sql`.
+
+**Event hook**: no event-emitter package exists and none may be added → `PrescriptionEvents` (RxJS `Subject`, provided + exported by `PrescriptionsModule`). `PrescriptionService.finalize()` calls `events.issued(...)` AFTER its history log inside try/catch (never throws, never awaited work). `MedicationsModule` subscribes on init (`prescription.issued` `{ prescriptionId, organizationId }`); the handler swallows+logs every error. A crash between save and handler loses a sync; `MedicationSyncService.syncPrescription(id)` is idempotent and callable for backfill (backfill on link accept = follow-up).
+
+**Sync** (`MedicationSyncService.syncPrescription`): load FINALIZED prescription + medicines; links = `patient_record_links` active for (org, patient) whose org has `patient_app` enabled (revoked/frozen → skipped); per link profile: existing `source='prescription'` schedules of (profile, prescription) matched to medicines by normalized name (amend re-creates medicine rows with new ids, so the id is re-pointed). Matched: update name/dose/instructions/meal; times/endDate/status kept if `patient_edited`, else recomputed. Unmatched medicine → insert. Existing schedule whose medicine disappeared → `status='stopped'` (unless already stopped/completed). Unique index `(profile_id, prescription_medicine_id)` honoured. `startDate` = issue day in the location's timezone (`ClockService`).
+
+**Parsers** (`src/medications/parsing/`, pure): `parseDoseTimes(tags, frequencyText)` → `{ times, source: 'tags'|'frequency'|'none' }`; `parseDurationDays(text)`; `computeEndDate(start, days)` (inclusive: start + days − 1). Tag table + frequency forms from the card; SOS/PRN/unknown → `times: []` (schedule exists, no reminders).
+
+**Endpoints** (controller lives in `src/patient-app/medications/` because the coverage spec forbids `@PatientApi` elsewhere): GET `/patient-api/medications?updatedSince=&profileId=`, PATCH `/:id` `{times?, endDate?, status?}` (strict allowlist DTO, `forbidNonWhitelisted`), GET `/dose-events?from&to`, POST `/dose-events` `{events[≤200]}`. All scoped by `profile_id IN account profiles` (404 otherwise, one code). Dose events upsert `ON CONFLICT (schedule_id, due_at) DO UPDATE ... WHERE acted_at <= EXCLUDED.acted_at` (latest wins); events for schedules not owned by the account → whole request 404. Schedules are the patient's property (survive link revoke); mutations are therefore not blocked by link state.
+
+### Built (status → review)
+- **Schema**: `database/changes/2026-11-15_medications.sql` + block in `schema/02_tables.sql`; entities `src/medications/entities`. Deviation from docs/08: extra `patient_edited` column + two indexes (documented in docs/08 §5).
+- **Event**: `PrescriptionEvents` (`prescriptions/events`, exported by `PrescriptionsModule`); `finalize()` publishes after its history log. `MedicationsModule` subscribes (`concatMap`, errors logged, never thrown). `MedicationSyncService.syncPrescription(id)` is idempotent and reusable for a backfill. Writes `feed.changed {kinds:['medications']}` to the outbox for the patient room.
+- **Parsers**: `src/medications/parsing/medication-parsers.ts` (`parseDoseTimes`, `parseDurationDays`, `computeEndDate`); table spec has 70 time cases + 34 duration cases.
+- **Endpoints**: `src/patient-app/medications/*` (controller must live under `patient-app` for the coverage spec). Contract notes: docs/07 §6.5.
+- **Specs**: parsers, sync service (in-memory fakes: create, idempotent, amend-by-name, add/stop lines, patient edits kept, revoked link, feature off, multi-profile), patient service (IDOR 404s, whole-batch rejection, replay-safe upsert SQL), controller (route order, DTO allowlist/limits).
+
+### Verification
+`tsc -p tsconfig.build.json` clean · full backend jest 112 suites / 1253 tests ✓ (run in background: this machine needs ~10 min). Pre-existing, untouched: `tsc -p tsconfig.json` errors in `nestjs-cli/` templates and `test/labs/access.int-spec.ts`.
+No integration spec: no local Postgres, so the `ON CONFLICT` upsert SQL and the sync against real tables were **not run** against a database.
+
+### Decisions to review
+- Schedules stay readable/editable after link revoke or `patient_app` off (patient-owned data); only creation needs an active link + feature on.
+- `endDate: null` via PATCH sets `endDateSource: 'patient'` (app asks only when `'unknown'`).
+- No backfill when a patient links *after* a prescription was finalized (follow-up: call `syncPrescription` for the patient's recent finalized prescriptions on claim accept).
+- An in-process event is lost if the process dies between finalize and handler; `syncPrescription` can be re-run.
+
 ---
 ## Rework M2-09 #1 — 2026-11-16
 Branch: `claude/m2-09-records-ff83ad` (merged `mobile/develop`; conflicts in HANDOFF, PROGRESS, `core/i18n/{en,ur}.ts` resolved by keeping both sides) · Status stays: review
@@ -2896,3 +2929,29 @@ none
 ### Verification
 - `npm run build` ok · eslint clean on touched files · `npm run test`: 382 passed / 5 failed — all in files this card did not touch (DataTable pagination text, builders THEME-15 blue-token count, notifications, roles escalation); same family as the existing fix-5-failing-web-app-tests task. tsc has no errors in touched files.
 
+
+
+---
+## Rework M3-01 + M3-02 #1 — 2026-11-16
+Branch: claude/m3-01-medications-9171d2 · Status stays: review (merged `mobile/develop` first; one HANDOFF conflict resolved by keeping both sides)
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| 1 | `MedicationsModule` / `PatientMedicationsService` not registered (my scripted edit silently missed because of CRLF) | Registered in `PatientAppModule` (`imports` + `providers`). `MedicationsModule` is imported only there, so its subscriber starts once. New `patient-app.module.spec.ts`: compiles `PatientAppModule` + `MedicationsModule` with only infrastructure stubbed (DataSource, config, clock, settings, and stub versions of the prescriptions / feature-flags / patient-links modules), asserts controller + service resolve, and that a `prescription.issued` event reaches `syncPrescription`. |
+| 2 | Missed syncs never repaired | `MedicationSweepService`: on boot (30 s) and every 5 min re-runs `syncPrescription` for FINALIZED prescriptions of the last 14 days that have an active-linked profile with no schedule at `prescription_version >= prescriptions.version`. Every sync stamps `prescription_version` (new column). Also covers a patient who links shortly after a prescription. I chose the sweep (allowed fallback) over an outbox consumer: the outbox/relay only fans out to sockets and has no job-consumer. Spec. |
+| 3 | Weekly / alternate-day wording | Parser returns no default times for weekly / monthly / "every other day" / "every N days" / "har doosre din" / "hafte mein …" / Urdu forms. 15 new table cases (an explicit `frequency_timing` tag still wins). |
+| 4 | Clinic revoke vs patient unlink | **A-23** in DECISIONS. `PatientLinksService.revoke` (clinic) stops + hides (`hidden = true`) that patient's prescription schedules in the same transaction and sends `feed.changed ['links','medications']`. Hidden rows: omitted from the full list, 404 on PATCH, returned once as `stopped` tombstones when `updatedSince` is given (so an incremental app cancels the reminders). Patient-left / frozen / app-off: visible, PATCH → 403 `PATIENT_APP_DISABLED`; dose events still accepted. Re-finalize stops schedules of any profile without an active link. docs/07 §6.5 + docs/08 updated. |
+| 5 | Rate limits | `@RateLimit` 120 / 15 min on PATCH and POST dose-events (+ metadata spec). |
+| 6 | Concurrent syncs | `pg_advisory_xact_lock(hashtext(prescriptionId))` at the start of each profile transaction (event + sweep serialize; no 23505). |
+| 7 | updatedSince paging | List ordered `updated_at, id` ascending, 500 per call, response is now `{ items, nextUpdatedSince }` (cursor = last item's `updatedAt` when more exist). **Contract change** vs the earlier array — docs/07 table + notes updated; M3-03/04 must use it. |
+| 8 | Feature check / `completed` | `isFeatureEnabled(org, 'patient_app', locationId)` so location overrides apply. **`status = 'completed'` is not set by the backend**: nothing flips it when `endDate` passes; the app should treat `endDate < today` (phone clock) as finished. A server sweep that sets it is a follow-up (not in this card). |
+
+Schema (same commit): `medication_schedules.prescription_version int`, `hidden boolean NOT NULL DEFAULT false` — entity, `schema/02_tables.sql`, `changes/2026-11-15_medications.sql` (also ALTERs, safe on a DB that already ran the first version), docs/08.
+
+### Notes
+- `backend/node_modules/.bin` is absent in the shared junction right now, so `npx jest` / `npx tsc` fail ("not recognized"); I ran `node node_modules/jest/bin/jest.js` and `node node_modules/typescript/bin/tsc` instead. Nothing installed.
+- Still no database: the new SQL (`pg_advisory_xact_lock`, the sweep query, the revoke UPDATE, the version-stop UPDATE) is covered only against fakes / SQL-text assertions — **not run on Postgres**.
+- The foreground rule: full suite takes ~10 min on this machine, so build + the targeted specs + full suite were run as background commands and awaited.
+
+### Verification
+`tsc -p tsconfig.build.json` clean · full backend jest 114 suites / 1283 tests green (incl. the new module smoke spec, sweep spec, weekly parser cases).
