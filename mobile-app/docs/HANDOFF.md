@@ -2975,9 +2975,28 @@ Branch: claude/m3-03-reminders-033e68 · Status: review
 3. Tap on a reminder only opens the app (the router ignores patient pushes until M3-07); `data.route` is `/today` for later.
 4. No quiet hours (not in the card).
 5. `completed` is never set by the backend: the planner stops at `endDate` itself.
+6. The medications barrel (`index.ts`) is deliberately UI-free (hooks, logic, types, `ReminderSync`); its two screens are exported from `medications/pages` (route files import them there) — otherwise sign-out and pure-logic tests would pull `expo-router` / keyboard-controller into jest.
 
 ### Device check (HANDOFF for the lead — not done here)
 Airplane mode: link/finalise a prescription, grant notifications, set a dose a few minutes ahead, enable airplane mode, lock the phone → it must ring; also with the app swiped away. Check on a Xiaomi/Oppo/Samsung with and without the battery steps; check Android 13+ and exact-alarm behaviour (`SCHEDULE_EXACT_ALARM`/Doze may delay a DATE trigger by minutes on some OEMs — if so the app config needs the exact-alarm permission).
 
 ### Verification
-typecheck clean · lint 0 errors · `lint:fences` ok · new specs: planner table (17), content, scheduler diff/sync/serialise, doses, dose queue (48 tests in 5 suites) · full jest: see commit message.
+typecheck clean · lint 0 errors · `lint:fences` ok · new specs: planner table (17), content, scheduler diff/sync/serialise, doses, dose queue (48 tests in 5 suites) · `jest src/patient src/core` 48 suites / 272 tests green (foreground, `--runInBand`).
+
+---
+## M3-04 — Patient Today (P-02) — 2026-11-16
+Branch: claude/m3-03-reminders-033e68 (after M3-03) · Status: review
+
+### Built (`src/patient/features/today/`, new "Today" tab, route `(patient)/(main)/(tabs)/today.tsx`)
+- `lib/today-model.ts` (pure, tested): today's doses on the phone calendar with state `pending | taken | skipped` (server events + unsent local ones, latest wins), grouped Morning / Afternoon / Evening / Night (05 / 12 / 17 / 21), "course ends" hint (≤ 2 days), appointments split into **today** and **next 3 days** judged on each appointment's own location timezone, open statuses only.
+- `pages/TodayPage.tsx`: dose rows (Taken button, ⋯ → "Skip this dose"), appointment rows, pull to refresh, states: loading skeleton, error + retry (only when nothing is cached), "Link your first clinic" (no schedules and no appointments), "Nothing due today.", notification-permission card (undetermined → turn on; denied → open settings), unsent-changes line and per-row "Will sync when you are back online". Header gear → `/reminders`.
+- **Offline dose queue** (from M3-03, `medications/lib/dose-queue.ts`): decision saved to the encrypted patient cache first, then flushed — on enqueue, when the phone is online again, and on foreground (`ReminderSync`). Batches ≤ 200; network/5xx keep everything; a 400/404 batch is retried one by one and only the rejected event is dropped; server upsert is idempotent per `(scheduleId, dueAt)`. After a successful flush the `dose-events` queries are invalidated. Upcoming appointments come from the cached `records-appointments-upcoming` query.
+- i18n en (+ ur copies marked TODO(ur)).
+
+### Not done (outside the card / blocked)
+- Profile filter + avatars: no profiles endpoint yet (M2-10) — rows show an avatar only once `useReminderProfiles().nameOf` knows the name.
+- Live token card (needs M3-05/06), appointment "Confirm" (M3-08), ⋯ "Change time" / "Stop reminders" and "How many days? [Set]" (need `PATCH /medications/:id` UI — follow-up).
+- The Home tab (placeholder with sign-out) is still the landing tab; Today is the second tab.
+
+### Verification
+typecheck clean · eslint 0 errors (3 old warnings) · `lint:fences` ok · `jest src/patient src/core src/shell` 53 suites / 293 tests green (foreground, `--runInBand`; the new `TodayPage` suite covers: grouped list, Taken saved + sent, offline "will sync" with the queue kept, server-taken row, empty/link-first, nothing due, error + retry). `CI=1 npx expo start --offline` run for the new routes. No device: airplane-mode ring + offline sync on a phone still to be checked (see M3-03 device check).
