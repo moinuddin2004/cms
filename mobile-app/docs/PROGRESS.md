@@ -67,7 +67,7 @@
 
 | M2-07 | Claim flow P-01 | MOB | M | M2-04, M2-06 | done | Sonnet session | 2026-11-15 | rework-1 |
 | M2-15 | Staff "Link app" QR screen (S-09) | MOB | S | M2-04, M1-12 | done | Sonnet session (with M2-07) | 2026-11-15 | rework-1 |
-| M2-13 | Product events (analytics) | BE+MOB | S | M2-06 | review | Sonnet session | 2026-11-16 | `product_events`, `POST /me/events` + `/patient-api/events`, `core/analytics`, docs/analytics-events.md |
+| M2-13 | Product events (analytics) | BE+MOB | S | M2-06 | done | Sonnet session | 2026-11-15 | rework-1 |
 | M2-04 … M2-16 (rest) | Patient core | — | — | see 10 | spec | | | |
 | M3-01 | Medication schedules from finalized prescriptions (parsers + event handler) | BE | L | M2-08 | done | Sonnet session | 2026-11-15 | rework-1 |
 | M3-02 | Patient medications endpoints (list, patch, dose events) | BE | M | M3-01 | review | Sonnet session (with M3-01) | 2026-11-15 | |
