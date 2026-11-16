@@ -5,6 +5,7 @@ import { leaveSpaceAfterSignOut } from '@/core/space/switch-space';
 import { clearPatientEvents } from '@/patient/lib/analytics';
 import { beginPatientSignOut, dropSession, endPatientSignOut } from '@/patient/lib/api';
 import { wipePatientPersistedCache } from '@/patient/lib/persist-cache';
+import { unregisterThisDevice } from '@/patient/features/devices/lib/device-registration';
 
 import { logout } from '../api/auth.api';
 
@@ -15,13 +16,15 @@ import { logout } from '../api/auth.api';
  * still has a session (else the welcome picker). The staff session, token and
  * cache are never touched.
  *
- * Unregistering the push device joins here with M3-07.
+ * The push device is unregistered first (M3-07).
  */
 export async function signOutPatient(queryClient: QueryClient): Promise<void> {
   // Stops a refresh in flight from writing the session back, and waits for it so
   // the stored token is the newest one when we revoke it.
   clearPatientEvents(); // nothing queued for this account may be sent under the next one
   await beginPatientSignOut();
+  // Stop pushes to this phone while the token still works (short timeout, best effort).
+  await unregisterThisDevice();
   try {
     await logout();
   } catch {

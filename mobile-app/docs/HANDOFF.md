@@ -3101,3 +3101,33 @@ none (apply `backend/database/changes/2026-11-15_queue_visit_tokens.sql` to exis
 - Socket access tokens are verified at connect only (15 min), like the staff gateway; the mobile client reconnects with a fresh token, and subscribe re-checks the live session through links, not the token age.
 - Visit page state keeps working after the entry finishes until the token expires (status shows the final state, `peopleAhead: null`).
 - Not run: DB-backed integration test (no local Postgres); SQL for the join in `subscribableSession` is checked by shape only.
+
+---
+## M3-06 + M3-07 — Live token / visit screen, patient push  ·  2026-11-16  ·  Claude Sonnet 5.5
+Branch: claude/ecstatic-curran-0783c6 (from mobile/develop)   Commit(s): see report   Status set to: review (both)
+
+### Done — backend (M3-07)
+- `patient_devices` (entity in new `src/patient-devices/`, schema block, `changes/2026-11-16_patient_push.sql`), `POST/DELETE /patient-api/devices` (same bodies as staff `/me/devices`, `@PatientApi`, account-owned, upsert by token).
+- `CHANNELS_BY_AUDIENCE.patient = [PUSH]`; `CHANNELS_BY_RECIPIENT.patient` + PUSH; patient audience switch defaults ON and a patient push rule defaults ON only for events listing `push` (every other patient channel stays off). Specs updated.
+- Resolver: patient -> ACTIVE link -> profile -> live account -> `patient_devices` (approved clinic only), `PatientDevicesService` + `notifications/recipients/patient-recipients.ts`. `ExpoPushProvider` sends to patient recipients with `data.space = 'patient'`, route = payload link; dead tokens are removed from both tables.
+- Events (seeds, push-only): `queue.turn_near` ("Your turn is near" / "{clinic}: N people ahead of you"), `queue.called` ("It's your turn" / "{clinic}: please go to {doctor}"), `appointment.reminder` ("Appointment tomorrow" / "{clinic} at {time}"). A spec asserts no clinical words and only whitelisted placeholders.
+- `queue.called`: in `callNext` + `selectPatient`. `queue.turn_near`: end of every mutation in `mutate()` except a plain check-in, threshold = new `queue_policies.patient_turn_near_ahead` (default 2, 0..20, in the policy DTO), once per entry via new `queue_entries.turn_near_notified_at` set atomically (`UPDATE ... WHERE ... IS NULL RETURNING`). Patients without a device are skipped and left unmarked.
+- `appointment.reminder`: enqueued with `scheduledFor = start - 24h` on create and on time change (`AppointmentReminderService`); a `PayloadFinalizers` check at send time skips (`skipped_disabled`) when the appointment is no longer scheduled/confirmed at exactly that start time, so cancel/reschedule need no row cleanup. Not queued when < 24 h away.
+- Account deletion removes the account's devices.
+
+### Done — mobile
+- M3-06: `patient/lib/realtime.ts` (+provider, invalidator), `patient/features/queue` (`useActiveQueue`, `LiveTokenCard`, `LiveTokenSection`, `VisitPage`), route `(patient)/(main)/visit/[entryId]`. Realtime only invalidates `['queue-active']`; socket joins `entry:<id>` for every active entry; live = connected AND a subscribe was acked; otherwise the query polls every 5 s. Socket errors never sign out: `auth_error`/`unavailable`/server disconnect -> not live + invalidate + reconnect with 2..30 s backoff (token refresh is left to the HTTP client); refused subscribe retried at 0.5/1.5/4/10 s (the server verifies the token after the first packets); background > 30 s disconnects, foreground reconnects.
+- M3-07: `patient/features/devices` mirrors staff M1-05 (explanation sheet once via pref `patient.push.asked`, register after sign-in when permitted, unregister in `signOutPatient` before logout with a 4 s timeout, secure item `patient.pushToken`), tap routing via `shell/notification-router.ts` (patient branch) -> `PatientPushRoute` -> `/visit/<id>` or `/appointments/<id>` (strict id/route validation). Strings via `useT` (en + ur).
+
+### Decisions / for the architect
+- Permission sheet shows once after sign-in (as the card says), not at the first live token as docs/02 §8 suggests.
+- Today wiring: Today (M3-04) is not merged. `<LiveTokenSection />` (from `@/patient/features/queue`) renders nothing when empty; I placed it at the top of the placeholder home. **M3-04: pin `<LiveTokenSection />` at the top of Today and drop it from `PatientPlaceholderPage`.**
+- `feed.changed` kinds map to roots `medications`, `records-appointments(-upcoming)`, `links`/`profiles` (see `patient/lib/realtime-invalidation.ts`): M3-03/04 must use `['medications', ...]` as the key root or adjust that map.
+- Visit screen has no Call clinic / WhatsApp buttons: `/queue/active` carries no phone (add `location.phone` server side if wanted).
+- "Updated within 2 s" = event -> 150 ms coalesce -> refetch; not measured on a device.
+
+### Verification
+Backend: build clean; full unit suite 123 suites / 1362 tests pass. Mobile: tsc clean, lint 0 errors (4 old warnings), lint:fences ok, jest all suites pass (new: realtime, invalidation, push-route, queue-text, notification-router). Not run: DB-backed tests (no local Postgres), real device push.
+
+### Install commands for the user
+none. Apply `backend/database/changes/2026-11-16_patient_push.sql` to existing databases.
