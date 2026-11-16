@@ -20,6 +20,7 @@ import {
   resolveCodePepper,
 } from './patient-config';
 import { PatientSessionService } from './patient-session.service';
+import { PatientSessionEvents } from './patient-session-events';
 import { PatientTokenService } from './patient-token.service';
 import { PatientJwtStrategy } from './strategies/patient-jwt.strategy';
 
@@ -56,11 +57,17 @@ import { PatientJwtStrategy } from './strategies/patient-jwt.strategy';
     },
     LoginCodeService,
     PatientSessionService,
+    PatientSessionEvents,
     PatientTokenService,
     PatientAuthService,
     PatientJwtStrategy,
     GoogleIdentityService,
   ],
-  exports: [TypeOrmModule, PatientSessionService, PatientTokenService],
+  exports: [
+    TypeOrmModule,
+    PatientSessionService,
+    PatientSessionEvents,
+    PatientTokenService,
+  ],
 })
 export class PatientAuthModule {}

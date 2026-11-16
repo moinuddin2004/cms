@@ -19,6 +19,7 @@ describe('maskTokens', () => {
 
   it('keeps the older token routes masked and leaves other paths alone', () => {
     expect(maskTokens(`/join/${T}`)).toBe('/join/***');
+    expect(maskTokens(`/visit/${T}/state`)).toBe('/visit/***/state');
     expect(maskTokens('/patients/123/app-link')).toBe('/patients/123/app-link');
     expect(maskTokens('/api/c/keep')).toBe('/api/c/keep');
     expect(maskTokens(undefined)).toBeUndefined();

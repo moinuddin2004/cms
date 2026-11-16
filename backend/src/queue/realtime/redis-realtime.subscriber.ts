@@ -2,6 +2,7 @@ import { Injectable, Logger, OnApplicationShutdown, OnModuleInit } from '@nestjs
 import { ConfigService } from '@nestjs/config';
 import { Redis } from 'ioredis';
 import { createRedisConnection } from 'src/common/redis/redis-connection';
+import { PatientRealtimeGateway } from 'src/patient-app/realtime/patient-realtime.gateway';
 import { QueueGateway } from './queue.gateway';
 import { BusMessage, HEARTBEAT_EVERY_MS, HEARTBEAT_STALE_MS, REALTIME_CHANNEL } from './realtime-bus';
 
@@ -25,11 +26,13 @@ export class RedisRealtimeSubscriber implements OnModuleInit, OnApplicationShutd
 
   constructor(
     private readonly gateway: QueueGateway,
+    private readonly patientGateway: PatientRealtimeGateway,
     private readonly config: ConfigService,
   ) {}
 
   onModuleInit() {
     this.gateway.setAvailable(false); // until the first heartbeat arrives
+    this.patientGateway.setAvailable(false);
     this.redis = createRedisConnection(this.config.getOrThrow<string>('REDIS_URL'), 'queue-realtime-sub', this.logger, {
       autoResubscribe: false, // we resubscribe on every 'ready' ourselves
     });
@@ -68,6 +71,13 @@ export class RedisRealtimeSubscriber implements OnModuleInit, OnApplicationShutd
       this.check();
     } else if (msg.kind === 'event') {
       this.gateway.publish(msg.topic, msg.payload);
+      try {
+        this.patientGateway.publish(msg.topic, msg.payload);
+      } catch (err) {
+        this.logger.warn(
+          `Patient realtime publish failed: ${(err as Error).message}`,
+        );
+      }
     }
   }
 
@@ -76,6 +86,7 @@ export class RedisRealtimeSubscriber implements OnModuleInit, OnApplicationShutd
     if (healthy === this.healthy) return;
     this.healthy = healthy;
     this.gateway.setAvailable(healthy);
+    this.patientGateway.setAvailable(healthy);
     if (healthy) this.logger.log('Realtime bus healthy — accepting sockets');
     else this.logger.warn('Realtime bus down (Redis or worker) — sockets refused, clients poll');
   }

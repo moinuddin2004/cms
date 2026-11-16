@@ -406,6 +406,9 @@ interface MedicationSchedule {
 - Connect with `auth: { token: <patient access> }`, verified with `JWT_PATIENT_ACCESS_SECRET` + `aud`.
 - Server joins `patient:<accountId>`. Client may `subscribe { room: 'entry:<entryId>' }` only for an
   entry whose patient is in its active links (ack `{ ok:false, error:'NOT_FOUND' }` otherwise).
+- Who may subscribe: an entry of a patient in the account's **active or frozen** links (A-19: frozen/suspended clinics stay readable) at an approved clinic. **Finished entries (completed, cancelled …) may be subscribed too** — it is the patient's own data; they simply stop receiving changes. The check runs on every `subscribe` and again when a `links` change arrives (rooms of unlinked entries are left).
+- Lifetime: a socket is closed (`auth_error`) when its access token expires — the client reconnects with a fresh token — when its session is revoked on this instance (logout, refresh-token reuse, account deletion), and on any `subscribe` whose session is no longer alive. At most 5 sockets per account; the oldest is dropped.
+- Availability: when the realtime bus is down the server sends `unavailable { retryAfterSeconds }` and disconnects. This is NOT an auth failure: keep the session, poll, and reconnect later. Only `auth_error` means "refresh the token / sign in".
 - Events: `visit.event` `{ entryId, seq }` → refetch `/patient-api/queue/active`;
   `feed.changed` `{ kinds: ('medications'|'appointments'|'links')[] }` → invalidate those keys.
 - Fed by the existing queue outbox relay (no new mutations in `QueueOrchestrator`).
