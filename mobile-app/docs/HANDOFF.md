@@ -3150,3 +3150,16 @@ Branch: claude/m3-05-followup (from mobile/develop)   Status: review
 ### Verification
 tsc clean; patient-app/auth/queue + rest of the backend unit suite green in chunks (90 + 32 suites, 1,345 tests). New specs: gateway lifetime/cap/unavailable, session events, publisher isolation.
 Mobile note: handle `unavailable` (poll, keep session) separately from `auth_error` (refresh token, reconnect).
+
+---
+## Rework M3-08 + M3-09 #1 — 2026-11-16
+Branch: claude/m3-08-confirm-contact-1551df · Status stays: review
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| 1 | Reschedule keeps confirmation | `AppointmentsService.update()` clears `patientConfirmedAt` when the time (start or length) changes (`appointments/patient-confirmation.ts` + spec). |
+| 2 | Audit convention | confirm audit `after` carries `accountId` and `profileId`; spec asserts it. |
+| 3 | Nested button | Confirm is now outside the card's pressable (wrapper View), `size="lg"` + `min-h-11`; RecordsPage test covers press + confirmed note. |
+| 4 | docs/07 | confirm returns `{ id, patientConfirmedAt }`; `canConfirm` text updated. |
+| 5 | Raw tel | Detail page uses `telUrl()` (exported from the contact barrel). |
+| 6 | P-07 entry | Clinic chip on appointment detail opens the contact sheet (`ClinicChip onPress`, 44 pt). Cut: not on list cards (chip would nest in the card pressable); Today entry stays with the Today session. |

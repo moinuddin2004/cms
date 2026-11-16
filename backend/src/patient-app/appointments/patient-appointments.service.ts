@@ -88,6 +88,10 @@ export class PatientAppointmentsService {
         };
       }
       const at = this.clock.now();
+      const profileId = ctx.links.find(
+        (l) =>
+          l.organizationId === row.organizationId && l.patientId === row.patientId,
+      )?.profileId;
       if (
         !CONFIRMABLE_STATUSES.includes(row.status) ||
         new Date(row.startTime).getTime() <= at.getTime()
@@ -115,6 +119,8 @@ export class PatientAppointmentsService {
           after: {
             patientConfirmedAt: at.toISOString(),
             confirmedBy: 'patient_app',
+            accountId: ctx.accountId,
+            profileId: profileId ?? null,
           },
         },
       );

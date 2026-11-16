@@ -42,8 +42,9 @@ jest.mock('@/core/components/overlays/FormSheet', () => ({ FormSheet: () => null
 jest.mock('@/core/components/overlays/ActionSheet', () => ({ ActionSheet: () => null }));
 jest.mock('@/core/components/overlays/ConfirmDialog', () => ({ ConfirmDialog: () => null }));
 jest.mock('@/patient/features/contact', () => ({ ContactButton: () => null }));
+const mockConfirm = jest.fn();
 jest.mock('../hooks/useConfirmAppointment', () => ({
-  useConfirmAppointment: () => ({ isPending: false, mutate: jest.fn() }),
+  useConfirmAppointment: () => ({ isPending: false, mutate: mockConfirm }),
 }));
 const mockPush = jest.fn();
 jest.mock('expo-router', () => ({
@@ -103,6 +104,19 @@ beforeEach(() => {
 });
 
 describe('RecordsPage', () => {
+  it('confirms an upcoming appointment from a button outside the card, and shows the confirmed note', async () => {
+    mockAppointments.mockResolvedValue([
+      appt({ canConfirm: true }),
+      appt({ id: 'a2', canConfirm: false, patientConfirmedAt: '2026-11-02T08:00:00.000Z' }),
+    ]);
+    await renderPage();
+    const button = await screen.findByText('Confirm appointment');
+    fireEvent.press(button);
+    expect(mockConfirm).toHaveBeenCalledWith('a1');
+    expect(screen.getAllByText('Confirm appointment')).toHaveLength(1);
+    expect(screen.getByText('You confirmed this appointment')).toBeTruthy();
+  });
+
   it('shows a loading skeleton, then the appointment on its clinic clock with a clinic chip', async () => {
     mockAppointments.mockResolvedValue([appt()]);
     await renderPage();

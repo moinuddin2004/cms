@@ -326,7 +326,7 @@ interface LocationRef { id: string; name: string; timezone: string; phone: strin
 | DELETE `/patient-api/links/:id` | — | `{ revoked: true }` | M2-11 |
 | GET `/patient-api/links/:id/history` | — | `{ at, action: linked / unlinked_by_you / revoked_by_clinic / revoked_by_system, label }[]` newest first | M2-11 |
 | GET `/patient-api/appointments` | `from?` (UTC), `to?`, `profileId?` | `{ id, profileId, clinic, location, doctorName, startTime, endTime, status, type, patientConfirmedAt, canConfirm }[]` | M2-08 |
-| POST `/patient-api/appointments/:id/confirm` | — | appointment | M3-08 |
+| POST `/patient-api/appointments/:id/confirm` | — | `{ id, patientConfirmedAt }` (idempotent; 409 `APPOINTMENT_NOT_CONFIRMABLE`; cleared when staff reschedule) | M3-08 |
 | GET `/patient-api/visits` | `profileId?`, `page`, `limit` | paged `{ id, profileId, clinic, location, date (YYYY-MM-DD), doctorName, followUpDate, diagnosis? , treatments?: string[] }` | M2-08 |
 | GET `/patient-api/prescriptions` | `profileId?`, `page`, `limit` | paged `{ id, profileId, clinic, location, doctorName, number, issuedAt, medicinesCount, hasPdf }` | M2-08 |
 | GET `/patient-api/prescriptions/:id` | — | above + `medicines: { name, nameUrdu, type, dosage, frequency, frequencyTiming: string[], mealRelation, duration, instructions, instructionsUrdu }[]`, `pdfUrl` | M2-08 |
@@ -369,7 +369,7 @@ interface MedicationSchedule {
 
 - `ClinicRef` returned by these endpoints also carries `clinicStatus: 'active' | 'suspended'` (A-19) and `brandColor` may be `null`. A clinic that was never approved (pending/rejected) returns **no** records; a suspended clinic (`organizations.is_active = false`) stays readable with `clinicStatus: 'suspended'`.
 - Every record carries `location.timezone` (IANA); show instants on that clock. `visits[].date` is already the `YYYY-MM-DD` on the location's clock. `location.whatsapp` is always `null` for now (no column).
-- `GET /patient-api/appointments`: newest first, at most 300 rows, not paginated. `patientConfirmedAt` is `null` and `canConfirm` is `false` until M3-08.
+- `GET /patient-api/appointments`: newest first, at most 300 rows, not paginated. `patientConfirmedAt` is the patient's confirmation time (`null` = not confirmed); `canConfirm` is true for a future scheduled/confirmed appointment on an active, app-enabled link.
 - `GET /patient-api/visits`: only **completed** consultations (the linked queue entry has `status = 'completed'`); an in-progress visit is never shown. `diagnosis` and `treatments` are **omitted** (keys absent) for clinics with `patient_app.show_diagnosis` off. `page` max 10000, `limit` max 50.
 - `GET /patient-api/prescriptions[/:id]`: only `FINALIZED`/`AMENDED` with `signed_at`; `issuedAt` = `signed_at`. **No `pdfUrl`** (the stored file is public and prints diagnosis/vitals). `hasPdf` = the clinic has `show_diagnosis` on.
 - `GET /patient-api/prescriptions/:id/pdf`: same scoped lookup as the detail; `404 NOT_FOUND` when out of scope or the clinic has `show_diagnosis` off; renders the PDF per request and streams it (`application/pdf`, `attachment`, `Cache-Control: private, no-store`) — no URL is ever handed out. Writes an access-log `download` row.

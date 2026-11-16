@@ -2,6 +2,7 @@ import {
   NotificationAudience,
   RecipientType,
 } from 'src/notifications/notifications.enums';
+import { clearConfirmationOnReschedule } from './patient-confirmation';
 import { employeeUserId } from 'src/notifications/recipients/staff-recipients';
 import { NotificationService } from 'src/notifications/services/notification.service';
 import {
@@ -408,6 +409,7 @@ export class AppointmentsService {
       existing.endTime = endTime;
       existing.durationMinutes = duration;
     }
+    clearConfirmationOnReschedule(existing, timeChanged);
     existing.updatedBy = userId;
 
     await this.saveBooking(existing);

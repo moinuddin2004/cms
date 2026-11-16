@@ -13,13 +13,7 @@ import type { PatientAppointment } from '../types/records.types';
  * "Confirm" action for an upcoming appointment, or the calm "you confirmed"
  * note once done. Renders nothing when there is nothing to say.
  */
-export function ConfirmAppointment({
-  appointment,
-  compact = false,
-}: {
-  appointment: PatientAppointment;
-  compact?: boolean;
-}) {
+export function ConfirmAppointment({ appointment }: { appointment: PatientAppointment }) {
   const { t } = useT();
   const confirm = useConfirmAppointment();
 
@@ -38,7 +32,8 @@ export function ConfirmAppointment({
 
   return (
     <Button
-      size={compact ? 'default' : 'lg'}
+      size="lg"
+      className="min-h-11"
       disabled={confirm.isPending}
       accessibilityState={{ busy: confirm.isPending, disabled: confirm.isPending }}
       onPress={() => confirm.mutate(appointment.id)}>

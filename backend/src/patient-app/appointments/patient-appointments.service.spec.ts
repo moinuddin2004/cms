@@ -94,6 +94,8 @@ describe('PatientAppointmentsService.confirm (M3-08)', () => {
     expect(out).toEqual({ id: ID, patientConfirmedAt: NOW.toISOString() });
     expect(query).toHaveBeenCalledTimes(1);
     expect(record).toHaveBeenCalledTimes(1);
+    const after = (record.mock.calls[0][2] as { after: Record<string, unknown> }).after;
+    expect(after).toMatchObject({ accountId: 'acc', profileId: 'p1' });
   });
 
   it('is scoped through active links only (frozen link excluded)', async () => {

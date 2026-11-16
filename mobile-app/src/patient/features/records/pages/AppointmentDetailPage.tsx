@@ -1,4 +1,5 @@
 import { MapPin, Phone } from 'lucide-react-native';
+import { useState } from 'react';
 import { Linking, View } from 'react-native';
 import { toast } from 'sonner-native';
 
@@ -14,6 +15,8 @@ import { useT } from '@/core/i18n';
 import { Button } from '@/core/ui/button';
 import { Icon } from '@/core/ui/icon';
 import { Text } from '@/core/ui/text';
+
+import { ContactSheet, telUrl } from '@/patient/features/contact';
 
 import { ClinicChip } from '../components/ClinicChip';
 import { ConfirmAppointment } from '../components/ConfirmAppointment';
@@ -41,6 +44,7 @@ export function AppointmentDetailPage({ id }: { id: string }) {
   const { t } = useT();
   const statusLabel = useAppointmentStatusLabel();
   const { appointment, isLoading, isError, refetch } = useRecordAppointment(id);
+  const [contactOpen, setContactOpen] = useState(false);
   const header = (
     <ScreenHeader title={t('records.appointment.title')} back backLabel={t('common.back')} />
   );
@@ -70,7 +74,8 @@ export function AppointmentDetailPage({ id }: { id: string }) {
   const failed = t('records.openFailed');
   return (
     <Screen scroll header={header} contentClassName="gap-5 pt-2">
-      <ClinicChip clinic={appointment.clinic} place={location.name} />
+      <ClinicChip clinic={appointment.clinic} place={location.name} onPress={() => setContactOpen(true)} />
+      <ContactSheet open={contactOpen} onClose={() => setContactOpen(false)} />
       <Row label={t('records.appointment.when')} value={formatRecordTime(appointment.startTime, location)} />
       {appointment.doctorName ? (
         <Row label={t('records.appointment.doctor')} value={appointment.doctorName} />
@@ -96,7 +101,7 @@ export function AppointmentDetailPage({ id }: { id: string }) {
       <ConfirmAppointment appointment={appointment} />
 
       {location.phone ? (
-        <Button size="lg" onPress={() => void open(`tel:${location.phone}`, failed)}>
+        <Button size="lg" onPress={() => void open(telUrl(location.phone ?? '') ?? '', failed)}>
           <Icon as={Phone} className="text-primary-foreground size-5" />
           <Text>{t('records.appointment.callClinic')}</Text>
         </Button>
