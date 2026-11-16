@@ -5,6 +5,8 @@ import { PATIENT_ACCESS_SECRET, PATIENT_AUDIENCE } from './patient-config';
 export interface PatientTokenPayload {
   sub: string;
   sid: string;
+  /** Expiry, seconds since epoch (set by the JWT library). */
+  exp?: number;
 }
 
 /** Signs and verifies patient access tokens (patient secret, `aud: 'patient'`, 15 min). */

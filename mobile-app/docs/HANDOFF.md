@@ -3101,3 +3101,19 @@ none (apply `backend/database/changes/2026-11-15_queue_visit_tokens.sql` to exis
 - Socket access tokens are verified at connect only (15 min), like the staff gateway; the mobile client reconnects with a fresh token, and subscribe re-checks the live session through links, not the token age.
 - Visit page state keeps working after the entry finishes until the token expires (status shows the final state, `peopleAhead: null`).
 - Not run: DB-backed integration test (no local Postgres); SQL for the join in `subscribableSession` is checked by shape only.
+
+---
+## M3-05 follow-up — socket lifetime hardening  ·  2026-11-16  ·  Claude Sonnet 5.5
+Branch: claude/m3-05-followup (from mobile/develop)   Status: review
+
+### Done
+- Sockets close at access-token `exp` (timer, cleared on disconnect); every `subscribe` re-checks `isAlive(sid, sub)` and drops the socket when it ended.
+- `PatientSessionEvents` (patient-auth, in-process): fired on logout, refresh-token reuse and account deletion; the gateway disconnects that session (or all of the account's sockets). Other API instances rely on the exp timer + per-subscribe check (no Redis fan-out).
+- Patient gateway publish wrapped in try/catch in the in-process publisher and the Redis subscriber (spec).
+- Bus down -> `unavailable { retryAfterSeconds }` + disconnect, never `auth_error`.
+- Max 5 sockets per account, oldest dropped.
+- Doc 07 §7: active+frozen links, finished entries, lifetime, availability.
+
+### Verification
+tsc clean; patient-app/auth/queue + rest of the backend unit suite green in chunks (90 + 32 suites, 1,345 tests). New specs: gateway lifetime/cap/unavailable, session events, publisher isolation.
+Mobile note: handle `unavailable` (poll, keep session) separately from `auth_error` (refresh token, reconnect).

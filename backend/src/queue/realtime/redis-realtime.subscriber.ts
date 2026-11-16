@@ -71,7 +71,13 @@ export class RedisRealtimeSubscriber implements OnModuleInit, OnApplicationShutd
       this.check();
     } else if (msg.kind === 'event') {
       this.gateway.publish(msg.topic, msg.payload);
-      this.patientGateway.publish(msg.topic, msg.payload);
+      try {
+        this.patientGateway.publish(msg.topic, msg.payload);
+      } catch (err) {
+        this.logger.warn(
+          `Patient realtime publish failed: ${(err as Error).message}`,
+        );
+      }
     }
   }
 
