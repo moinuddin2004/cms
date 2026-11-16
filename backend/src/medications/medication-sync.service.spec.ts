@@ -17,6 +17,7 @@ interface World {
   schedules: Row[];
   outbox: unknown[][];
   featureEnabled: boolean;
+  featureCalls?: unknown[][];
 }
 
 function med(id: string, name: string, over: Row = {}): Row {
@@ -88,13 +89,33 @@ function build(world: World) {
       throw new Error('unexpected repo');
     },
     transaction: async (cb: (m: unknown) => unknown) => cb(manager),
+    query: async (sql: string, params: unknown[]) => {
+      // stopForInactiveLinks
+      if (!sql.includes("SET status = 'stopped'")) return [];
+      const active = params[1] as string[];
+      let n = 0;
+      for (const s of world.schedules) {
+        if (
+          s.prescriptionId === params[0] &&
+          ['active', 'paused'].includes(s.status) &&
+          !active.includes(s.profileId)
+        ) {
+          s.status = 'stopped';
+          n += 1;
+        }
+      }
+      return [[], n];
+    },
   } as unknown as DataSource;
   const clock = {
     timezoneFor: async () => 'Asia/Karachi',
     today: () => '2026-11-15',
   } as unknown as ClockService;
   const flags = {
-    isFeatureEnabled: async () => world.featureEnabled,
+    isFeatureEnabled: async (...args: unknown[]) => {
+      (world.featureCalls ??= []).push(args);
+      return world.featureEnabled;
+    },
   } as unknown as FeatureFlagsService;
   return new MedicationSyncService(dataSource, clock, flags);
 }
@@ -107,6 +128,7 @@ function newWorld(): World {
       locationId: 'loc1',
       patientId: 'pat1',
       status: PrescriptionStatus.FINALIZED,
+      version: 1,
       signedAt: new Date('2026-11-15T07:00:00Z'),
       medicines: [
         med('m1', 'Amoxicillin', {
@@ -145,6 +167,8 @@ describe('MedicationSyncService', () => {
       organizationId: 'org1',
       prescriptionId: 'rx1',
       prescriptionMedicineId: 'm1',
+      prescriptionVersion: 1,
+      hidden: false,
       name: 'Amoxicillin',
       doseText: '500 mg',
       times: ['08:00', '14:00', '20:00'],
@@ -270,5 +294,50 @@ describe('MedicationSyncService', () => {
     const result = await build(world).syncPrescription('rx1');
     expect(result).toMatchObject({ profiles: 2, created: 4 });
     expect(new Set(world.schedules.map((s) => s.profileId))).toEqual(new Set(['p1', 'p2']));
+  });
+
+  it('checks the patient_app feature at the prescription location (overrides)', async () => {
+    const world = newWorld();
+    await build(world).syncPrescription('rx1');
+    expect(world.featureCalls?.[0]).toEqual(['org1', 'patient_app', 'loc1']);
+  });
+
+  it('stamps the prescription version (sweep marker), also after an amendment', async () => {
+    const world = newWorld();
+    const svc = build(world);
+    await svc.syncPrescription('rx1');
+    expect(world.schedules.every((s) => s.prescriptionVersion === 1)).toBe(true);
+    world.prescription!.version = 2;
+    await svc.syncPrescription('rx1');
+    expect(world.schedules.every((s) => s.prescriptionVersion === 2)).toBe(true);
+  });
+
+  it('re-finalize stops schedules of a profile whose link is no longer active', async () => {
+    const world = newWorld();
+    world.links.push({ id: 'l2', profileId: 'p2', organizationId: 'org1', patientId: 'pat1', status: 'active' });
+    world.profiles.push({ id: 'p2', accountId: 'acc2' });
+    const svc = build(world);
+    await svc.syncPrescription('rx1');
+    world.links = world.links.filter((l) => l.profileId !== 'p2'); // p2 left
+    const result = await svc.syncPrescription('rx1');
+    expect(result.stopped).toBe(2);
+    expect(world.schedules.filter((s) => s.profileId === 'p2').every((s) => s.status === 'stopped')).toBe(true);
+    expect(world.schedules.filter((s) => s.profileId === 'p1').every((s) => s.status === 'active')).toBe(true);
+  });
+
+  it('with no active link at all, still stops what is left and creates nothing new', async () => {
+    const world = newWorld();
+    const svc = build(world);
+    await svc.syncPrescription('rx1');
+    world.links = [];
+    const result = await svc.syncPrescription('rx1');
+    expect(result).toMatchObject({ created: 0, stopped: 2, profiles: 0 });
+  });
+
+  it('serializes concurrent syncs with an advisory lock per prescription', async () => {
+    const world = newWorld();
+    await build(world).syncPrescription('rx1');
+    expect(String(world.outbox[0][0])).toContain('pg_advisory_xact_lock');
+    expect(world.outbox[0][1]).toEqual(['rx1']);
   });
 });

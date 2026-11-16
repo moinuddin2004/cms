@@ -20,7 +20,16 @@ const ctx: PatientContext = {
     { id: PROFILE_1, relation: 'self', isSelf: true },
     { id: PROFILE_2, relation: 'child', isSelf: false },
   ],
-  links: [],
+  links: [
+    {
+      id: 'l1',
+      profileId: PROFILE_1,
+      organizationId: 'org-1',
+      patientId: 'pat-1',
+      status: 'active',
+      patientAppEnabled: true,
+    },
+  ],
 };
 
 const emptyCtx: PatientContext = { ...ctx, profiles: [] };
@@ -48,6 +57,8 @@ function schedule(over: Partial<MedicationSchedule> = {}): MedicationSchedule {
     instructions: null,
     instructionsUrdu: null,
     patientEdited: false,
+    prescriptionVersion: 1,
+    hidden: false,
     createdAt: new Date('2026-11-15T07:00:00Z'),
     updatedAt: new Date('2026-11-15T07:00:00Z'),
     ...over,
@@ -71,15 +82,25 @@ function build(opts: {
       calls.find.push(arg);
       const ids = idsOf(arg.where.profileId);
       const idFilter = arg.where.id ? idsOf(arg.where.id) : null;
-      return schedules.filter(
-        (s) => ids.includes(s.profileId) && (!idFilter || idFilter.includes(s.id)),
-      );
+      return schedules
+        .filter(
+          (s) =>
+            ids.includes(s.profileId) &&
+            (!idFilter || idFilter.includes(s.id)) &&
+            (arg.where.hidden === undefined || s.hidden === arg.where.hidden),
+        )
+        .slice(0, arg.take ?? 1e9);
     },
     findOne: async (arg: any) => {
       calls.findOne.push(arg);
       const ids = idsOf(arg.where.profileId);
       return (
-        schedules.find((s) => s.id === arg.where.id && ids.includes(s.profileId)) ??
+        schedules.find(
+          (s) =>
+            s.id === arg.where.id &&
+            ids.includes(s.profileId) &&
+            (arg.where.hidden === undefined || s.hidden === arg.where.hidden),
+        ) ??
         null
       );
     },
@@ -139,7 +160,8 @@ function build(opts: {
 describe('PatientMedicationsService.list', () => {
   it('scopes to the account profiles and maps an explicit DTO', async () => {
     const { svc, calls } = build({ schedules: [schedule(), schedule({ id: SCHED_B, profileId: OTHER_PROFILE })] });
-    const out = await svc.list(ctx, {});
+    const { items: out, nextUpdatedSince } = await svc.list(ctx, {});
+    expect(nextUpdatedSince).toBeNull();
     expect(idsOf(calls.find[0].where.profileId).sort()).toEqual([PROFILE_1, PROFILE_2].sort());
     expect(out).toHaveLength(1);
     expect(Object.keys(out[0]).sort()).toEqual(
@@ -175,17 +197,63 @@ describe('PatientMedicationsService.list', () => {
 
   it('returns nothing without profiles and never queries', async () => {
     const { svc, calls } = build({ schedules: [schedule()] });
-    expect(await svc.list(emptyCtx, {})).toEqual([]);
+    expect(await svc.list(emptyCtx, {})).toEqual({ items: [], nextUpdatedSince: null });
     expect(calls.find).toHaveLength(0);
   });
 
   it('clinic is null when the clinic is not visible', async () => {
     const { svc } = build({ schedules: [schedule({ organizationId: 'org-gone' })] });
-    expect((await svc.list(ctx, {}))[0].clinic).toBeNull();
+    expect((await svc.list(ctx, {})).items[0].clinic).toBeNull();
+  });
+});
+
+describe('PatientMedicationsService.list paging and hidden rows', () => {
+  it('orders oldest change first and returns a cursor when the cap is hit', async () => {
+    const many = Array.from({ length: 501 }, (_, i) =>
+      schedule({
+        id: `00000000-0000-4000-8000-${String(i).padStart(12, '0')}`,
+        updatedAt: new Date(Date.UTC(2026, 10, 15, 0, 0, i)),
+      }),
+    );
+    const { svc, calls } = build({ schedules: many });
+    const out = await svc.list(ctx, {});
+    expect(calls.find[0].order).toEqual({ updatedAt: 'ASC', id: 'ASC' });
+    expect(calls.find[0].take).toBe(501);
+    expect(out.items).toHaveLength(500);
+    expect(out.nextUpdatedSince).toBe(out.items[499].updatedAt);
+  });
+
+  it('hides clinic-revoked rows from the full list but sends them as tombstones with updatedSince', async () => {
+    const hidden = schedule({ id: SCHED_B, hidden: true, status: 'stopped' });
+    const { svc } = build({ schedules: [schedule(), hidden] });
+    expect((await svc.list(ctx, {})).items.map((i) => i.id)).toEqual([SCHED_A]);
+    const incremental = await svc.list(ctx, { updatedSince: '2026-11-01T00:00:00Z' });
+    expect(incremental.items.map((i) => i.id).sort()).toEqual([SCHED_A, SCHED_B].sort());
   });
 });
 
 describe('PatientMedicationsService.patch', () => {
+  it('a hidden (clinic-revoked) schedule is a 404', async () => {
+    const { svc } = build({ schedules: [schedule({ hidden: true })] });
+    await expect(svc.patch(ctx, SCHED_A, { status: 'paused' })).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('is read-only (403) once the link is gone or the patient app is off', async () => {
+    const { svc } = build({ schedules: [schedule()] });
+    const noLink = { ...ctx, links: [] };
+    await expect(svc.patch(noLink, SCHED_A, { status: 'paused' })).rejects.toMatchObject({
+      response: { code: 'PATIENT_APP_DISABLED' },
+    });
+    const off = { ...ctx, links: [{ ...ctx.links[0], patientAppEnabled: false }] };
+    await expect(svc.patch(off, SCHED_A, { status: 'paused' })).rejects.toMatchObject({
+      response: { code: 'PATIENT_APP_DISABLED' },
+    });
+    const frozen = { ...ctx, links: [{ ...ctx.links[0], status: 'frozen' as const }] };
+    await expect(svc.patch(frozen, SCHED_A, { status: 'paused' })).rejects.toMatchObject({
+      response: { code: 'PATIENT_APP_DISABLED' },
+    });
+  });
+
   it('updates times (sorted, unique), end date, status and marks patient edited', async () => {
     const { svc, calls } = build({ schedules: [schedule()] });
     const out = await svc.patch(ctx, SCHED_A, {

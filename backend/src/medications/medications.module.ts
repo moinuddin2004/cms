@@ -6,6 +6,7 @@ import { PrescriptionEvents } from 'src/prescriptions/events/prescription-events
 import { PrescriptionsModule } from 'src/prescriptions/prescriptions.module';
 import { MedicationDoseEvent } from './entities/medication-dose-event.entity';
 import { MedicationSchedule } from './entities/medication-schedule.entity';
+import { MedicationSweepService } from './medication-sweep.service';
 import { MedicationSyncService } from './medication-sync.service';
 
 /**
@@ -18,7 +19,7 @@ import { MedicationSyncService } from './medication-sync.service';
     PrescriptionsModule,
     TypeOrmModule.forFeature([MedicationSchedule, MedicationDoseEvent]),
   ],
-  providers: [MedicationSyncService],
+  providers: [MedicationSyncService, MedicationSweepService],
   exports: [TypeOrmModule, MedicationSyncService],
 })
 export class MedicationsModule implements OnModuleInit, OnModuleDestroy {

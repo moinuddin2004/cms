@@ -241,7 +241,7 @@ CREATE TABLE IF NOT EXISTS medication_dose_events (
 CREATE UNIQUE INDEX IF NOT EXISTS uq_medication_dose_events_schedule_due ON medication_dose_events (schedule_id, due_at);
 ```
 
-**As built (M3-01):** `backend/database/changes/2026-11-15_medications.sql` + the block in `schema/02_tables.sql`; entities in `src/medications/entities`. The two extras above (`patient_edited`, two indexes) are the only deviation from this sketch.
+**As built (M3-01):** `backend/database/changes/2026-11-15_medications.sql` + the block in `schema/02_tables.sql`; entities in `src/medications/entities`. The extras above (`patient_edited`, `prescription_version`, `hidden`, two indexes) are the only deviation from this sketch.
 
 No FK from `medication_schedules.organization_id / prescription_*` to clinic tables: the schedule is
 the patient's property and must survive a clinic deleting its data (plan §4.4).

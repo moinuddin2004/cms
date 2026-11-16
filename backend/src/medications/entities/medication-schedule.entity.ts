@@ -97,6 +97,14 @@ export class MedicationSchedule {
   @Column({ name: 'patient_edited', type: 'boolean', default: false })
   patientEdited: boolean;
 
+  /** `prescriptions.version` this schedule was last synced from; the sweep re-syncs when behind. */
+  @Column({ name: 'prescription_version', type: 'int', nullable: true })
+  prescriptionVersion: number | null;
+
+  /** Set when the CLINIC revoked the link (A-23): excluded from lists, not editable. */
+  @Column({ name: 'hidden', type: 'boolean', default: false })
+  hidden: boolean;
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 

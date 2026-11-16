@@ -206,9 +206,17 @@ function intervalHours(text: string): number | null {
   return m ? Number(m[1]) : null;
 }
 
+/**
+ * Weekly / alternate-day / monthly wording. Such a medicine must never get
+ * daily default times (safety): the patient sets the times themselves.
+ */
+const NOT_DAILY_RE =
+  /(?<![\p{L}\p{N}])(?:weekly|biweekly|fortnightly|monthly|alternate|alternately)(?![\p{L}\p{N}])|(?:once|twice|thrice|\d+\s*(?:x|times?)?)\s*(?:a|per|\/|in a|in the)\s*(?:week|wk|month)(?![\p{L}\p{N}])|every\s*(?:other|second|2nd|third|3rd|\d+)\s*(?:day|days|week|weeks|wk|month|months)(?![\p{L}\p{N}])|every\s*(?:week|month)(?![\p{L}\p{N}])|\/\s*(?:week|wk|month)|(?<![\p{L}\p{N}])har\s+(?:doosre|dusre|dosre|teesre)\s+din|(?<![\p{L}\p{N}])(?:hafte|hafta|haftay|haftey|mahine|mahina)\s+(?:mein|me|main)\s|ہفتے میں|ہفتہ وار|مہینے میں|دن چھوڑ کر|ایک دن چھوڑ/u;
+
 function fromFrequencyText(raw: string): string[] | 'none' | null {
   const original = normalize(raw);
   if (!original) return null;
+  if (NOT_DAILY_RE.test(original + ' ')) return 'none';
 
   const grid = fromGrid(original);
   if (grid) return grid;

@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -14,6 +15,7 @@ import type {
   DoseEventDto,
   DoseEventInputDto,
   DoseEventsQueryDto,
+  MedicationListDto,
   MedicationScheduleDto,
   MedicationsQueryDto,
   PatchMedicationDto,
@@ -62,23 +64,35 @@ export class PatientMedicationsService {
 
   // ── list ───────────────────────────────────────────────────────────
 
+  /**
+   * Oldest change first, so the 500 cap never drops a change: when more
+   * exist, `nextUpdatedSince` is the cursor for the next call. Schedules the
+   * clinic cut off (hidden, A-23) are not listed — except as `stopped`
+   * tombstones when `updatedSince` is given, so an incremental client learns
+   * to cancel their reminders.
+   */
   async list(
     ctx: PatientContext,
     q: MedicationsQueryDto,
-  ): Promise<MedicationScheduleDto[]> {
+  ): Promise<MedicationListDto> {
     const ids = this.profileIds(ctx, q.profileId);
-    if (ids.length === 0) return [];
+    if (ids.length === 0) return { items: [], nextUpdatedSince: null };
     const rows = await this.dataSource.getRepository(MedicationSchedule).find({
       where: {
         profileId: In(ids),
         ...(q.updatedSince
           ? { updatedAt: MoreThanOrEqual(new Date(q.updatedSince)) }
-          : {}),
+          : { hidden: false }),
       },
-      order: { createdAt: 'DESC', id: 'ASC' },
-      take: MAX_SCHEDULES,
+      order: { updatedAt: 'ASC', id: 'ASC' },
+      take: MAX_SCHEDULES + 1,
     });
-    return this.toDtos(ctx, rows);
+    const more = rows.length > MAX_SCHEDULES;
+    const page = more ? rows.slice(0, MAX_SCHEDULES) : rows;
+    return {
+      items: await this.toDtos(ctx, page),
+      nextUpdatedSince: more ? page[page.length - 1].updatedAt.toISOString() : null,
+    };
   }
 
   // ── patch ──────────────────────────────────────────────────────────
@@ -100,8 +114,11 @@ export class PatientMedicationsService {
     }
 
     const repo = this.dataSource.getRepository(MedicationSchedule);
-    const row = await repo.findOne({ where: { id, profileId: In(ids) } });
+    const row = await repo.findOne({
+      where: { id, profileId: In(ids), hidden: false },
+    });
     if (!row) throw notFound();
+    this.assertEditable(ctx, row);
 
     if (dto.times !== undefined) {
       row.times = [...new Set(dto.times)].sort();
@@ -129,6 +146,24 @@ export class PatientMedicationsService {
 
     await repo.save(row);
     return (await this.toDtos(ctx, [row]))[0];
+  }
+
+  /**
+   * A prescription schedule is editable only while its clinic link is active
+   * and the clinic's patient app is on; after the patient left (or the clinic
+   * froze the link) it stays visible but read-only (A-23).
+   */
+  private assertEditable(ctx: PatientContext, row: MedicationSchedule): void {
+    if (row.source !== 'prescription') return;
+    const link = ctx.links.find(
+      (l) => l.profileId === row.profileId && l.organizationId === row.organizationId,
+    );
+    if (!link || link.status !== 'active' || !link.patientAppEnabled) {
+      throw new ForbiddenException({
+        code: 'PATIENT_APP_DISABLED',
+        message: 'This medicine is read-only',
+      });
+    }
   }
 
   // ── dose events ────────────────────────────────────────────────────

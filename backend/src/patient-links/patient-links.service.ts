@@ -202,6 +202,17 @@ export class PatientLinksService {
           WHERE id = $1`,
         [link.id, actor.userId, cleanReason],
       );
+      // A-23: the clinic cut this patient off, so their prescription courses
+      // from this clinic stop and disappear from the app.
+      await m.query(
+        `UPDATE medication_schedules
+            SET status = CASE WHEN status IN ('active', 'paused') THEN 'stopped' ELSE status END,
+                hidden = true, updated_at = now()
+          WHERE profile_id = $1 AND organization_id = $2 AND source = 'prescription'
+            AND prescription_id IN (
+              SELECT id FROM prescriptions WHERE organization_id = $2 AND patient_id = $3)`,
+        [link.profile_id, organizationId, patientId],
+      );
       await m.query(
         `UPDATE patient_claim_tokens SET invalidated_at = now()
           WHERE organization_id = $1 AND patient_id = $2
@@ -231,6 +242,7 @@ export class PatientLinksService {
         organizationId,
         accountId: link.account_id,
         linkId: link.id,
+        kinds: ['links', 'medications'],
       });
     });
     return { revoked: true };

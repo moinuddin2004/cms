@@ -18,6 +18,8 @@ export async function publishPatientLinkEvent(
     organizationId: string;
     accountId: string;
     linkId: string;
+    /** What the app should refetch (default: links). */
+    kinds?: ('links' | 'medications' | 'appointments')[];
   },
 ): Promise<void> {
   await manager.query(
@@ -27,7 +29,7 @@ export async function publishPatientLinkEvent(
       `patient:${event.accountId}`,
       JSON.stringify({
         type: 'feed.changed',
-        kinds: ['links'],
+        kinds: event.kinds ?? ['links'],
         event: event.code,
         linkId: event.linkId,
       }),

@@ -109,6 +109,12 @@ export interface MedicationScheduleDto {
   updatedAt: string;
 }
 
+export interface MedicationListDto {
+  items: MedicationScheduleDto[];
+  /** Pass as `updatedSince` for the next page; null = nothing more. */
+  nextUpdatedSince: string | null;
+}
+
 export interface DoseEventDto {
   scheduleId: string;
   dueAt: string;

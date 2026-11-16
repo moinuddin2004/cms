@@ -1,5 +1,6 @@
 import { ValidationPipe } from '@nestjs/common';
 import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants';
+import { RATE_LIMIT_KEY } from 'src/auth/guards/rate-limiter.guard';
 import { IS_PATIENT_API } from '../decorators/patient-api.decorator';
 import {
   DoseEventsQueryDto,
@@ -45,6 +46,16 @@ describe('PatientMedicationsController', () => {
       '1:dose-events',
       '4::id',
     ]);
+  });
+
+  it('rate limits the two mutating routes (120 / 15 min)', () => {
+    const proto = PatientMedicationsController.prototype as any;
+    for (const name of ['patch', 'recordDoseEvents']) {
+      expect(Reflect.getMetadata(RATE_LIMIT_KEY, proto[name])).toMatchObject({
+        maxAttempts: 120,
+        windowSeconds: 900,
+      });
+    }
   });
 
   it('wraps service results in ResponseWrapper', async () => {

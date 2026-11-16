@@ -28,6 +28,7 @@ import './patient-app.settings';
     FeatureFlagsModule,
     PrescriptionsModule,
     PatientLinksModule,
+    MedicationsModule,
     TypeOrmModule.forFeature([
       PatientAccount,
       PatientProfile,
@@ -49,6 +50,7 @@ import './patient-app.settings';
     PatientClinicsService,
     PatientAccessLogService,
     PatientReadsService,
+    PatientMedicationsService,
   ],
   exports: [TypeOrmModule, PatientJwtGuard, PatientLinkGuard],
 })

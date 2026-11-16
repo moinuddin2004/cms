@@ -66,9 +66,25 @@ export class MedicationSyncService {
         status: 'active',
       },
     });
-    if (links.length === 0) return { ...EMPTY };
-    if (!(await this.featureFlags.isFeatureEnabled(rx.organizationId, 'patient_app'))) {
-      return { ...EMPTY };
+    const result: SyncResult = { ...EMPTY };
+    const activeProfileIds: string[] = [
+      ...new Set<string>(links.map((l) => l.profileId)),
+    ];
+
+    // Profiles whose link is no longer active keep what they have but get
+    // nothing new, and an active course is stopped (A-23).
+    result.stopped += await this.stopForInactiveLinks(rx.id, activeProfileIds);
+
+    if (links.length === 0) return result;
+    // Honours location overrides: the prescription's own location decides.
+    if (
+      !(await this.featureFlags.isFeatureEnabled(
+        rx.organizationId,
+        'patient_app',
+        rx.locationId,
+      ))
+    ) {
+      return result;
     }
 
     const tz = await this.clock.timezoneFor(rx.locationId);
@@ -76,11 +92,12 @@ export class MedicationSyncService {
     const medicines = [...(rx.medicines ?? [])].sort(
       (a, b) => a.sortOrder - b.sortOrder,
     );
-    const profileIds = [...new Set(links.map((l) => l.profileId))];
+    const profileIds = activeProfileIds;
 
-    const result: SyncResult = { ...EMPTY };
     for (const profileId of profileIds) {
       await this.dataSource.transaction(async (manager) => {
+        // Serialize concurrent syncs of one prescription (event + sweep).
+        await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [rx.id]);
         const r = await this.syncProfile(manager, rx, medicines, profileId, startDate);
         result.created += r.created;
         result.updated += r.updated;
@@ -93,6 +110,21 @@ export class MedicationSyncService {
       `prescription ${rx.id}: ${result.created} created, ${result.updated} updated, ${result.stopped} stopped for ${result.profiles} profile(s)`,
     );
     return result;
+  }
+
+  private async stopForInactiveLinks(
+    prescriptionId: string,
+    activeProfileIds: string[],
+  ): Promise<number> {
+    const res: unknown = await this.dataSource.query(
+      `UPDATE medication_schedules
+          SET status = 'stopped', updated_at = now()
+        WHERE prescription_id = $1 AND source = 'prescription'
+          AND status IN ('active', 'paused')
+          AND NOT (profile_id = ANY($2::uuid[]))`,
+      [prescriptionId, activeProfileIds],
+    );
+    return Array.isArray(res) && typeof res[1] === 'number' ? res[1] : 0;
   }
 
   private async syncProfile(
@@ -159,6 +191,8 @@ export class MedicationSyncService {
           instructions: m.specialInstructions,
           instructionsUrdu: m.specialInstructionsUrdu,
           patientEdited: false,
+          prescriptionVersion: rx.version ?? 1,
+          hidden: false,
         });
         created += 1;
         continue;
@@ -171,6 +205,8 @@ export class MedicationSyncService {
       row.mealRelation = m.mealRelation;
       row.instructions = m.specialInstructions;
       row.instructionsUrdu = m.specialInstructionsUrdu;
+      row.prescriptionVersion = rx.version ?? 1;
+      row.hidden = false; // the profile has an active link again
       if (!row.patientEdited) {
         const endDate = computeEndDate(row.startDate, days);
         row.times = parsed.times;

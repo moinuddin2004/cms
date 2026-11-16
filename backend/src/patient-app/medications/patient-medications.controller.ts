@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { RateLimit } from 'src/auth/guards/rate-limiter.guard';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { PatientContext, PatientCtx } from '../context/patient-context';
 import { PatientApi } from '../decorators/patient-api.decorator';
@@ -9,6 +10,8 @@ import {
   RecordDoseEventsDto,
 } from './patient-medications.dto';
 import { PatientMedicationsService } from './patient-medications.service';
+
+const WINDOW_15_MIN = 15 * 60;
 
 /** Medicine schedules and dose events of the caller's profiles (M3-02). */
 @Controller('patient-api/medications')
@@ -34,6 +37,7 @@ export class PatientMedicationsController {
   }
 
   @Post('dose-events')
+  @RateLimit({ maxAttempts: 120, windowSeconds: WINDOW_15_MIN })
   async recordDoseEvents(
     @PatientCtx() ctx: PatientContext,
     @Body() body: RecordDoseEventsDto,
@@ -44,6 +48,7 @@ export class PatientMedicationsController {
   }
 
   @Patch(':id')
+  @RateLimit({ maxAttempts: 120, windowSeconds: WINDOW_15_MIN })
   async patch(
     @PatientCtx() ctx: PatientContext,
     @Param('id') id: string,

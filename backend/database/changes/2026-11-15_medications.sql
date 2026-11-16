@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS medication_schedules (
   instructions             text,
   instructions_urdu        text,
   patient_edited           boolean NOT NULL DEFAULT false,
+  prescription_version     int,                              -- prescriptions.version the schedule was last synced from (sweep marker)
+  hidden                   boolean NOT NULL DEFAULT false,   -- clinic revoked the link (A-23): not listed, not editable
   created_at               timestamptz NOT NULL DEFAULT now(),
   updated_at               timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT fk_medication_schedules_profile_id FOREIGN KEY (profile_id) REFERENCES patient_profiles (id) ON DELETE CASCADE,
@@ -43,5 +45,9 @@ CREATE TABLE IF NOT EXISTS medication_dose_events (
   CONSTRAINT chk_medication_dose_events_action CHECK (action IN ('taken','skipped'))
 );
 CREATE UNIQUE INDEX IF NOT EXISTS uq_medication_dose_events_schedule_due ON medication_dose_events (schedule_id, due_at);
+
+-- Safe on a database that already ran the first version of this script.
+ALTER TABLE medication_schedules ADD COLUMN IF NOT EXISTS prescription_version int;
+ALTER TABLE medication_schedules ADD COLUMN IF NOT EXISTS hidden boolean NOT NULL DEFAULT false;
 
 COMMIT;
