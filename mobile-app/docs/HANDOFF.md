@@ -2955,3 +2955,28 @@ Schema (same commit): `medication_schedules.prescription_version int`, `hidden b
 
 ### Verification
 `tsc -p tsconfig.build.json` clean · full backend jest 114 suites / 1283 tests green (incl. the new module smoke spec, sweep spec, weekly parser cases).
+
+
+---
+## M2-13 — Product events (privacy-safe analytics)  ·  2026-11-16  ·  Claude Sonnet 5.5
+Branch: claude/m2-13-product-events-f86696 (merged mobile/develop)   Status set to: review
+
+### Done
+- **Backend** `src/product-events/` (+ `patient-app/events.controller.ts`): `product_events` entity; `POST /me/events` (`@ContextFree`, justified: the sign-in event is sent before org/location selection, nothing clinic-scoped is read) and `POST /patient-api/events` (`@PatientApi`); both `@RateLimit` 60 / 5 min, ≤ 50 events per call. Catalog (`product-event-catalog.ts`) = event names + per-prop enum values; the service drops unknown names (also names of the other space), unknown props and out-of-enum values, clamps client time to the last 7 days. Stored: actor type + account/user id, name, props, time. `organization_id` is never client-supplied (currently always null; per-clinic staff metrics join `employee_org_location_assignments`).
+- **Schema**: entity + block in `database/schema/02_tables.sql` + `database/changes/2026-11-15_product_events.sql`.
+- **Mobile** `core/analytics` `createTracker({ send })` (batched 5 s, in-memory, fire-and-forget, retry on network/5xx/429, drop on other 4xx, capped queue, no-op under Jest); senders in `staff/lib/analytics.ts` and `patient/lib/analytics.ts`. One `track` call each in: staff sign-in (password + Google), check-in from the schedule sheet, call next; patient email sign-in, claim accepted, Records tab list shown.
+- **Docs** `docs/analytics-events.md`: rules, event list, retention (400 days + delete statement), six pilot metric queries.
+
+### Install commands for the user
+none
+
+### Verification
+- Backend: `nest build` clean; new `product-events.spec.ts` (sanitising, other-space names, time clamp, rate limit + fence metadata). Full backend jest: see the lead's note below.
+- Mobile: eslint 0 errors (4 old warnings) · `lint:fences` ok · new `tracker.test.ts`. 
+- **tsc**: the ONLY error is `mobile-app/node_modules/@types/node/test.d.ts(453)` — that file in the shared node_modules is TRUNCATED (23 959 bytes, ends mid-word) from the disk-full incident. Nothing in `src` errors. Fix: reinstall `@types/node` in `mobile-app/node_modules` (lead/user, not me).
+
+### Deviations / notes
+- `app_opened` / `patient_app_opened` are in the catalog but not sent yet (daily use is measured from any event).
+- Events are memory-only: a phone closing within ~5 s of an action can lose it (documented caveat).
+- Not run against Postgres; SQL in the docs is untested.
+
