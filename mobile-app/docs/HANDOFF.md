@@ -3294,3 +3294,6 @@ none (only if Sentry is later chosen: `npx expo install @sentry/react-native`)
 
 ### Device check needed (M0-D)
 Report section 4: cold start, bundle size, fling, TalkBack, Urdu on the new screens, forced render-crash retry.
+
+### Verification
+tsc: only the known `@/global.css` message · eslint 0 errors (4 old warnings) · lint:fences ok · jest in foreground chunks, all green: core 37 suites, patient 26/179, staff 78 suites, shell 4 suites (a plain `jest src/shell` hangs after finishing on open handles; `--forceExit` ends it).

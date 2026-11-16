@@ -35,7 +35,7 @@ export function scrubString(input: string): string {
 
 /** `/patient-api/records/1f2e…/prescriptions?x=1` → `/patient-api/records/:id/prescriptions`. */
 export function scrubRoute(route: string): string {
-  const path = route.replace(URL_RE, '').split(/[?#]/)[0] ?? '';
+  const path = route.replace(/^[a-z][a-z0-9+.-]*:\/\/[^/]*/i, '').split(/[?#]/)[0] ?? '';
   return path
     .split('/')
     .map((seg) => (/^[0-9a-f-]{8,}$/i.test(seg) || /^\d+$/.test(seg) || seg.length >= 24 ? ':id' : seg))
