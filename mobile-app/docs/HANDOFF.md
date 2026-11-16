@@ -3068,3 +3068,30 @@ Branch: claude/m2-13-product-events-f86696 - Status stays: review
 
 Verification: backend build clean, product-events + patient-app + access specs green (260 tests); mobile lint 0 errors (4 old warnings), lint:fences ok, jest on core/analytics + staff/patient auth + queue + lib + shell green (43 suites). tsc: only the known `@/global.css` message (expo-env.d.ts not generated; I did not run expo start - my attempt to kill its node process was refused by the sandbox). Full-suite runs were not completed on this memory-starved machine.
 Note: my first pass re-encoded three existing files through PowerShell (mojibake); restored from HEAD and re-edited byte-safely - the final diff touches only the intended lines.
+
+
+---
+## M4-01 — Urdu translation pass + Noto Nastaliq font + layout check - 2026-11-16
+Branch: claude/m4-01-urdu-46c4ef - Status: review
+
+### What was done
+- `src/core/i18n/ur.ts`: every `TODO(ur)` string and the whole `claim` block translated (simple, kind Urdu; `{params}` untouched; OTP-style/brand terms and `DELETE`/`YYYY-MM-DD` kept Latin). Header comment points at the allow-list rule.
+- `i18n.test.ts`: new tests - `{param}`s of every `en` string appear in `ur`; no `// TODO(ur)` marker left (allow-list `UR_TODO_ALLOW_LIST` is empty). **New keys after M4-01:** add to `en.ts` AND give `ur.ts` real Urdu in the same change; only if it truly can't be translated yet, copy the English, mark `// TODO(ur)` and add the dotted key to the allow-list (the test fails otherwise).
+- Font: `src/core/i18n/urdu-font.ts` - `useUrduFont()` / `loadUrduFont()` load `NotoNastaliqUrdu_400Regular` / `_700Bold` through `expo-font` from an OPTIONAL `require('@expo-google-fonts/noto-nastaliq-urdu')`; when the package is missing it stays on the system font. `src/core/ui/text.tsx` (the one Text wrapper) applies the family (bold for `font-semibold|bold|extrabold|black`) and `leading-loose` only when locale is `ur` and the font is ready. `urdu-font.test.ts` covers the fallback.
+- Layout check: patient screens use `min-h-*` everywhere (no fixed text heights); `small` Text variant's `leading-none` is overridden by `leading-loose` for Urdu. No string concatenation around `t()` in `src/patient|shell|core`.
+
+### Install commands for the user
+```
+npx expo install @expo-google-fonts/noto-nastaliq-urdu expo-font
+```
+(expo-font is already a dependency; the command pins the font package.) No other code change needed after installing.
+
+### Device check needed (gate M0-D)
+- Install the package, switch to Urdu on a real Android + iPhone: verify the font loads, `leading-loose` (2x) is enough/not too much, bold weights look right.
+- `numberOfLines={1}` places: `ClinicLinkCard` (clinic name), `ClinicChip`, `ActionSheet` subtitle - check Nastaliq descenders are not clipped.
+- Buttons with `min-h-11` + long Urdu labels wrap OK; tab bar labels; the OTP/code inputs (digits stay Latin).
+- RTL stays OFF in the pilot (O-06): check mixed-direction lines (email, dates) read sensibly.
+- Native-speaker review of the translations is still advised before release.
+
+### Verification
+eslint 0 errors (4 old warnings) · lint:fences ok · tsc: only the known `@/global.css` message (expo-env.d.ts not generated; I did not run expo start) · jest result below.

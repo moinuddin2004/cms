@@ -11,3 +11,11 @@ export {
   type MessageParams,
   type TFunction,
 } from './i18n';
+export {
+  loadUrduFont,
+  URDU_FONT_BOLD,
+  URDU_FONT_REGULAR,
+  URDU_LEADING_CLASS,
+  useUrduFont,
+  type UrduFont,
+} from './urdu-font';
