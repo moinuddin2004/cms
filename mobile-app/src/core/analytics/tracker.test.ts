@@ -3,7 +3,11 @@ import { createTracker } from './tracker';
 beforeEach(() => jest.useFakeTimers());
 afterEach(() => jest.useRealTimers());
 
-const opts = { enabled: true, flushDelayMs: 1000 };
+let actor: string | null = 'u1';
+beforeEach(() => {
+  actor = 'u1';
+});
+const opts = { enabled: true, flushDelayMs: 1000, flushOnBackground: false, getActor: () => actor };
 
 describe('createTracker', () => {
   it('batches events and sends them after the delay', async () => {
@@ -43,7 +47,7 @@ describe('createTracker', () => {
     expect(send).toHaveBeenCalledTimes(1); // dropped, nothing left
     t.track('b');
     await jest.advanceTimersByTimeAsync(1000);
-    expect(send).toHaveBeenCalledTimes(2); // 429 → kept
+    expect(send).toHaveBeenCalledTimes(2); // 429 â†’ kept
     await jest.advanceTimersByTimeAsync(10_000);
     expect(send).toHaveBeenCalledTimes(3);
   });
@@ -65,12 +69,34 @@ describe('createTracker', () => {
     expect(send).not.toHaveBeenCalled();
   });
 
+  it('never sends events queued under a previous account', async () => {
+    const send = jest.fn().mockResolvedValue(undefined);
+    const t = createTracker<string>({ ...opts, send });
+    t.track('old');
+    actor = 'u2';
+    t.track('new');
+    await jest.advanceTimersByTimeAsync(1000);
+    expect(send.mock.calls[0][0].map((e: { name: string }) => e.name)).toEqual(['new']);
+  });
+
+  it('drops everything when signed out and ignores track while signed out', async () => {
+    const send = jest.fn().mockResolvedValue(undefined);
+    const t = createTracker<string>({ ...opts, send });
+    t.track('a');
+    actor = null;
+    t.track('b');
+    await jest.advanceTimersByTimeAsync(5000);
+    expect(send).not.toHaveBeenCalled();
+  });
+
   it('is a no-op when disabled (the default under Jest)', async () => {
     const send = jest.fn().mockResolvedValue(undefined);
-    const t = createTracker<string>({ send });
+    const t = createTracker<string>({ send, getActor: () => actor });
     t.track('a');
     await t.flush();
     jest.advanceTimersByTime(60_000);
     expect(send).not.toHaveBeenCalled();
   });
 });
+
+

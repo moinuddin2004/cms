@@ -1,3 +1,5 @@
+import { AppState } from 'react-native';
+
 /**
  * Privacy-safe product analytics client (M2-13, docs/analytics-events.md).
  *
@@ -7,7 +9,10 @@
  * send (offline, 5xx, 429) keeps the batch and retries with backoff; a
  * rejected one (other 4xx, e.g. signed out) drops it. The queue is capped.
  * Events are in memory only: closing the app before a flush loses them, which
- * is fine for product metrics and keeps nothing on disk.
+ * is fine for product metrics and keeps nothing on disk. A queued event remembers who
+ * it belongs to (getActor at 	rack() time); a batch is only sent while that same
+ * actor is signed in, so nothing is ever sent under the next account's token.
+ * The app going to the background flushes the queue.
  *
  * Props are scalars from the documented allow-list. NEVER pass names, phones,
  * emails, ids of people or records, free text, or anything about health.
@@ -23,6 +28,8 @@ export interface TrackedEvent<N extends string = string> {
 }
 
 export interface TrackerOptions<N extends string> {
+  /** Id of the signed-in account/user now, or null when signed out. */
+  getActor: () => string | null;
   send: (events: TrackedEvent<N>[]) => Promise<void>;
   /** Wait before a flush so events batch up. Default 5 s. */
   flushDelayMs?: number;
@@ -32,6 +39,8 @@ export interface TrackerOptions<N extends string> {
   maxQueue?: number;
   /** Off in tests; defaults to "not under Jest". */
   enabled?: boolean;
+  /** Flush when the app leaves the foreground. Default true (when enabled). */
+  flushOnBackground?: boolean;
 }
 
 export interface Tracker<N extends string> {
@@ -50,6 +59,11 @@ function shouldRetry(err: unknown): boolean {
   return status >= 500 || status === 429 || status === 408;
 }
 
+interface Queued<N extends string> {
+  actor: string;
+  event: TrackedEvent<N>;
+}
+
 export function createTracker<N extends string>(options: TrackerOptions<N>): Tracker<N> {
   const {
     send,
@@ -57,9 +71,11 @@ export function createTracker<N extends string>(options: TrackerOptions<N>): Tra
     maxBatch = 20,
     maxQueue = 200,
     enabled = process.env.JEST_WORKER_ID === undefined,
+    flushOnBackground = true,
+    getActor,
   } = options;
 
-  let queue: TrackedEvent<N>[] = [];
+  let queue: Queued<N>[] = [];
   let timer: ReturnType<typeof setTimeout> | null = null;
   let sending = false;
   let failures = 0;
@@ -74,10 +90,14 @@ export function createTracker<N extends string>(options: TrackerOptions<N>): Tra
 
   async function flush(): Promise<void> {
     if (!enabled || sending || queue.length === 0) return;
+    // Drop whatever belongs to someone who is no longer signed in.
+    const actor = getActor();
+    queue = actor === null ? [] : queue.filter((q) => q.actor === actor);
+    if (queue.length === 0) return;
     sending = true;
     const batch = queue.slice(0, maxBatch);
     try {
-      await send(batch);
+      await send(batch.map((q) => q.event));
       queue = queue.slice(batch.length);
       failures = 0;
     } catch (err) {
@@ -95,11 +115,19 @@ export function createTracker<N extends string>(options: TrackerOptions<N>): Tra
     }
   }
 
+  if (enabled && flushOnBackground) {
+    AppState.addEventListener('change', (state) => {
+      if (state !== 'active') void flush();
+    });
+  }
+
   return {
     track(name, props) {
       if (!enabled) return;
       try {
-        queue.push({ name, props, at: new Date().toISOString() });
+        const actor = getActor();
+        if (actor === null) return;
+        queue.push({ actor, event: { name, props, at: new Date().toISOString() } });
         if (queue.length > maxQueue) queue = queue.slice(queue.length - maxQueue);
         schedule(flushDelayMs);
       } catch {
@@ -115,3 +143,4 @@ export function createTracker<N extends string>(options: TrackerOptions<N>): Tra
     },
   };
 }
+

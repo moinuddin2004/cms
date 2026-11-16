@@ -6,7 +6,6 @@ import { Check, Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
  * No FKs on purpose: rows outlive the account and hold nothing health-related.
  */
 @Entity({ name: 'product_events' })
-@Index('idx_product_events_org_name_at', ['organizationId', 'name', 'at'])
 @Index('idx_product_events_name_at', ['name', 'at'])
 @Check(
   'chk_product_events_actor_type',
@@ -24,7 +23,7 @@ export class ProductEvent {
   @Column({ name: 'actor_id', type: 'uuid', nullable: true })
   actorId: string | null;
 
-  /** Only when the server already knows it; never client-supplied. */
+  /** Never client-supplied; always null for now. Org tagging (and an (organization_id, name, at) index) is future work. */
   @Column({ name: 'organization_id', type: 'uuid', nullable: true })
   organizationId: string | null;
 

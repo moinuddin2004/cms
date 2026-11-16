@@ -88,27 +88,26 @@ describe('ProductEventsService.record', () => {
     expect(insert).not.toHaveBeenCalled();
   });
 
-  it('keeps a sane client time, replaces a future or ancient one with now', async () => {
+  it('keeps a sane client time and drops events from the future or the distant past', async () => {
     const { svc, insert } = service();
-    await svc.record(
+    const res = await svc.record(
       'patient',
       'a',
       null,
       [
-        { name: 'patient_app_opened', at: '2026-11-15T09:00:00Z' },
-        { name: 'patient_app_opened', at: '2030-01-01T00:00:00Z' },
-        { name: 'patient_app_opened', at: '2020-01-01T00:00:00Z' },
+        { name: 'patient_signed_in', at: '2026-11-15T09:00:00Z' },
+        { name: 'patient_signed_in', at: '2026-11-15T10:03:00Z' }, // 3 min ahead: clock skew, clamped to now
+        { name: 'patient_signed_in', at: '2030-01-01T00:00:00Z' },
+        { name: 'patient_signed_in', at: '2020-01-01T00:00:00Z' },
+        { name: 'patient_signed_in', at: 'not a date' },
       ],
       NOW,
     );
+    expect(res).toEqual({ accepted: 2 });
     const at = insert.mock.calls[0][0].map((r: { at: Date }) =>
       r.at.toISOString(),
     );
-    expect(at).toEqual([
-      '2026-11-15T09:00:00.000Z',
-      NOW.toISOString(),
-      NOW.toISOString(),
-    ]);
+    expect(at).toEqual(['2026-11-15T09:00:00.000Z', NOW.toISOString()]);
   });
 });
 

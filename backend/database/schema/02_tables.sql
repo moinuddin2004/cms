@@ -2031,7 +2031,6 @@ CREATE TABLE product_events (
   at              timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT chk_product_events_actor_type CHECK (actor_type IN ('staff','patient','anon'))
 );
-CREATE INDEX idx_product_events_org_name_at ON product_events (organization_id, name, at);
 CREATE INDEX idx_product_events_name_at ON product_events (name, at);
 
 -- ------------------------------------------------------------------------

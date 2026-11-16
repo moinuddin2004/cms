@@ -2980,3 +2980,18 @@ none
 - Events are memory-only: a phone closing within ~5 s of an action can lose it (documented caveat).
 - Not run against Postgres; SQL in the docs is untested.
 
+
+---
+## Rework M2-13 #1 - 2026-11-16
+Branch: claude/m2-13-product-events-f86696 - Status stays: review
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| 1 | Queued events survive sign-out | `createTracker` takes `getActor`; each queued event stores its actor, a batch is sent only while that actor is signed in (signed out = drop all, `track()` ignored while signed out). `clearStaffEvents` / `clearPatientEvents` run first in both sign-out flows; forced session loss is covered by the actor check. Tests added. |
+| 2 | Flush on background | AppState listener inside `createTracker` (`flushOnBackground`, default on when enabled). |
+| 3 | Out-of-range times | Server DROPS events > 5 min in the future or > 7 days old (small skew clamped to now). Spec. |
+| 4 | org index | `idx_product_events_org_name_at` removed from entity, schema block, changes script; org tagging noted as future work. |
+| 5 | Docs | Rate limit is per IP (shared NAT); retention delete is manual (open item); sign-out/actor behaviour documented. |
+
+Verification: backend build clean, product-events + patient-app + access specs green (260 tests); mobile lint 0 errors (4 old warnings), lint:fences ok, jest on core/analytics + staff/patient auth + queue + lib + shell green (43 suites). tsc: only the known `@/global.css` message (expo-env.d.ts not generated; I did not run expo start - my attempt to kill its node process was refused by the sandbox). Full-suite runs were not completed on this memory-starved machine.
+Note: my first pass re-encoded three existing files through PowerShell (mojibake); restored from HEAD and re-edited byte-safely - the final diff touches only the intended lines.

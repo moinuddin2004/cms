@@ -29,12 +29,17 @@ export function sanitizeProps(
   return out;
 }
 
-function clampAt(at: string | undefined, now: Date): Date {
+/** Phone clocks drift: up to this far ahead of the server is still accepted. */
+const MAX_FUTURE_SKEW_MS = 5 * 60 * 1000;
+
+/** The event time, or null when it is missing-bad: in the future (> 5 min skew) or older than 7 days → drop the event. */
+function eventTime(at: string | undefined, now: Date): Date | null {
   if (!at) return now;
   const t = new Date(at).getTime();
-  if (Number.isNaN(t)) return now;
-  if (t > now.getTime() || now.getTime() - t > MAX_EVENT_AGE_MS) return now;
-  return new Date(t);
+  if (Number.isNaN(t)) return null;
+  if (t > now.getTime() + MAX_FUTURE_SKEW_MS) return null;
+  if (now.getTime() - t > MAX_EVENT_AGE_MS) return null;
+  return new Date(Math.min(t, now.getTime()));
 }
 
 @Injectable()
@@ -59,13 +64,15 @@ export class ProductEventsService {
     for (const e of batch) {
       const spec = (PRODUCT_EVENTS as Record<string, ProductEventSpec>)[e.name];
       if (!spec || spec.actor !== actor) continue;
+      const at = eventTime(e.at, now);
+      if (!at) continue;
       rows.push({
         actorType: actor,
         actorId,
         organizationId,
         name: e.name,
         props: sanitizeProps(spec, e.props),
-        at: clampAt(e.at, now),
+        at,
       });
     }
     if (rows.length) await this.events.insert(rows);

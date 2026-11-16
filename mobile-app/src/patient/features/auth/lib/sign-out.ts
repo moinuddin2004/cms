@@ -2,6 +2,7 @@ import type { QueryClient } from '@tanstack/react-query';
 
 import { usePendingClaimStore } from '@/core/claim/usePendingClaimStore';
 import { leaveSpaceAfterSignOut } from '@/core/space/switch-space';
+import { clearPatientEvents } from '@/patient/lib/analytics';
 import { beginPatientSignOut, dropSession, endPatientSignOut } from '@/patient/lib/api';
 import { wipePatientPersistedCache } from '@/patient/lib/persist-cache';
 
@@ -19,6 +20,7 @@ import { logout } from '../api/auth.api';
 export async function signOutPatient(queryClient: QueryClient): Promise<void> {
   // Stops a refresh in flight from writing the session back, and waits for it so
   // the stored token is the newest one when we revoke it.
+  clearPatientEvents(); // nothing queued for this account may be sent under the next one
   await beginPatientSignOut();
   try {
     await logout();

@@ -7,19 +7,19 @@ Goal before the pilot: **activation, claim success, daily use** — nothing else
 
 - An event is an allow-listed **name** + allow-listed **scalar props** (enum values or a version string). No names,
   phones, emails, free text, tokens, diagnoses, medicine names, patient/record/visit ids.
-- Who: `actor_id` = `users.uuid` (staff) or `patient_accounts.id` (patient), nothing else. `organization_id` is stored
-  only when the server already knows it (currently never — see "Clinic" below); it is never taken from the client.
+- Who: `actor_id` = `users.uuid` (staff) or `patient_accounts.id` (patient), nothing else. `organization_id` is never taken from the client
+  and is currently always null (org tagging, with an `(organization_id, name, at)` index, is future work — see "Clinic" below).
 - The server validates the name against the catalog (`backend/src/product-events/product-event-catalog.ts`), accepts a
   name only on its own endpoint (staff names on `/me/events`, patient names on `/patient-api/events`), drops unknown props and
   out-of-enum values, and answers `{ accepted }`; unknown events are dropped silently (analytics must never break the app).
 - Rate limit: 60 requests / 5 min per IP on both endpoints, ≤ 50 events per request. Client time `at` is kept only if within
   the last 7 days and not in the future, else the server stamps now.
-- Retention: **400 days**. Delete older rows monthly (until a job exists, run by hand):
+- Retention: **400 days**. The delete is **manual** (open item: no scheduled job yet) — run monthly:
   `DELETE FROM product_events WHERE at < now() - interval '400 days';`
 - Account deletion (M2-11) does not need to touch these rows: they hold only the account id and enums. Delete by `actor_id`
   if a patient asks.
 - Mobile: `src/core/analytics` `createTracker({ send })` — batched (5 s), in-memory, fire-and-forget, retries on network/5xx/429,
-  drops on other 4xx, no-op under Jest. Each space injects its sender (`staff/lib/analytics.ts`, `patient/lib/analytics.ts`).
+  drops on other 4xx, flushes when the app goes to the background, no-op under Jest. A queued event remembers its actor and is only sent while that same user/account is signed in; sign-out clears the queue first. Each space injects its sender (`staff/lib/analytics.ts`, `patient/lib/analytics.ts`).
 
 ## Event list
 
@@ -91,3 +91,4 @@ WHERE pe.actor_type = 'staff' AND pe.at >= :from GROUP BY 1, 2 ORDER BY 1, 2;
 
 Caveats: events are batched in memory and a phone that closes the app within ~5 s of an action can lose it, so treat the
 numbers as a floor. Counts of `records_opened` include re-selecting a tab.
+
