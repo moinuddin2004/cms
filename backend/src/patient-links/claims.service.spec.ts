@@ -61,3 +61,50 @@ describe('ClaimsService.preview dob handling', () => {
     expect(res.ageBand).toBeNull();
   });
 });
+
+/** A concurrent / completed account deletion must stop a claim accept (A-22 rework). */
+describe('ClaimsService.accept with a deleted account', () => {
+  const token = 'T'.repeat(43);
+
+  it('locks the account row and answers 404 when it is gone, before touching profiles or links', async () => {
+    const sqls: string[] = [];
+    const query = jest.fn((sql: string) => {
+      sqls.push(sql.replace(/\s+/g, ' '));
+      if (sql.includes('FROM patient_claim_tokens')) {
+        return Promise.resolve([
+          {
+            id: 't1',
+            organization_id: 'o1',
+            patient_id: 'p1',
+            created_by_user_id: 'u1',
+            patient_full_name: 'Ali Raza Khan',
+            patient_dob: null,
+            patient_gender: null,
+            patient_is_minor: false,
+            patient_is_active: true,
+            primary_location_id: null,
+          },
+        ]);
+      }
+      return Promise.resolve([]); // the account lock finds nothing
+    });
+    const dataSource = {
+      transaction: (fn: (m: unknown) => unknown) => fn({ query }),
+    };
+    const service = new ClaimsService(
+      dataSource as never,
+      {} as never,
+      { check: jest.fn().mockResolvedValue('ok') } as never,
+    );
+    const ctx = { accountId: 'a1', links: [], profiles: [] } as never;
+
+    await expect(
+      service.accept(ctx, token, { relation: 'self', confirm: true }, null),
+    ).rejects.toMatchObject({ status: 404 });
+
+    const lock = sqls.find((s) => s.includes('FROM patient_accounts'))!;
+    expect(lock).toContain('deleted_at IS NULL FOR UPDATE');
+    expect(sqls.some((s) => s.includes('INSERT INTO'))).toBe(false);
+    expect(sqls.some((s) => s.includes('patient_profiles'))).toBe(false);
+  });
+});

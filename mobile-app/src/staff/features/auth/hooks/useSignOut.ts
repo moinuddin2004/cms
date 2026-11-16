@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { leaveSpaceAfterSignOut } from '@/core/space/switch-space';
 import { unregisterThisDevice } from '@/staff/features/devices';
+import { clearStaffEvents } from '@/staff/lib/analytics';
 import { beginStaffSignOut, dropSession, endStaffSignOut } from '@/staff/lib/api';
 import { wipeStaffPersistedCache } from '@/staff/lib/persist-cache';
 
@@ -14,6 +15,7 @@ export function useSignOut() {
     mutationFn: async () => {
       // Stops a refresh in flight from writing the session back, and waits for it
       // so the stored token is the newest one when we revoke it.
+      clearStaffEvents(); // nothing queued for this user may be sent under the next one
       await beginStaffSignOut();
       // Stop pushes to this phone while the access token is still valid (short, skipped offline).
       await unregisterThisDevice();

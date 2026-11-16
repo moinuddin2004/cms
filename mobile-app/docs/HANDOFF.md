@@ -2721,6 +2721,43 @@ Branch: `mobile/M1-05-push` (merged `mobile/develop`; conflicts in `useSignOut.t
 Verification: typecheck clean · eslint 0 errors (3 old warnings) · `lint:fences` ok · full jest 110 suites / 808 tests green. No device.
 
 ---
+## M2-10 + M2-11 — Profiles, Family tab, linked clinics, unlink, delete account  ·  2026-11-15  ·  Sonnet 5.5
+Branch: `claude/m2-10-family-clinics-5e4548` (worktree branch off `mobile/develop`)   Commit(s): see `git log -1`   Status set to: review
+
+### Plan (written first)
+**Endpoints** (all `@PatientApi()`; account = `ctx.accountId`, ids checked against the account's own rows; wrapped in `ResponseWrapper`):
+
+| Method + path | Body | Response | Rules |
+| --- | --- | --- | --- |
+| GET `/patient-api/profiles` | — | `Profile[]` `{ id, relation, fullName, dob, gender, isSelf, links: { id, clinic, location, status, linkedAt }[] }` | self first, then oldest first; links = active + frozen; never-approved clinics hidden (A-19) |
+| POST `/patient-api/profiles` | `{ relation: child\|parent\|spouse\|other, fullName 1–150, dob? (YYYY-MM-DD real, not future), gender? }` | `Profile` (201) | `self` refused; max 20 profiles per account (`409 TOO_MANY_PROFILES`) |
+| PATCH `/patient-api/profiles/:id` | `{ relation?, fullName?, dob?: string\|null, gender?: …\|null }` | `Profile` | `null` clears dob/gender; self keeps its relation (`400 SELF_RELATION_FIXED`); foreign id → 404 |
+| DELETE `/patient-api/profiles/:id` | — | `{ removed: true }` | self → `400 CANNOT_REMOVE_SELF`; a profile with an active/frozen link → `409 PROFILE_HAS_LINKS` (unlink first, so the clinic audit trail of the unlink exists) |
+| GET `/patient-api/links` | — | `PatientLink[]` `{ id, profileId, clinic, location, status: active\|frozen\|revoked, linkedAt, linkMethod, linkedByLabel, revokedAt, revokedBy }` | live links first, then revoked (history); max 200; never-approved clinics hidden |
+| DELETE `/patient-api/links/:id` | — | `{ revoked: true }` | patient-side revoke, allowed for frozen links / app-disabled clinics; not-own or already revoked → 404 |
+| GET `/patient-api/links/:id/history` | — | `{ at, action: linked\|unlinked_by_you\|revoked_by_clinic\|revoked_by_system, label }[]` newest first | derived from the link row (linked, revoked) |
+| DELETE `/patient-api/me` | `{ confirm: 'DELETE' }` | `{ deleted: true }` | rate limit 5 / 15 min; one transaction (below) |
+
+**Unlink** (`PatientAccountLinksService.unlink`, shared `revokeLinkByPatient`): lock link `FOR UPDATE` joined to the account's profiles → `status='revoked', revoked_by_type='patient', revoked_by_id=<account>` → `patient_access_log` (`unlink`) → clinic-visible `audit_logs` row (`patient_app_link`, subject = clinic patient, `{status→revoked, revokedBy:'patient'}`) → realtime outbox `patient.link_revoked` (M2-04's `publishPatientLinkEvent`). All in one transaction. The clinic can issue a new claim token for that record right after.
+
+**Delete account** (`PatientAccountService`, one transaction): lock account (a second delete → 404) → revoke every active/frozen link exactly like an unlink (audit + access log + event per link, reason `account_deleted`) → delete profiles (links cascade) → **delete `patient_account_identities`** (M2-02 review #5) and `patient_login_codes` of the email → revoke all `patient_sessions` → null the IP of `patient_account_consents` (rows stay as the legal record) → soft-delete the account (`status='deleted'`, `deleted_at`, name/phone/email stripped, email becomes `deleted+<id>@deleted.invalid`) → platform audit row (`patient_account`, ids and link count only). `patient_access_log` keeps the account id only. Reminders / dose history tables do not exist yet (M3): they hang off profiles and will cascade.
+
+**Tables:** none added or changed (no schema change, so no `database/schema` or `changes/` script). Re-sign-up works because the unique email index is partial on `deleted_at IS NULL` and the identities are gone.
+
+**Mobile:** `src/patient/features/{profiles,clinics,account}`; shared `src/patient/lib/clinic-types.ts`. Routes: `(main)/(tabs)/family.tsx` (P-04), `(main)/profiles/[profileId].tsx`, `(main)/clinics/index.tsx` (P-08), `(main)/account/delete.tsx` (P-09).
+
+### Done
+- Backend `src/patient-app/{profiles,links,account}` + `DELETE /patient-api/me` on the existing me controller; module wiring; unit spec (DTOs, guards, delete SQL order/audit) + int spec `test/patient/profiles-account.int-spec.ts`.
+- Mobile: Family tab page (loading / empty / error / list, add via bottom-sheet form), profile detail (own data, linked clinics per profile, edit sheet, remove with confirm; remove is disabled while links exist), Linked clinics page (live links + history, unlink with destructive confirm, per-link history), Delete account page (what goes / what stays, type DELETE, then a second destructive confirm, then the sign-out wipe of token + encrypted cache + query cache).
+- Forms: TanStack Form + Zod validators, `FormSheet`, submit disabled on `!canSubmit || isSubmitting`; dirty guard.
+- All strings through `useT` (en + ur; ur copy still English with `TODO(ur)` where not translated). Dates of a link are shown on the clinic location's clock (`formatInZone`).
+- Doc 07 §6.2 updated "as built".
+
+### Files
+- Backend created: `src/patient-app/profiles/{patient-profiles.controller,.service,.dto,.spec}.ts`, `src/patient-app/links/{patient-links.controller,patient-account-links.service,patient-links.dto}.ts`, `src/patient-app/account/{patient-account.service,delete-account.dto}.ts`, `test/patient/profiles-account.int-spec.ts`.
+- Backend modified: `src/patient-app/me.controller.ts`, `src/patient-app/patient-app.module.ts`, `src/patient-auth/patient-auth.controller.spec.ts` (me controller now has 3 handlers).
+- Mobile created: the three feature folders, `src/patient/lib/clinic-types.ts`, 4 route files under `src/app/(patient)/(main)/`.
+- Mobile modified: `src/core/i18n/{en,ur}.ts` (blocks `relation`, `gender`, `family`, `clinics`, `account`, inserted before `offline`), `src/patient/navigation/PatientPlaceholderPage.tsx` (entry buttons).
 ## M2-09 — Patient Records tab  ·  2026-11-15  ·  Claude Sonnet 5.5
 Branch: claude/m2-09-records-ff83ad (from mobile/develop)   Status set to: review
 
@@ -2768,6 +2805,23 @@ Branch: claude/m1-16-staff-hardening-8f8db8 (from mobile/develop)   Commit(s): s
 none
 
 ### Verification
+- Backend: `npm run build` ✓; `jest src/patient-app` 131+ tests ✓; full `jest` run: 1 failure (the me-controller handler count, fixed afterwards and re-run alone ✓) — no other failures. Int spec (`npm run test:int:patient`) is written and compiles but was **not run** (no disposable local Postgres; never touched the shared DB).
+- Mobile: `tsc --noEmit` → only the pre-existing `src/app/_layout.tsx` `@/global.css` declaration error (uniwind types are generated by Metro; not from this change); `npm run lint` 0 errors; `lint:fences` ✓; full jest 115 suites / 835 tests ✓; `CI=1 npx expo start --offline` run once after adding routes.
+- No device / UI run (gate M0-D).
+
+### Acceptance criteria
+- [x] dependents are shown with their links — `GET /profiles` embeds each profile's links; Family card shows the count, detail lists each clinic (int spec: child profile claimed → list shows 1 link).
+- [x] delete → re-sign-up is a fresh account — int spec (written, not run): same email signs up again with a new account id, `isNewAccount: true`, no profiles; unit spec proves identities / login codes / sessions SQL.
+- [x] unlink audited — audit row + access log + outbox event asserted in the unit/int specs.
+
+### Deviations / notes for the architect
+- **No tab layout exists on `mobile/develop`**: I created only my routes. `family.tsx` sits in a `(tabs)` group without a `_layout`; whoever builds the tab bar adds `family` to it. Until then the signed-in placeholder home has buttons to Family, Linked clinics and Delete account (small edit to `PatientPlaceholderPage.tsx`; expect a trivial merge conflict if M2-07/M2-09 edit it too). The same applies to `i18n/en.ts` + `ur.ts` (my keys are one block before `offline`).
+- P-04 text says "no self-service dependent creation in MVP", but the card asks for a create endpoint: `POST /profiles` makes the empty profile (no clinic data); linking still needs the clinic's QR claim with `profileId`. The sheet explains this.
+- `DELETE /profiles/:id` refuses while links exist (instead of cascading) so each unlink is audited on the clinic side. Removing a profile deletes its revoked-link rows with it (the clinic audit rows stay).
+- `GET /links` returns revoked links too (history section). The history endpoint is derived from the link row; `patient_access_log` is not read.
+- Unlink invalidates the whole patient query cache (records of that clinic may be cached under keys owned by M2-09).
+- Prettier was never run on files I did not write (I had to revert an accidental `prettier --write src/patient-app`); my new backend files are prettier-clean.
+- Root-level scratch logs `.be-build.log` / `.be-jest.log` from the backend run were deleted before commit.
 - `tsc --noEmit` clean · `expo lint` 0 errors (5 pre-existing warnings) · `lint:fences` ok · full jest 97 suites / 730 tests green.
 - NOT done: Jest "worker failed to exit" (cause not found; see report section 4); everything needing a device (list in report section 5).
 
@@ -2790,6 +2844,7 @@ Branch: `claude/m1-16-staff-hardening-8f8db8` (merged mobile/develop) · Status 
 | 6 | Nits | eslint --fix applied; pull-to-refresh no longer invalidates the `detail` key (it is refetched directly); test asserts it. |
 
 Verification: tsc clean · lint 0 errors (4 warnings) · lint:fences ok · full jest 115 suites / 836 tests green.
+---
 ## M2-07 + M2-15 — Claim flow (patient) and staff "Link app" QR  ·  2026-11-15  ·  Claude Sonnet 5.5
 Branch: claude/m2-07-claim-flow-b5aeae (from mobile/develop)   Status set to: review (both rows)
 
@@ -2844,6 +2899,24 @@ Verification: tsc clean · lint 0 errors (3 old warnings) · `lint:fences` ok ·
 ### Addendum — real QR (after rework 1)
 `react-native-qrcode-svg` (installed by the user, on mobile/develop) now renders the code in `core/components/QrCode` (black on white, quiet zone; the text fallback shows only if encoding fails). It encodes `claim.url`. The install note in the first M2-07 entry is obsolete. Tests: `QrCode.test.tsx` (renders for the value; falls back on error). Note for the lead: this worktree's own `node_modules` did not contain the package, so I copied `react-native-qrcode-svg`, `qrcode`, `text-encoding` and `dijkstrajs` from the main checkout's `node_modules` (untracked; no package.json/lockfile change by me).
 
+---
+## Rework M2-10 + M2-11 #1 — 2026-11-16
+Branch: `claude/m2-10-family-clinics-5e4548` (merged `mobile/develop`; conflicts in `HANDOFF.md`, `PROGRESS.md`, `core/i18n/en.ts`, `ur.ts` resolved by keeping both sides) · Status stays: review
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| 1 | Keep the clinic's link history | `patient_profiles.deleted_at` added (entity + `schema/02_tables.sql` + `changes/2026-11-15_patient_profiles_soft_delete.sql` + doc 08). Removing a family profile and deleting an account now **soft-delete** profiles (`deleted_at = now()`, name → `'Removed profile'`, dob / gender / `private_reminders` cleared); `patient_record_links` rows (revoked, `revoked_by_*`, reason) are never deleted. Every profile read/write excludes deleted rows: `PatientLinkGuard`, profiles list/count/update/remove, claim accept (existing-profile + self lookups), account links list / unlink / history. Doc 07 §6.5 and DECISIONS **A-22** updated. Unit specs assert UPDATE-not-DELETE and the stripped columns; the int spec (not run) asserts the stripped rows and that the revoked link row survives. |
+| 2 | Concurrency with delete | Create-profile and claim accept both lock the account (`SELECT … FROM patient_accounts WHERE id=$1 AND deleted_at IS NULL FOR UPDATE`) and answer 404 when no row. Specs for both (create on a deleted account inserts nothing; accept stops before touching profiles / links). Lock order: accept = claim token → account → link; delete = account → links; create = account. No cycle. |
+| 3 | Session PII | Account delete sets `revoked_at = COALESCE(revoked_at, now()), ip = NULL, device_label = NULL` on all the account's sessions; spec asserts it. |
+| 4 | Unlink audit actor | The `ActorSide` enum has no patient side, so the audit rows keep `SYSTEM` (as M2-04's claim accept does); the account id is in `after.revokedBy` / the access log. Recorded in A-22 and doc 07. |
+| 5 | Rate limit | `DELETE /patient-api/links/:id` has `@RateLimit` 30 / 15 min (same as claims). |
+| 6 | Delete retry | `deleteWithRetry` (`features/account/lib`): a network error is retried once; a 401 / 404 on the retry counts as success so the wipe still runs; any other failure (or a 401 / 404 on the FIRST call) is thrown and nothing local is touched. Table tests. |
+
+Also fixed while merging: the merge dropped the closing braces of my `account.delete` block in `en.ts` / `ur.ts` (placed before develop's `claim` block).
+
+Install commands: none.
+
+Verification: see the commit message / report (backend build, changed specs, full backend unit suite; mobile typecheck after `CI=1 npx expo start --offline`, lint, `lint:fences`, full jest). The int spec was still not run (no local Postgres).
 
 ---
 ## M3-01 + M3-02 — Medication schedules + patient medication endpoints — 2026-11-15
@@ -3000,3 +3073,91 @@ Branch: claude/m3-03-reminders-033e68 (after M3-03) · Status: review
 
 ### Verification
 typecheck clean · eslint 0 errors (3 old warnings) · `lint:fences` ok · `jest src/patient src/core src/shell` 53 suites / 293 tests green (foreground, `--runInBand`; the new `TodayPage` suite covers: grouped list, Taken saved + sent, offline "will sync" with the queue kept, server-taken row, empty/link-first, nothing due, error + retry). `CI=1 npx expo start --offline` run for the new routes. No device: airplane-mode ring + offline sync on a phone still to be checked (see M3-03 device check).
+
+---
+## M2-13 — Product events (privacy-safe analytics)  ·  2026-11-16  ·  Claude Sonnet 5.5
+Branch: claude/m2-13-product-events-f86696 (merged mobile/develop)   Status set to: review
+
+### Done
+- **Backend** `src/product-events/` (+ `patient-app/events.controller.ts`): `product_events` entity; `POST /me/events` (`@ContextFree`, justified: the sign-in event is sent before org/location selection, nothing clinic-scoped is read) and `POST /patient-api/events` (`@PatientApi`); both `@RateLimit` 60 / 5 min, ≤ 50 events per call. Catalog (`product-event-catalog.ts`) = event names + per-prop enum values; the service drops unknown names (also names of the other space), unknown props and out-of-enum values, clamps client time to the last 7 days. Stored: actor type + account/user id, name, props, time. `organization_id` is never client-supplied (currently always null; per-clinic staff metrics join `employee_org_location_assignments`).
+- **Schema**: entity + block in `database/schema/02_tables.sql` + `database/changes/2026-11-15_product_events.sql`.
+- **Mobile** `core/analytics` `createTracker({ send })` (batched 5 s, in-memory, fire-and-forget, retry on network/5xx/429, drop on other 4xx, capped queue, no-op under Jest); senders in `staff/lib/analytics.ts` and `patient/lib/analytics.ts`. One `track` call each in: staff sign-in (password + Google), check-in from the schedule sheet, call next; patient email sign-in, claim accepted, Records tab list shown.
+- **Docs** `docs/analytics-events.md`: rules, event list, retention (400 days + delete statement), six pilot metric queries.
+
+### Install commands for the user
+none
+
+### Verification
+- Backend: `nest build` clean; new `product-events.spec.ts` (sanitising, other-space names, time clamp, rate limit + fence metadata). Full backend jest: see the lead's note below.
+- Mobile: eslint 0 errors (4 old warnings) · `lint:fences` ok · new `tracker.test.ts`. 
+- **tsc**: the ONLY error is `mobile-app/node_modules/@types/node/test.d.ts(453)` — that file in the shared node_modules is TRUNCATED (23 959 bytes, ends mid-word) from the disk-full incident. Nothing in `src` errors. Fix: reinstall `@types/node` in `mobile-app/node_modules` (lead/user, not me).
+
+### Deviations / notes
+- `app_opened` / `patient_app_opened` are in the catalog but not sent yet (daily use is measured from any event).
+- Events are memory-only: a phone closing within ~5 s of an action can lose it (documented caveat).
+- Not run against Postgres; SQL in the docs is untested.
+
+
+---
+## Rework M2-13 #1 - 2026-11-16
+Branch: claude/m2-13-product-events-f86696 - Status stays: review
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| 1 | Queued events survive sign-out | `createTracker` takes `getActor`; each queued event stores its actor, a batch is sent only while that actor is signed in (signed out = drop all, `track()` ignored while signed out). `clearStaffEvents` / `clearPatientEvents` run first in both sign-out flows; forced session loss is covered by the actor check. Tests added. |
+| 2 | Flush on background | AppState listener inside `createTracker` (`flushOnBackground`, default on when enabled). |
+| 3 | Out-of-range times | Server DROPS events > 5 min in the future or > 7 days old (small skew clamped to now). Spec. |
+| 4 | org index | `idx_product_events_org_name_at` removed from entity, schema block, changes script; org tagging noted as future work. |
+| 5 | Docs | Rate limit is per IP (shared NAT); retention delete is manual (open item); sign-out/actor behaviour documented. |
+
+Verification: backend build clean, product-events + patient-app + access specs green (260 tests); mobile lint 0 errors (4 old warnings), lint:fences ok, jest on core/analytics + staff/patient auth + queue + lib + shell green (43 suites). tsc: only the known `@/global.css` message (expo-env.d.ts not generated; I did not run expo start - my attempt to kill its node process was refused by the sandbox). Full-suite runs were not completed on this memory-starved machine.
+Note: my first pass re-encoded three existing files through PowerShell (mojibake); restored from HEAD and re-edited byte-safely - the final diff touches only the intended lines.
+---
+## M3-05 — Patient realtime, active queue, visit tokens  ·  2026-11-16  ·  Claude Sonnet 5.5
+Branch: claude/m3-05-patient-realtime-9b1e4c (from mobile/develop)   Commit(s): see report   Status set to: review
+
+### Plan (written first)
+1. `queue_visit_tokens` (entity + `schema/02_tables.sql` block + `changes/2026-11-15_queue_visit_tokens.sql`).
+2. `QueuePositionService` (queue module, exported): token / status / `peopleAhead` / `nowServingToken` / doctor name per entry, reusing `QueueQueryService.engineOrder` (no new orchestrator mutation).
+3. Public `GET /visit/:token/state` (`@Public`, 120/min/IP, one generic 404) + staff `POST /queue/entries/:entryId/visit-link` (`@Can('queue.checkin')`, active location only). Token = 32 random bytes base64url, only sha256 stored, 12 h TTL.
+4. `GET /patient-api/queue/active` (`PatientQueueService`, scoped with `linkedPatientWhere` + A-19 clinic visibility, "today" per location tz).
+5. `PatientRealtimeGateway` on `/patient-realtime`: patient secret + `aud` + live session on connect; joins `patient:<accountId>`; `subscribe entry:<id>` re-checks the link in SQL; relay fan-out through the existing publishers (in-process and Redis subscriber call both gateways).
+6. Specs: socket auth both directions, room isolation, fan-out, link-revoke room leave, visit state, position, active scoping; full backend unit suite.
+
+### Done
+- **Gateway** `patient-app/realtime/patient-realtime.gateway.ts`. A staff token fails signature (other secret) -> `auth_error` + disconnect; a patient token on `/realtime` already failed the same way (test added for both). `subscribe` only accepts `entry:<uuid>` (no `patient:`/`session:`/staff rooms), max 20 entry rooms per socket, ack `{ ok:false, error:'NOT_FOUND' }` otherwise. `unsubscribe` supported.
+- **Fan-out**: relay messages for `session:<id>` `queue.event` become `visit.event { entryId, seq }` (exactly these two keys) for every subscribed entry of that session on this instance (a call moves everybody's place, so all subscribers of the session are nudged, not only the entry in the event). `patient:<accountId>` topics (e.g. `feed.changed`, the M2-04 link events) go to that account only. Board / display / org / user topics are ignored. No new outbox rows, no orchestrator change.
+- **Revocation**: a `feed.changed` with `kinds` containing `links` re-checks every entry room of that account's sockets and leaves the ones no longer covered. Subscribe re-checks on every call.
+- **Availability** mirrors the staff gateway: Redis subscriber toggles both; while down new patient sockets are refused and open ones closed (clients poll).
+- **`GET /patient-api/queue/active`**: today's active-status entries (per location clock) of linked patients at approved clinics (suspended clinics stay visible, A-19), shape per 07 §6.2 with `location { id, name, timezone }`.
+- **Visit link**: `POST /queue/entries/:entryId/visit-link` -> `{ url: FRONTEND_URL/v/<token>, expiresAt }`; expired rows are purged on create. `GET /visit/:token/state` -> `{ clinicName, locationName, token, status, peopleAhead, nowServingToken, updatedAt }`; hash lookup, expiry and approved clinic checked in SQL. `maskTokens` now also masks `/visit/<token>`.
+
+### Files
+- Created: `queue/entities/queue-visit-token.entity.ts`, `queue/services/queue-position.service.ts`, `queue/visit/{visit-token.ts,visit.service.ts,visit.controller.ts}`, `patient-app/queue/{patient-queue.service.ts,patient-queue.controller.ts}`, `patient-app/realtime/patient-realtime.gateway.ts`, specs for each, `database/changes/2026-11-15_queue_visit_tokens.sql`.
+- Modified: `queue.module.ts`, `queue-runtime.module.ts`, `patient-app.module.ts`, in-process publisher, redis subscriber, `HttpExceptionHandler.ts` (+ mask spec), `database/schema/02_tables.sql`.
+
+### Install commands for the user
+none (apply `backend/database/changes/2026-11-15_queue_visit_tokens.sql` to existing databases)
+
+### Decisions to review
+- The staff link endpoint is new and not in 07; permission `queue.checkin`. If you want a different permission or a QR on the staff ticket, say so.
+- `visit.event` is session-wide, so one queue change nudges all subscribed patients of that doctor; payload stays `{ entryId, seq }` and the app refetches `/patient-api/queue/active`.
+- Socket access tokens are verified at connect only (15 min), like the staff gateway; the mobile client reconnects with a fresh token, and subscribe re-checks the live session through links, not the token age.
+- Visit page state keeps working after the entry finishes until the token expires (status shows the final state, `peopleAhead: null`).
+- Not run: DB-backed integration test (no local Postgres); SQL for the join in `subscribableSession` is checked by shape only.
+
+---
+## M3-05 follow-up — socket lifetime hardening  ·  2026-11-16  ·  Claude Sonnet 5.5
+Branch: claude/m3-05-followup (from mobile/develop)   Status: review
+
+### Done
+- Sockets close at access-token `exp` (timer, cleared on disconnect); every `subscribe` re-checks `isAlive(sid, sub)` and drops the socket when it ended.
+- `PatientSessionEvents` (patient-auth, in-process): fired on logout, refresh-token reuse and account deletion; the gateway disconnects that session (or all of the account's sockets). Other API instances rely on the exp timer + per-subscribe check (no Redis fan-out).
+- Patient gateway publish wrapped in try/catch in the in-process publisher and the Redis subscriber (spec).
+- Bus down -> `unavailable { retryAfterSeconds }` + disconnect, never `auth_error`.
+- Max 5 sockets per account, oldest dropped.
+- Doc 07 §7: active+frozen links, finished entries, lifetime, availability.
+
+### Verification
+tsc clean; patient-app/auth/queue + rest of the backend unit suite green in chunks (90 + 32 suites, 1,345 tests). New specs: gateway lifetime/cap/unavailable, session events, publisher isolation.
+Mobile note: handle `unavailable` (poll, keep session) separately from `auth_error` (refresh token, reconnect).

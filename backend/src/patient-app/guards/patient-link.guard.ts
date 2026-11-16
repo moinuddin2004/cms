@@ -51,7 +51,7 @@ export class PatientLinkGuard implements CanActivate {
         'link.profileId = profile.id AND link.status IN (:...linkStatuses)',
         { linkStatuses: ['active', 'frozen'] },
       )
-      .where('profile.accountId = :accountId', {
+      .where('profile.accountId = :accountId AND profile.deletedAt IS NULL', {
         accountId: auth.accountId,
       })
       .orderBy('profile.id', 'ASC')

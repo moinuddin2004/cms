@@ -1,8 +1,9 @@
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'crypto';
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Optional, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, MoreThan, Repository } from 'typeorm';
 import { PatientSession } from './entities/patient-session.entity';
+import { PatientSessionEvents } from './patient-session-events';
 
 const REFRESH_DAYS = 60;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -32,6 +33,7 @@ export class PatientSessionService {
   constructor(
     @InjectRepository(PatientSession)
     private readonly sessions: Repository<PatientSession>,
+    @Optional() private readonly events?: PatientSessionEvents,
   ) {}
 
   async create(
@@ -76,6 +78,7 @@ export class PatientSessionService {
     if (sameHash(session.previousTokenHash, presented)) {
       // A rotated token came back: someone else holds a copy. Kill the session.
       await this.sessions.update({ id }, { revokedAt: now });
+      this.events?.revoked({ accountId: session.accountId, sessionId: id });
       throw invalid();
     }
     if (!sameHash(session.refreshTokenHash, presented)) throw invalid();
@@ -117,7 +120,10 @@ export class PatientSessionService {
       sameHash(session.refreshTokenHash, presented) ||
       sameHash(session.previousTokenHash, presented)
     )
+    {
       await this.sessions.update({ id }, { revokedAt: new Date() });
+      this.events?.revoked({ accountId: session.accountId, sessionId: id });
+    }
   }
 
   /** Is this session usable right now? (strategy check) */

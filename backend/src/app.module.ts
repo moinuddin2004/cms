@@ -45,6 +45,7 @@ import { LabCatalogModule } from './lab-catalog/lab-catalog.module';
 import { QueueRuntimeModule } from './queue/queue-runtime.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { DevicesModule } from './devices/devices.module';
+import { ProductEventsModule } from './product-events/product-events.module';
 import { PatientAppModule } from './patient-app/patient-app.module';
 import { PatientAuthModule } from './patient-auth/patient-auth.module';
 import { PatientLinksModule } from './patient-links/patient-links.module';
@@ -129,6 +130,7 @@ import { EmployeeOrgLocationAssignment } from './employees/entities/employee-org
     ReportsModule,
     NotificationsModule, // NotificationsRuntimeModule (sending loop) is added per role
     DevicesModule, // /me/devices — staff push tokens (M1-04)
+    ProductEventsModule, // /me/events + product_events table (M2-13)
     PatientAuthModule, // patient identity entities only (M2-01)
     PatientAppModule, // patient profile/link/consent/access-log entities only (M2-01)
     PatientLinksModule, // app link: claim tokens, staff endpoints, claim service (M2-04)

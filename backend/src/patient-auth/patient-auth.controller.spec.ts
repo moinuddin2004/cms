@@ -47,6 +47,6 @@ describe('patient controllers: decorators', () => {
     expect(Reflect.getMetadata(PATH_METADATA, PatientMeController)).toBe(
       'patient-api/me',
     );
-    expect(handlers(PatientMeController)).toHaveLength(2);
+    expect(handlers(PatientMeController)).toHaveLength(3);
   });
 });

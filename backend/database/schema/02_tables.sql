@@ -1925,6 +1925,7 @@ CREATE TABLE patient_profiles (
   dob         date,
   gender      varchar(10),
   private_reminders boolean NOT NULL DEFAULT false,
+  deleted_at  timestamptz,                   -- soft delete (A-22): PII stripped, link history kept
   created_at  timestamptz NOT NULL DEFAULT now(),
   updated_at  timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT fk_patient_profiles_account_id FOREIGN KEY (account_id) REFERENCES patient_accounts (id) ON DELETE CASCADE,
@@ -1961,6 +1962,23 @@ CREATE TABLE patient_record_links (
 CREATE UNIQUE INDEX uq_patient_record_links_active_patient ON patient_record_links (patient_id) WHERE status = 'active';
 CREATE INDEX idx_patient_record_links_profile_id ON patient_record_links (profile_id);
 CREATE INDEX idx_patient_record_links_org_patient ON patient_record_links (organization_id, patient_id);
+
+-- ------------------------------------------------------------------------
+-- queue_visit_tokens   (src/queue/entities/queue-visit-token.entity.ts)  M3-05
+-- ------------------------------------------------------------------------
+CREATE TABLE queue_visit_tokens (
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  organization_id uuid NOT NULL,
+  entry_id        uuid NOT NULL,
+  token_hash      char(64) NOT NULL,
+  expires_at      timestamptz NOT NULL,
+  created_at      timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT fk_queue_visit_tokens_organization_id FOREIGN KEY (organization_id) REFERENCES organizations (id) ON DELETE CASCADE,
+  CONSTRAINT fk_queue_visit_tokens_entry_id FOREIGN KEY (entry_id) REFERENCES queue_entries (id) ON DELETE CASCADE
+);
+CREATE UNIQUE INDEX uq_queue_visit_tokens_token_hash ON queue_visit_tokens (token_hash);
+CREATE INDEX idx_queue_visit_tokens_entry_id ON queue_visit_tokens (entry_id);
+CREATE INDEX idx_queue_visit_tokens_expires_at ON queue_visit_tokens (expires_at);
 
 -- ------------------------------------------------------------------------
 -- patient_claim_tokens   (src/patient-links/entities/patient-claim-token.entity.ts)
@@ -2014,6 +2032,24 @@ CREATE TABLE patient_access_log (
 );
 CREATE INDEX idx_patient_access_log_org_patient_at ON patient_access_log (organization_id, patient_id, at);
 CREATE INDEX idx_patient_access_log_account_at ON patient_access_log (account_id, at);
+
+-- ------------------------------------------------------------------------
+-- product_events   (src/product-events/entities/product-event.entity.ts)
+-- Privacy-safe product analytics (M2-13): allow-listed name + scalar props,
+-- account/user id only. No FKs (survives account deletion), no health data.
+-- Retention: 400 days (mobile-app/docs/analytics-events.md).
+-- ------------------------------------------------------------------------
+CREATE TABLE product_events (
+  id              bigserial PRIMARY KEY,
+  actor_type      varchar(10) NOT NULL,    -- staff | patient | anon
+  actor_id        uuid,                    -- users.uuid / patient_accounts.id
+  organization_id uuid,                    -- only when the server knows it
+  name            varchar(60) NOT NULL,
+  props           jsonb NOT NULL DEFAULT '{}'::jsonb,
+  at              timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT chk_product_events_actor_type CHECK (actor_type IN ('staff','patient','anon'))
+);
+CREATE INDEX idx_product_events_name_at ON product_events (name, at);
 
 -- ------------------------------------------------------------------------
 -- medication_schedules / medication_dose_events   (src/medications/entities)

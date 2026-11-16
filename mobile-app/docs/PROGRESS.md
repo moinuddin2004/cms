@@ -61,18 +61,21 @@
 | M2-08 | Patient read services | BE | L | M2-03 | done | Sonnet session | 2026-11-15 | rework-1 |
 | M2-04 | Patient links + claim API | BE | M | M2-03 | done | Sonnet session | 2026-11-15 | rework-1; int spec not run (no local Postgres) |
 | M2-06 | Patient space foundation | MOB | L | M2-02, M0-04 | done | Sonnet session | 2026-11-15 | rework-1 (sign-out generation guard in core client, both spaces) |
+| M2-10 | Profiles endpoints + Family tab (P-04) + profile detail | MOB+BE | M | M2-06 | done | Sonnet session | 2026-11-15 | rework-1 |
+| M2-11 | Linked clinics (P-08), unlink, link history, delete account (P-09) | MOB+BE | M | M2-06 | done | Sonnet session (with M2-10) | 2026-11-16 | rework-1 (A-22 soft-delete) |
 | M2-09 | Patient Records tab | MOB | L | M2-08, M2-06 | done | Sonnet session | 2026-11-15 | rework-1 | PDF share + profile chips pending (see HANDOFF) |
 | M2-05 | Web "Link app" button + QR dialog | WEB | S | M2-04 | done | Sonnet session | 2026-11-16 | rework-1 |
 | M2-14 | Public landing pages /c/:token, /v/:token | WEB | S | M2-04 | done | Sonnet session (with M2-05) | 2026-11-16 | rework-1; /v waits on M3-05 |
-
 | M2-07 | Claim flow P-01 | MOB | M | M2-04, M2-06 | done | Sonnet session | 2026-11-15 | rework-1 |
 | M2-15 | Staff "Link app" QR screen (S-09) | MOB | S | M2-04, M1-12 | done | Sonnet session (with M2-07) | 2026-11-15 | rework-1 |
+| M2-13 | Product events (analytics) | BE+MOB | S | M2-06 | done | Sonnet session | 2026-11-15 | rework-1 |
 | M2-04 … M2-16 (rest) | Patient core | — | — | see 10 | spec | | | |
 | M3-01 | Medication schedules from finalized prescriptions (parsers + event handler) | BE | L | M2-08 | done | Sonnet session | 2026-11-15 | rework-1 |
-| M3-02 | Patient medications endpoints (list, patch, dose events) | BE | M | M3-01 | review | Sonnet session (with M3-01) | 2026-11-15 | |
-| M3-03 | Reminder engine | MOB | L | M3-02 | review | claude/m3-03-reminders-033e68 | Sonnet session | 2026-11-16 |
-| M3-04 | Today screen P-02 | MOB | L | M3-03 | review | claude/m3-03-reminders-033e68 | Sonnet session | 2026-11-16 |
-| M3-05 … M3-09 | Patient hook | — | — | see 10 | spec | | | |
+| M3-02 | Patient medications endpoints (list, patch, dose events) | BE | M | M3-01 | done | Sonnet session (with M3-01) | 2026-11-15 | rework-1 |
+| M3-03 | Reminder engine | MOB | L | M3-02 | review | claude/m3-03-reminders-033e68 | Sonnet session | 2026-11-16 | rework-1 |
+| M3-04 | Today screen P-02 | MOB | L | M3-03 | review | claude/m3-03-reminders-033e68 | Sonnet session | 2026-11-16 | rework-1 |
+| M3-05 | Patient realtime gateway + queue/active + visit tokens | BE | M | M2-03 | done | Sonnet session | 2026-11-15 | rework-1 |
+| M3-06 … M3-09 | Patient hook | — | — | see 10 | spec | | | |
 | M4-01 … M4-06 | Release | — | — | see 10 | spec | | | |
 
 ## Gates

@@ -2,6 +2,7 @@ import { ConfigService } from '@nestjs/config';
 import { Global, Module } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { getDataSourceToken } from '@nestjs/typeorm';
+import { AuditService } from 'src/common/audit/audit.service';
 import { ClockService } from 'src/common/clock/clock.service';
 import { FeatureFlagsModule } from 'src/feature-flags/feature-flags.module';
 import { FeatureFlagsService } from 'src/feature-flags/feature-flags.service';
@@ -12,6 +13,10 @@ import { PrescriptionEvents } from 'src/prescriptions/events/prescription-events
 import { PrescriptionsModule } from 'src/prescriptions/prescriptions.module';
 import { PrescriptionPdfService } from 'src/prescriptions/services/prescription-pdf.service';
 import { SettingsRegistryService } from 'src/settings-registry/settings-registry.service';
+import { QueueModule } from 'src/queue/queue.module';
+import { QueuePositionService } from 'src/queue/services/queue-position.service';
+import { PatientQueueController } from './queue/patient-queue.controller';
+import { PatientQueueService } from './queue/patient-queue.service';
 import { PatientMedicationsController } from './medications/patient-medications.controller';
 import { PatientMedicationsService } from './medications/patient-medications.service';
 import { PatientAppModule } from './patient-app.module';
@@ -34,12 +39,14 @@ const dataSource = {
   providers: [
     { provide: ConfigService, useValue: {} },
     { provide: ClockService, useValue: {} },
+    { provide: AuditService, useValue: {} }, // global AuditModule in the app
     { provide: SettingsRegistryService, useValue: {} },
     { provide: getDataSourceToken(), useValue: dataSource },
   ],
   exports: [
     ConfigService,
     ClockService,
+    AuditService,
     SettingsRegistryService,
     getDataSourceToken(),
   ],
@@ -64,6 +71,12 @@ class FeatureFlagsStub {}
 })
 class PatientLinksStub {}
 
+@Module({
+  providers: [{ provide: QueuePositionService, useValue: {} }],
+  exports: [QueuePositionService],
+})
+class QueueStub {}
+
 describe('PatientAppModule wiring (medications)', () => {
   it('compiles with the controller, service and subscriber registered', async () => {
     const syncPrescription = jest.fn().mockResolvedValue({});
@@ -74,6 +87,8 @@ describe('PatientAppModule wiring (medications)', () => {
       .useModule(PrescriptionsStub)
       .overrideModule(FeatureFlagsModule)
       .useModule(FeatureFlagsStub)
+      .overrideModule(QueueModule)
+      .useModule(QueueStub)
       .overrideModule(PatientLinksModule)
       .useModule(PatientLinksStub)
       .overrideProvider(MedicationSyncService)
@@ -86,6 +101,13 @@ describe('PatientAppModule wiring (medications)', () => {
     expect(
       moduleRef.get(PatientMedicationsService, { strict: false }),
     ).toBeInstanceOf(PatientMedicationsService);
+
+    expect(moduleRef.get(PatientQueueController)).toBeInstanceOf(
+      PatientQueueController,
+    );
+    expect(
+      moduleRef.get(PatientQueueService, { strict: false }),
+    ).toBeInstanceOf(PatientQueueService);
 
     await moduleRef.init();
     moduleRef
