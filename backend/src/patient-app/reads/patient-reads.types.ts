@@ -34,8 +34,9 @@ export interface PatientAppointmentDto {
   endTime: string;
   status: string;
   type: string;
-  /** Written by M3-08 (confirm); no column yet. */
+  /** When the patient confirmed from the app (M3-08); null = not yet. */
   patientConfirmedAt: string | null;
+  /** Future, not cancelled/arrived, link active + app enabled, clinic active. */
   canConfirm: boolean;
 }
 

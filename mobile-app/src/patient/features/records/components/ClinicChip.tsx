@@ -1,5 +1,5 @@
 import { PauseCircle } from 'lucide-react-native';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import { useT } from '@/core/i18n';
 import { Icon } from '@/core/ui/icon';
@@ -12,13 +12,27 @@ import type { ClinicRef } from '../types/records.types';
  * The clinic a record belongs to: its colour as a small accent stripe (A-11,
  * accent only) + its name, and a calm "paused" note for a suspended clinic (A-19).
  */
-export function ClinicChip({ clinic, place }: { clinic: ClinicRef; place?: string }) {
+export function ClinicChip({
+  clinic,
+  place,
+  onPress,
+}: {
+  clinic: ClinicRef;
+  place?: string;
+  /** Makes the chip a button (opens the contact sheet, P-07). */
+  onPress?: () => void;
+}) {
   const { t } = useT();
   const accent = clinicAccent(clinic);
   const paused = isClinicPaused(clinic);
   return (
     <View className="flex-row flex-wrap items-center gap-2">
-      <View className="bg-muted flex-row items-center gap-2 self-start rounded-full py-1 pe-3 ps-2">
+      <Pressable
+        disabled={!onPress}
+        onPress={onPress}
+        accessibilityRole={onPress ? 'button' : undefined}
+        accessibilityLabel={onPress ? t('contact.open') : undefined}
+        className={`bg-muted flex-row items-center gap-2 self-start rounded-full py-1 pe-3 ps-2 ${onPress ? "min-h-11" : ""}`}>
         <View
           className="bg-primary h-4 w-1.5 rounded-full"
           style={accent ? { backgroundColor: accent } : undefined}
@@ -26,7 +40,7 @@ export function ClinicChip({ clinic, place }: { clinic: ClinicRef; place?: strin
         <Text className="text-sm font-medium" numberOfLines={1}>
           {place ? `${clinic.name} · ${place}` : clinic.name}
         </Text>
-      </View>
+      </Pressable>
       {paused ? (
         <View
           accessible

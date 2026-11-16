@@ -46,12 +46,17 @@ export interface AppointmentRow extends LocationRow {
   endTime: Date | string;
   status: string;
   type: string;
+  patientConfirmedAt?: Date | string | null;
 }
+
+/** Statuses a patient may still confirm (booking not yet cancelled / arrived). */
+export const CONFIRMABLE_STATUSES = ['scheduled', 'confirmed'];
 
 export function mapAppointment(
   row: AppointmentRow,
   profileId: string,
   clinic: ClinicRefDto,
+  canConfirm = false,
 ): PatientAppointmentDto {
   return {
     id: row.id,
@@ -63,8 +68,8 @@ export function mapAppointment(
     endTime: iso(row.endTime)!,
     status: row.status,
     type: row.type,
-    patientConfirmedAt: null,
-    canConfirm: false,
+    patientConfirmedAt: iso(row.patientConfirmedAt),
+    canConfirm,
   };
 }
 

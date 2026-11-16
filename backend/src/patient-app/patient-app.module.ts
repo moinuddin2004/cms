@@ -30,6 +30,8 @@ import { PatientAccessLogService } from './reads/patient-access-log.service';
 import { PatientClinicsService } from './reads/patient-clinics.service';
 import { PatientReadsController } from './reads/patient-reads.controller';
 import { PatientReadsService } from './reads/patient-reads.service';
+import { PatientAppointmentsController } from './appointments/patient-appointments.controller';
+import { PatientAppointmentsService } from './appointments/patient-appointments.service';
 import './patient-app.settings';
 
 /** Patient-space API: `/patient-api/me` (M2-02, delete M2-11), claims (M2-04), reads (M2-08), medications (M3-02), profiles (M2-10), links (M2-11). */
@@ -58,6 +60,7 @@ import './patient-app.settings';
     PatientProfilesController,
     PatientAccountLinksController,
     PatientEventsController,
+    PatientAppointmentsController,
   ],
   providers: [
     PatientMeService,
@@ -71,6 +74,7 @@ import './patient-app.settings';
     PatientReadsService,
     PatientQueueService,
     PatientMedicationsService,
+    PatientAppointmentsService,
   ],
   exports: [
     TypeOrmModule,

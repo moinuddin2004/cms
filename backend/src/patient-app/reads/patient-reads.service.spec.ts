@@ -108,7 +108,10 @@ function build(results: Record<string, Result> = {}) {
     insert,
   } as never);
   const today = jest.fn(() => '2026-11-15');
-  const clock = { today } as unknown as ClockService;
+  const clock = {
+    today,
+    now: () => new Date('2026-11-15T10:00:00Z'),
+  } as unknown as ClockService;
   const generatePdfBuffer = jest.fn().mockResolvedValue(Buffer.from('%PDF-1'));
   const pdfs = { generatePdfBuffer } as unknown as PrescriptionPdfService;
   const clinics = new PatientClinicsService(dataSource, settings);
@@ -467,6 +470,32 @@ describe('PatientReadsService', () => {
         profileId: 'prof-2',
       });
       expect(filtered[0].profileId).toBe('prof-2');
+    });
+
+    it('canConfirm: only future scheduled rows of active links', async () => {
+      const mk = (id: string, status: string, startTime: string) => ({
+        ...loc,
+        id,
+        organizationId: ORG_OK,
+        patientId: 'pat-1',
+        startTime,
+        endTime: startTime,
+        status,
+        type: 'consultation',
+        doctorName: null,
+        patientConfirmedAt: null,
+      });
+      const { service } = build({
+        appointments: {
+          many: [
+            mk('a1', 'scheduled', '2026-12-01T09:00:00Z'),
+            mk('a2', 'cancelled', '2026-12-01T09:00:00Z'),
+            mk('a3', 'scheduled', '2026-11-01T09:00:00Z'),
+          ],
+        },
+      });
+      const out = await service.appointments(ctx, {});
+      expect(out.map((o) => o.canConfirm)).toEqual([true, false, false]);
     });
 
     it('overdue uses the invoice location clock', async () => {

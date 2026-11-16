@@ -137,6 +137,10 @@ export class Appointment {
   @Column({ name: 'no_show_at', type: 'timestamptz', nullable: true })
   noShowAt: Date | null;
 
+  /** Set when the patient confirms from the patient app (M3-08). */
+  @Column({ name: 'patient_confirmed_at', type: 'timestamptz', nullable: true })
+  patientConfirmedAt: Date | null;
+
   // ─── Audit ────────────────────────────────────────────────────
 
   @Column({ name: 'created_by', type: 'uuid', nullable: true })
