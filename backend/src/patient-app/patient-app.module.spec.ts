@@ -2,6 +2,7 @@ import { ConfigService } from '@nestjs/config';
 import { Global, Module } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { getDataSourceToken } from '@nestjs/typeorm';
+import { AuditService } from 'src/common/audit/audit.service';
 import { ClockService } from 'src/common/clock/clock.service';
 import { FeatureFlagsModule } from 'src/feature-flags/feature-flags.module';
 import { FeatureFlagsService } from 'src/feature-flags/feature-flags.service';
@@ -34,12 +35,14 @@ const dataSource = {
   providers: [
     { provide: ConfigService, useValue: {} },
     { provide: ClockService, useValue: {} },
+    { provide: AuditService, useValue: {} }, // global AuditModule in the app
     { provide: SettingsRegistryService, useValue: {} },
     { provide: getDataSourceToken(), useValue: dataSource },
   ],
   exports: [
     ConfigService,
     ClockService,
+    AuditService,
     SettingsRegistryService,
     getDataSourceToken(),
   ],

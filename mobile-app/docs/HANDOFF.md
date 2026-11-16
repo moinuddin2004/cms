@@ -2721,6 +2721,43 @@ Branch: `mobile/M1-05-push` (merged `mobile/develop`; conflicts in `useSignOut.t
 Verification: typecheck clean · eslint 0 errors (3 old warnings) · `lint:fences` ok · full jest 110 suites / 808 tests green. No device.
 
 ---
+## M2-10 + M2-11 — Profiles, Family tab, linked clinics, unlink, delete account  ·  2026-11-15  ·  Sonnet 5.5
+Branch: `claude/m2-10-family-clinics-5e4548` (worktree branch off `mobile/develop`)   Commit(s): see `git log -1`   Status set to: review
+
+### Plan (written first)
+**Endpoints** (all `@PatientApi()`; account = `ctx.accountId`, ids checked against the account's own rows; wrapped in `ResponseWrapper`):
+
+| Method + path | Body | Response | Rules |
+| --- | --- | --- | --- |
+| GET `/patient-api/profiles` | — | `Profile[]` `{ id, relation, fullName, dob, gender, isSelf, links: { id, clinic, location, status, linkedAt }[] }` | self first, then oldest first; links = active + frozen; never-approved clinics hidden (A-19) |
+| POST `/patient-api/profiles` | `{ relation: child\|parent\|spouse\|other, fullName 1–150, dob? (YYYY-MM-DD real, not future), gender? }` | `Profile` (201) | `self` refused; max 20 profiles per account (`409 TOO_MANY_PROFILES`) |
+| PATCH `/patient-api/profiles/:id` | `{ relation?, fullName?, dob?: string\|null, gender?: …\|null }` | `Profile` | `null` clears dob/gender; self keeps its relation (`400 SELF_RELATION_FIXED`); foreign id → 404 |
+| DELETE `/patient-api/profiles/:id` | — | `{ removed: true }` | self → `400 CANNOT_REMOVE_SELF`; a profile with an active/frozen link → `409 PROFILE_HAS_LINKS` (unlink first, so the clinic audit trail of the unlink exists) |
+| GET `/patient-api/links` | — | `PatientLink[]` `{ id, profileId, clinic, location, status: active\|frozen\|revoked, linkedAt, linkMethod, linkedByLabel, revokedAt, revokedBy }` | live links first, then revoked (history); max 200; never-approved clinics hidden |
+| DELETE `/patient-api/links/:id` | — | `{ revoked: true }` | patient-side revoke, allowed for frozen links / app-disabled clinics; not-own or already revoked → 404 |
+| GET `/patient-api/links/:id/history` | — | `{ at, action: linked\|unlinked_by_you\|revoked_by_clinic\|revoked_by_system, label }[]` newest first | derived from the link row (linked, revoked) |
+| DELETE `/patient-api/me` | `{ confirm: 'DELETE' }` | `{ deleted: true }` | rate limit 5 / 15 min; one transaction (below) |
+
+**Unlink** (`PatientAccountLinksService.unlink`, shared `revokeLinkByPatient`): lock link `FOR UPDATE` joined to the account's profiles → `status='revoked', revoked_by_type='patient', revoked_by_id=<account>` → `patient_access_log` (`unlink`) → clinic-visible `audit_logs` row (`patient_app_link`, subject = clinic patient, `{status→revoked, revokedBy:'patient'}`) → realtime outbox `patient.link_revoked` (M2-04's `publishPatientLinkEvent`). All in one transaction. The clinic can issue a new claim token for that record right after.
+
+**Delete account** (`PatientAccountService`, one transaction): lock account (a second delete → 404) → revoke every active/frozen link exactly like an unlink (audit + access log + event per link, reason `account_deleted`) → delete profiles (links cascade) → **delete `patient_account_identities`** (M2-02 review #5) and `patient_login_codes` of the email → revoke all `patient_sessions` → null the IP of `patient_account_consents` (rows stay as the legal record) → soft-delete the account (`status='deleted'`, `deleted_at`, name/phone/email stripped, email becomes `deleted+<id>@deleted.invalid`) → platform audit row (`patient_account`, ids and link count only). `patient_access_log` keeps the account id only. Reminders / dose history tables do not exist yet (M3): they hang off profiles and will cascade.
+
+**Tables:** none added or changed (no schema change, so no `database/schema` or `changes/` script). Re-sign-up works because the unique email index is partial on `deleted_at IS NULL` and the identities are gone.
+
+**Mobile:** `src/patient/features/{profiles,clinics,account}`; shared `src/patient/lib/clinic-types.ts`. Routes: `(main)/(tabs)/family.tsx` (P-04), `(main)/profiles/[profileId].tsx`, `(main)/clinics/index.tsx` (P-08), `(main)/account/delete.tsx` (P-09).
+
+### Done
+- Backend `src/patient-app/{profiles,links,account}` + `DELETE /patient-api/me` on the existing me controller; module wiring; unit spec (DTOs, guards, delete SQL order/audit) + int spec `test/patient/profiles-account.int-spec.ts`.
+- Mobile: Family tab page (loading / empty / error / list, add via bottom-sheet form), profile detail (own data, linked clinics per profile, edit sheet, remove with confirm; remove is disabled while links exist), Linked clinics page (live links + history, unlink with destructive confirm, per-link history), Delete account page (what goes / what stays, type DELETE, then a second destructive confirm, then the sign-out wipe of token + encrypted cache + query cache).
+- Forms: TanStack Form + Zod validators, `FormSheet`, submit disabled on `!canSubmit || isSubmitting`; dirty guard.
+- All strings through `useT` (en + ur; ur copy still English with `TODO(ur)` where not translated). Dates of a link are shown on the clinic location's clock (`formatInZone`).
+- Doc 07 §6.2 updated "as built".
+
+### Files
+- Backend created: `src/patient-app/profiles/{patient-profiles.controller,.service,.dto,.spec}.ts`, `src/patient-app/links/{patient-links.controller,patient-account-links.service,patient-links.dto}.ts`, `src/patient-app/account/{patient-account.service,delete-account.dto}.ts`, `test/patient/profiles-account.int-spec.ts`.
+- Backend modified: `src/patient-app/me.controller.ts`, `src/patient-app/patient-app.module.ts`, `src/patient-auth/patient-auth.controller.spec.ts` (me controller now has 3 handlers).
+- Mobile created: the three feature folders, `src/patient/lib/clinic-types.ts`, 4 route files under `src/app/(patient)/(main)/`.
+- Mobile modified: `src/core/i18n/{en,ur}.ts` (blocks `relation`, `gender`, `family`, `clinics`, `account`, inserted before `offline`), `src/patient/navigation/PatientPlaceholderPage.tsx` (entry buttons).
 ## M2-09 — Patient Records tab  ·  2026-11-15  ·  Claude Sonnet 5.5
 Branch: claude/m2-09-records-ff83ad (from mobile/develop)   Status set to: review
 
@@ -2768,6 +2805,23 @@ Branch: claude/m1-16-staff-hardening-8f8db8 (from mobile/develop)   Commit(s): s
 none
 
 ### Verification
+- Backend: `npm run build` ✓; `jest src/patient-app` 131+ tests ✓; full `jest` run: 1 failure (the me-controller handler count, fixed afterwards and re-run alone ✓) — no other failures. Int spec (`npm run test:int:patient`) is written and compiles but was **not run** (no disposable local Postgres; never touched the shared DB).
+- Mobile: `tsc --noEmit` → only the pre-existing `src/app/_layout.tsx` `@/global.css` declaration error (uniwind types are generated by Metro; not from this change); `npm run lint` 0 errors; `lint:fences` ✓; full jest 115 suites / 835 tests ✓; `CI=1 npx expo start --offline` run once after adding routes.
+- No device / UI run (gate M0-D).
+
+### Acceptance criteria
+- [x] dependents are shown with their links — `GET /profiles` embeds each profile's links; Family card shows the count, detail lists each clinic (int spec: child profile claimed → list shows 1 link).
+- [x] delete → re-sign-up is a fresh account — int spec (written, not run): same email signs up again with a new account id, `isNewAccount: true`, no profiles; unit spec proves identities / login codes / sessions SQL.
+- [x] unlink audited — audit row + access log + outbox event asserted in the unit/int specs.
+
+### Deviations / notes for the architect
+- **No tab layout exists on `mobile/develop`**: I created only my routes. `family.tsx` sits in a `(tabs)` group without a `_layout`; whoever builds the tab bar adds `family` to it. Until then the signed-in placeholder home has buttons to Family, Linked clinics and Delete account (small edit to `PatientPlaceholderPage.tsx`; expect a trivial merge conflict if M2-07/M2-09 edit it too). The same applies to `i18n/en.ts` + `ur.ts` (my keys are one block before `offline`).
+- P-04 text says "no self-service dependent creation in MVP", but the card asks for a create endpoint: `POST /profiles` makes the empty profile (no clinic data); linking still needs the clinic's QR claim with `profileId`. The sheet explains this.
+- `DELETE /profiles/:id` refuses while links exist (instead of cascading) so each unlink is audited on the clinic side. Removing a profile deletes its revoked-link rows with it (the clinic audit rows stay).
+- `GET /links` returns revoked links too (history section). The history endpoint is derived from the link row; `patient_access_log` is not read.
+- Unlink invalidates the whole patient query cache (records of that clinic may be cached under keys owned by M2-09).
+- Prettier was never run on files I did not write (I had to revert an accidental `prettier --write src/patient-app`); my new backend files are prettier-clean.
+- Root-level scratch logs `.be-build.log` / `.be-jest.log` from the backend run were deleted before commit.
 - `tsc --noEmit` clean · `expo lint` 0 errors (5 pre-existing warnings) · `lint:fences` ok · full jest 97 suites / 730 tests green.
 - NOT done: Jest "worker failed to exit" (cause not found; see report section 4); everything needing a device (list in report section 5).
 
@@ -2790,6 +2844,7 @@ Branch: `claude/m1-16-staff-hardening-8f8db8` (merged mobile/develop) · Status 
 | 6 | Nits | eslint --fix applied; pull-to-refresh no longer invalidates the `detail` key (it is refetched directly); test asserts it. |
 
 Verification: tsc clean · lint 0 errors (4 warnings) · lint:fences ok · full jest 115 suites / 836 tests green.
+---
 ## M2-07 + M2-15 — Claim flow (patient) and staff "Link app" QR  ·  2026-11-15  ·  Claude Sonnet 5.5
 Branch: claude/m2-07-claim-flow-b5aeae (from mobile/develop)   Status set to: review (both rows)
 
@@ -2844,6 +2899,24 @@ Verification: tsc clean · lint 0 errors (3 old warnings) · `lint:fences` ok ·
 ### Addendum — real QR (after rework 1)
 `react-native-qrcode-svg` (installed by the user, on mobile/develop) now renders the code in `core/components/QrCode` (black on white, quiet zone; the text fallback shows only if encoding fails). It encodes `claim.url`. The install note in the first M2-07 entry is obsolete. Tests: `QrCode.test.tsx` (renders for the value; falls back on error). Note for the lead: this worktree's own `node_modules` did not contain the package, so I copied `react-native-qrcode-svg`, `qrcode`, `text-encoding` and `dijkstrajs` from the main checkout's `node_modules` (untracked; no package.json/lockfile change by me).
 
+---
+## Rework M2-10 + M2-11 #1 — 2026-11-16
+Branch: `claude/m2-10-family-clinics-5e4548` (merged `mobile/develop`; conflicts in `HANDOFF.md`, `PROGRESS.md`, `core/i18n/en.ts`, `ur.ts` resolved by keeping both sides) · Status stays: review
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| 1 | Keep the clinic's link history | `patient_profiles.deleted_at` added (entity + `schema/02_tables.sql` + `changes/2026-11-15_patient_profiles_soft_delete.sql` + doc 08). Removing a family profile and deleting an account now **soft-delete** profiles (`deleted_at = now()`, name → `'Removed profile'`, dob / gender / `private_reminders` cleared); `patient_record_links` rows (revoked, `revoked_by_*`, reason) are never deleted. Every profile read/write excludes deleted rows: `PatientLinkGuard`, profiles list/count/update/remove, claim accept (existing-profile + self lookups), account links list / unlink / history. Doc 07 §6.5 and DECISIONS **A-22** updated. Unit specs assert UPDATE-not-DELETE and the stripped columns; the int spec (not run) asserts the stripped rows and that the revoked link row survives. |
+| 2 | Concurrency with delete | Create-profile and claim accept both lock the account (`SELECT … FROM patient_accounts WHERE id=$1 AND deleted_at IS NULL FOR UPDATE`) and answer 404 when no row. Specs for both (create on a deleted account inserts nothing; accept stops before touching profiles / links). Lock order: accept = claim token → account → link; delete = account → links; create = account. No cycle. |
+| 3 | Session PII | Account delete sets `revoked_at = COALESCE(revoked_at, now()), ip = NULL, device_label = NULL` on all the account's sessions; spec asserts it. |
+| 4 | Unlink audit actor | The `ActorSide` enum has no patient side, so the audit rows keep `SYSTEM` (as M2-04's claim accept does); the account id is in `after.revokedBy` / the access log. Recorded in A-22 and doc 07. |
+| 5 | Rate limit | `DELETE /patient-api/links/:id` has `@RateLimit` 30 / 15 min (same as claims). |
+| 6 | Delete retry | `deleteWithRetry` (`features/account/lib`): a network error is retried once; a 401 / 404 on the retry counts as success so the wipe still runs; any other failure (or a 401 / 404 on the FIRST call) is thrown and nothing local is touched. Table tests. |
+
+Also fixed while merging: the merge dropped the closing braces of my `account.delete` block in `en.ts` / `ur.ts` (placed before develop's `claim` block).
+
+Install commands: none.
+
+Verification: see the commit message / report (backend build, changed specs, full backend unit suite; mobile typecheck after `CI=1 npx expo start --offline`, lint, `lint:fences`, full jest). The int spec was still not run (no local Postgres).
 
 ---
 ## M3-01 + M3-02 — Medication schedules + patient medication endpoints — 2026-11-15

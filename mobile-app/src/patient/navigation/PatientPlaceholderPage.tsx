@@ -1,4 +1,5 @@
-import { HeartPulse, LogOut, Stethoscope } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
+import { Building2, HeartPulse, LogOut, Stethoscope, Trash2, Users } from 'lucide-react-native';
 import { useState } from 'react';
 import { View } from 'react-native';
 
@@ -22,6 +23,7 @@ export function PatientPlaceholderPage() {
   const name = usePatientAuthStore((s) => s.account?.fullName);
   const [confirming, setConfirming] = useState(false);
   const signOut = useSignOutPatient();
+  const router = useRouter();
 
   return (
     <View className="bg-background flex-1 items-center justify-center gap-4 px-5 py-safe">
@@ -40,6 +42,15 @@ export function PatientPlaceholderPage() {
         </Text>
       ) : null}
 
+      {/* Until the tab bar lands (M2-06 follow-up), the M2-10 / M2-11 screens are reached from here. */}
+      <Button variant="outline" size="lg" onPress={() => router.push('/family')}>
+        <Icon as={Users} className="size-5" />
+        <Text>{t('family.title')}</Text>
+      </Button>
+      <Button variant="outline" size="lg" onPress={() => router.push('/clinics')}>
+        <Icon as={Building2} className="size-5" />
+        <Text>{t('clinics.title')}</Text>
+      </Button>
       <Button variant="outline" size="lg" onPress={() => switchSpace('staff')}>
         <Icon as={Stethoscope} className="size-5" />
         <Text>{t('home.switchToStaff')}</Text>
@@ -47,6 +58,10 @@ export function PatientPlaceholderPage() {
       <Button variant="ghost" size="lg" onPress={() => setConfirming(true)}>
         <Icon as={LogOut} className="text-destructive size-5" />
         <Text className="text-destructive">{t('common.signOut')}</Text>
+      </Button>
+      <Button variant="ghost" size="lg" onPress={() => router.push('/account/delete')}>
+        <Icon as={Trash2} className="text-destructive size-5" />
+        <Text className="text-destructive">{t('account.delete.title')}</Text>
       </Button>
 
       <ConfirmDialog

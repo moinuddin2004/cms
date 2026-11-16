@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  NotFoundException,
 } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, EntityManager } from 'typeorm';
@@ -159,11 +160,17 @@ export class ClaimsService {
     );
     if (!claim.patient_is_active) ClaimEligibilityService.invalid();
 
+    // Lock the account so a concurrent account deletion cannot interleave
+    // with this accept (it locks the same row first); a deleted one is gone.
     const [account] = await sqlRows<{ full_name: string | null }>(
       m,
-      `SELECT full_name FROM patient_accounts WHERE id = $1`,
+      `SELECT full_name FROM patient_accounts
+        WHERE id = $1 AND deleted_at IS NULL FOR UPDATE`,
       [ctx.accountId],
     );
+    if (!account) {
+      throw new NotFoundException({ code: 'NOT_FOUND', message: 'Not found' });
+    }
 
     // Someone already holds this clinic patient?
     const [existing] = await sqlRows<{
@@ -202,7 +209,7 @@ export class ClaimsService {
       }>(
         m,
         `SELECT id, relation, full_name, dob::text AS dob, gender FROM patient_profiles
-          WHERE id = $1 AND account_id = $2`,
+          WHERE id = $1 AND account_id = $2 AND deleted_at IS NULL`,
         [dto.profileId, ctx.accountId],
       );
       if (!row) ClaimEligibilityService.invalid();
@@ -225,7 +232,7 @@ export class ClaimsService {
             }>(
               m,
               `SELECT id, relation, full_name, dob::text AS dob, gender FROM patient_profiles
-                WHERE account_id = $1 AND relation = 'self'`,
+                WHERE account_id = $1 AND relation = 'self' AND deleted_at IS NULL`,
               [ctx.accountId],
             )
           : [];
