@@ -90,6 +90,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ],
     'expo-secure-store',
     'expo-localization',
+    'expo-font',
     [
       'expo-notifications',
       {

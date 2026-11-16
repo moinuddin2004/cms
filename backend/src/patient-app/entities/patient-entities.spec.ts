@@ -35,6 +35,11 @@ const CHANGE_SQL = readFileSync(
 );
 const SCHEMA_SQL = readFileSync(join(DB, 'schema', '02_tables.sql'), 'utf8');
 
+/** Columns added after M2-01 by their own change scripts (only the schema has them in the CREATE TABLE). */
+const LATER_COLUMNS: Record<string, string[]> = {
+  patient_profiles: ['deleted_at'], // 2026-11-15_patient_profiles_soft_delete.sql (A-22)
+};
+
 /** Column names declared in the CREATE TABLE block of `table`. */
 function sqlColumns(sql: string, table: string): string[] {
   const m = new RegExp(
@@ -71,7 +76,12 @@ describe('M2-01 patient identity entities vs SQL', () => {
     for (const sql of [CHANGE_SQL, SCHEMA_SQL]) {
       const cols = sqlColumns(sql, table);
       expect(cols.length).toBeGreaterThan(0);
-      expect(entityCols.slice().sort()).toEqual(cols.slice().sort());
+      // Columns added by later change scripts are not in the M2-01 script.
+      const expected =
+        sql === CHANGE_SQL
+          ? entityCols.filter((c) => !(LATER_COLUMNS[table] ?? []).includes(c))
+          : entityCols;
+      expect(expected.slice().sort()).toEqual(cols.slice().sort());
     }
   });
 

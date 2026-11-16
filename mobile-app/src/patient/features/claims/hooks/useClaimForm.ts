@@ -8,6 +8,7 @@ import { acceptClaim } from '../api/claims.api';
 import { claimErrorInfo } from '../lib/claim-errors';
 import { claimSchema, type ClaimFormValues } from '../schemas/claim.schema';
 import type { AcceptClaimResult } from '../types/claims.types';
+import { trackPatient } from '@/patient/lib/analytics';
 
 const defaultValues = (isMinor: boolean): ClaimFormValues => ({
   relation: isMinor ? 'child' : 'self',
@@ -43,6 +44,7 @@ export function useClaimForm(
         });
         void queryClient.invalidateQueries({ queryKey: ['links'] });
         void queryClient.invalidateQueries({ queryKey: ['profiles'] });
+        trackPatient('claim_accepted', { relation: value.relation });
         onLinked(result);
       } catch (err) {
         const info = claimErrorInfo(err);

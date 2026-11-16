@@ -6,6 +6,7 @@ import { persistSession } from '@/staff/lib/api';
 
 import { login } from '../api/auth.api';
 import { loginSchema, type LoginFormValues } from '../schemas/auth.schema';
+import { trackStaff } from '@/staff/lib/analytics';
 
 const defaultValues: LoginFormValues = { email: '', password: '', rememberMe: true };
 
@@ -23,6 +24,7 @@ export function useLoginForm() {
       setGlobalError('');
       try {
         await persistSession(await login({ ...value, email: value.email.trim() }));
+        trackStaff('staff_signed_in', { method: 'password' });
       } catch (err) {
         setGlobalError(apiErrorMessage(err, 'Failed to sign in. Please try again.'));
       }

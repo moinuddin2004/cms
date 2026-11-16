@@ -69,15 +69,15 @@ export const isInternalAudience = (a: NotificationAudience) =>
  * Clinic-side people get in-app + email (email only to verified addresses,
  * see `AddressVerifier`) + push (staff app devices, M1-04 — only for events
  * whose seed allows `push`, e.g. a patient checking in). WhatsApp / SMS have
- * no provider yet. Patients get nothing for now (2026-11-05: the system is
- * for clinic users only) — add channels here when the patient follow-up
- * project builds patient messaging; `notifications.enums.spec.ts` guards it.
+ * no provider yet. Patients get PUSH only (M3-07, the patient app) and only
+ * for events whose seed lists `push`; no email/SMS/WhatsApp to patients until
+ * the patient follow-up project. `notifications.enums.spec.ts` guards it.
  */
 export const CHANNELS_BY_AUDIENCE: Record<
   NotificationAudience,
   NotificationChannel[]
 > = {
-  [NotificationAudience.PATIENT]: [],
+  [NotificationAudience.PATIENT]: [NotificationChannel.PUSH],
   [NotificationAudience.DOCTOR]: [
     NotificationChannel.IN_APP,
     NotificationChannel.EMAIL,
@@ -109,6 +109,7 @@ export const CHANNELS_BY_RECIPIENT: Record<
     NotificationChannel.WHATSAPP,
     NotificationChannel.SMS,
     NotificationChannel.EMAIL,
+    NotificationChannel.PUSH,
   ],
   [RecipientType.LAB]: [
     NotificationChannel.WHATSAPP,
@@ -118,15 +119,17 @@ export const CHANNELS_BY_RECIPIENT: Record<
 };
 
 /**
- * Lazy defaults when a clinic has no row yet (§7 "Patient defaults OFF"):
- * the patient master switch and every patient rule are off; internal
+ * Lazy defaults when a clinic has no row yet (§7). Patients: the master
+ * switch is on (their only channel is the app's push, M3-07) and a patient
+ * rule is on only for push events that opt in; every other patient rule is
+ * off (no email/WhatsApp/SMS to patients). Internal
  * audiences are on, with in-app on, email on only for events marked
  * `email_default` (the important ones), push only for events marked
  * `push_default` (currently just a patient checking in — M1-04), and
  * WhatsApp / SMS off.
  */
 export const defaultAudienceEnabled = (a: NotificationAudience) =>
-  isInternalAudience(a);
+  isInternalAudience(a) || a === NotificationAudience.PATIENT;
 
 export const defaultRuleEnabled = (
   a: NotificationAudience,
@@ -134,10 +137,10 @@ export const defaultRuleEnabled = (
   emailDefault = false,
   pushDefault = false,
 ) =>
-  isInternalAudience(a) &&
-  (c === NotificationChannel.IN_APP ||
-    (c === NotificationChannel.EMAIL && emailDefault) ||
-    (c === NotificationChannel.PUSH && pushDefault));
+  (isInternalAudience(a) &&
+    (c === NotificationChannel.IN_APP ||
+      (c === NotificationChannel.EMAIL && emailDefault))) ||
+  (c === NotificationChannel.PUSH && pushDefault);
 
 /** Personal switch key in `user_notification_prefs` for one event's email. */
 export const emailPrefKey = (eventCode: string) => `email:${eventCode}`;

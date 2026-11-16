@@ -61,17 +61,29 @@
 | M2-08 | Patient read services | BE | L | M2-03 | done | Sonnet session | 2026-11-15 | rework-1 |
 | M2-04 | Patient links + claim API | BE | M | M2-03 | done | Sonnet session | 2026-11-15 | rework-1; int spec not run (no local Postgres) |
 | M2-06 | Patient space foundation | MOB | L | M2-02, M0-04 | done | Sonnet session | 2026-11-15 | rework-1 (sign-out generation guard in core client, both spaces) |
+| M2-10 | Profiles endpoints + Family tab (P-04) + profile detail | MOB+BE | M | M2-06 | done | Sonnet session | 2026-11-15 | rework-1 |
+| M2-11 | Linked clinics (P-08), unlink, link history, delete account (P-09) | MOB+BE | M | M2-06 | done | Sonnet session (with M2-10) | 2026-11-16 | rework-1 (A-22 soft-delete) |
 | M2-09 | Patient Records tab | MOB | L | M2-08, M2-06 | done | Sonnet session | 2026-11-15 | rework-1 | PDF share + profile chips pending (see HANDOFF) |
 | M2-05 | Web "Link app" button + QR dialog | WEB | S | M2-04 | done | Sonnet session | 2026-11-16 | rework-1 |
 | M2-14 | Public landing pages /c/:token, /v/:token | WEB | S | M2-04 | done | Sonnet session (with M2-05) | 2026-11-16 | rework-1; /v waits on M3-05 |
-
 | M2-07 | Claim flow P-01 | MOB | M | M2-04, M2-06 | done | Sonnet session | 2026-11-15 | rework-1 |
 | M2-15 | Staff "Link app" QR screen (S-09) | MOB | S | M2-04, M1-12 | done | Sonnet session (with M2-07) | 2026-11-15 | rework-1 |
+| M2-13 | Product events (analytics) | BE+MOB | S | M2-06 | done | Sonnet session | 2026-11-15 | rework-1 |
 | M2-04 … M2-16 (rest) | Patient core | — | — | see 10 | spec | | | |
-| M3-01 … M3-09 | Patient hook | — | — | see 10 | spec | | | |
-| M4-03 | Demo clinic seed + demo accounts | BE | S | — | review | Sonnet session | 2026-11-16 | `npm run seed:demo`; guards unit-tested, seed not executed |
-| M4-04 | Privacy, terms, Data safety, deletion URL | ALL | M | — | review | Sonnet session | 2026-11-16 | DRAFT legal text; `/privacy` `/terms` `/delete-account` |
-| M4-01, M4-02, M4-05, M4-06 | Release | — | — | see 10 | spec | | | |
+| M3-01 | Medication schedules from finalized prescriptions (parsers + event handler) | BE | L | M2-08 | done | Sonnet session | 2026-11-15 | rework-1 |
+| M3-02 | Patient medications endpoints (list, patch, dose events) | BE | M | M3-01 | done | Sonnet session (with M3-01) | 2026-11-15 | rework-1 |
+| M3-03 | Reminder engine | MOB | L | M3-02 | done | Sonnet session | 2026-11-21 | rework-1 |
+| M3-04 | Today screen P-02 | MOB | L | M3-03 | done | Sonnet session (with M3-03) | 2026-11-21 | rework-1 |
+| M3-08 | Appointment confirm (patient_confirmed_at) | BE+MOB | S | M2-09 | done | Sonnet session | 2026-11-21 | rework-1 |
+| M3-09 | Emergency/contact sheet P-07 | MOB | S | M2-09 | done | Sonnet session (with M3-08) | 2026-11-21 | rework-1 |
+| M3-05 | Patient realtime gateway + queue/active + visit tokens | BE | M | M2-03 | done | Sonnet session | 2026-11-15 | rework-1 |
+| M3-06 | Live token card + visit screen (P-06) | MOB | M | M3-05 | done | Sonnet session | 2026-11-15 | rework-1 |
+| M3-07 | Patient push (BE + MOB) | BE+MOB | M | M3-05, M1-04 | done | Sonnet session (with M3-06) | 2026-11-17 | rework-1 |
+| M4-01 | Urdu translation pass + Noto Nastaliq font | MOB | M | — | done | Sonnet session | 2026-11-21 | rework-1; native-speaker review before release |
+| M4-05 | Release hardening (A-24 error-reporting seam, perf budgets, patient gate QA) | MOB | M | M4-01 | done | Sonnet session | 2026-11-15 | rework-1 |
+| M4-03 | Demo clinic seed + demo accounts | BE | S | — | done | Sonnet session + team lead | 2026-11-17 | rework-1; seed never run on a DB |
+| M4-04 | Privacy policy, terms, Data safety, deletion page | ALL | M | — | done | Sonnet session + team lead | 2026-11-17 | rework-1; DRAFT for owner/lawyer |
+| M4-02, M4-06 | Store assets; require `aud` | — | — | see 10 | spec | | | M4-02 needs name + logo; M4-06 one release after launch |
 
 ## Gates
 

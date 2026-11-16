@@ -1,6 +1,6 @@
 import { FlashList } from '@shopify/flash-list';
 import { CalendarX } from 'lucide-react-native';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { View } from 'react-native';
 
 import {
@@ -92,6 +92,7 @@ export function ScheduleTabPage() {
   const list = useMemo(() => buildScheduleList(groupByHour(rows, zone)), [rows, zone]);
 
   const [sheet, setSheet] = useState<{ row: AppointmentListItem; open: boolean } | null>(null);
+  const openRow = useCallback((row: AppointmentListItem) => setSheet({ row, open: true }), []);
   const closeSheet = () => setSheet((s) => (s ? { ...s, open: false } : s));
   const flow = useCheckInFlow(closeSheet);
   // The list refetches after a check-in: show the newest copy of the open row.
@@ -133,7 +134,7 @@ export function ScheduleTabPage() {
           item.type === 'header' ? (
             <HourHeader label={item.label} count={item.count} />
           ) : (
-            <ScheduleRow row={item.row} onPress={() => setSheet({ row: item.row, open: true })} />
+            <ScheduleRow row={item.row} onPress={openRow} />
           )
         }
         refreshing={query.isRefetching && !query.isFetchingNextPage}

@@ -5,3 +5,7 @@
 export { PatientLayout } from '@/patient/navigation/PatientLayout';
 export { signOutPatient } from '@/patient/features/auth/lib/sign-out';
 export { patientQueryClient } from '@/patient/lib/query-client';
+export {
+  handlePatientNotificationRoute,
+  isPatientSignedIn,
+} from '@/patient/features/devices/lib/handle-patient-notification-route';

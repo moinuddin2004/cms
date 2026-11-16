@@ -7,6 +7,10 @@ jest.mock('@/staff', () => ({
   handleStaffNotificationRoute: jest.fn(),
   isStaffSignedIn: jest.fn(),
 }));
+jest.mock('@/patient', () => ({
+  handlePatientNotificationRoute: jest.fn(),
+  isPatientSignedIn: jest.fn(),
+}));
 
 const data = (over: Partial<PushData> = {}): PushData => ({
   space: 'staff',
@@ -18,12 +22,14 @@ const data = (over: Partial<PushData> = {}): PushData => ({
   ...over,
 });
 
-function setup(active: Space | null, staffSignedIn: boolean) {
+function setup(active: Space | null, staffSignedIn: boolean, patientSignedIn = true) {
   const deps = {
     getActiveSpace: jest.fn(() => active),
     switchSpace: jest.fn(),
     isStaffSignedIn: jest.fn(async () => staffSignedIn),
     handleStaff: jest.fn(),
+    isPatientSignedIn: jest.fn(async () => patientSignedIn),
+    handlePatient: jest.fn(),
   };
   return { deps, route: createNotificationRouter(deps) };
 }
@@ -57,10 +63,25 @@ describe('notification router', () => {
     expect(deps.handleStaff).not.toHaveBeenCalled();
   });
 
-  it('patient pushes are ignored until M3-07', async () => {
+  it('patient push, patient signed in: switches to patient and hands over the tap', async () => {
     const { deps, route } = setup('staff', true);
+    await route(data({ space: 'patient', route: '/visit/e1' }));
+    expect(deps.switchSpace).toHaveBeenCalledWith('patient');
+    expect(deps.handlePatient).toHaveBeenCalledTimes(1);
+    expect(deps.handleStaff).not.toHaveBeenCalled();
+  });
+
+  it('patient push while patient is showing: no space change', async () => {
+    const { deps, route } = setup('patient', true);
     await route(data({ space: 'patient' }));
     expect(deps.switchSpace).not.toHaveBeenCalled();
-    expect(deps.handleStaff).not.toHaveBeenCalled();
+    expect(deps.handlePatient).toHaveBeenCalledTimes(1);
+  });
+
+  it('patient push, patient not signed in: opens patient sign-in, drops the tap', async () => {
+    const { deps, route } = setup('staff', true, false);
+    await route(data({ space: 'patient' }));
+    expect(deps.switchSpace).toHaveBeenCalledWith('patient');
+    expect(deps.handlePatient).not.toHaveBeenCalled();
   });
 });

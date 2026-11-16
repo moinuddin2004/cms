@@ -12,6 +12,7 @@ import {
 } from '@/staff/features/queue';
 
 import { appointmentKeys } from '../api/appointments.keys';
+import { trackStaff } from '@/staff/lib/analytics';
 
 /**
  * Check-in from the schedule sheet (docs/06 S-03): `useCheckIn`; on
@@ -37,6 +38,7 @@ export function useCheckInFlow(onDone: () => void) {
       {
         onSuccess: (result) => {
           void refreshAppointments();
+          trackStaff('staff_checked_in', { source: 'appointment' });
           toast.success(`Patient checked in · Token ${result.token}`);
           onDone();
         },

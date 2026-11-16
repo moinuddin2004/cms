@@ -3,10 +3,14 @@ import { CircleArrowUp } from 'lucide-react-native';
 import { useEffect } from 'react';
 import { Linking, Platform, View } from 'react-native';
 
+import { translate, type MessageKey } from '@/core/i18n';
 import { markReady } from '@/core/splash';
 import { Button } from '@/core/ui/button';
 import { Icon } from '@/core/ui/icon';
 import { Text } from '@/core/ui/text';
+
+/** These screens appear before a space is chosen (and to staff): English only, never the phone locale. */
+const t = (key: MessageKey) => translate(key, undefined, 'en');
 
 interface UpdateRequiredPageProps {
   /** Optional line from the backend (`MOBILE_MIN_VERSION_MESSAGE`). */
@@ -59,13 +63,13 @@ export function UpdateRequiredPage({ message }: UpdateRequiredPageProps) {
         <Icon as={CircleArrowUp} className="text-primary size-8" />
       </View>
       <Text variant="h2" className="border-0 pb-0 text-center">
-        Update required
+        {t('shell.update.title')}
       </Text>
       <Text variant="muted" className="text-center">
-        {message ?? 'This version of the app is no longer supported. Please update to continue.'}
+        {message ?? t('shell.update.body')}
       </Text>
       <Button size="lg" className="mt-2 min-w-40" onPress={() => void openStore()}>
-        <Text>Update</Text>
+        <Text>{t('shell.update.button')}</Text>
       </Button>
     </View>
   );

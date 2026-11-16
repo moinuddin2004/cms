@@ -8,6 +8,8 @@ import {
   StartEmailDto,
   VerifyEmailDto,
 } from './dto/patient-auth.dto';
+import { UnregisterDeviceDto } from 'src/devices/dto/device.dto';
+import { PatientDevicesService } from 'src/patient-devices/patient-devices.service';
 import { PatientAuthService } from './patient-auth.service';
 
 const WINDOW_15_MIN = 15 * 60;
@@ -20,7 +22,10 @@ const meta = (req: Request, label?: string) => ({
 /** Pre-login patient routes: public, rate limited, fenced (07 §5). */
 @Controller('patient-auth')
 export class PatientAuthController {
-  constructor(private readonly auth: PatientAuthService) {}
+  constructor(
+    private readonly auth: PatientAuthService,
+    private readonly devices: PatientDevicesService,
+  ) {}
 
   /** Always `{ sent: true }` — never reveals whether the email has an account. */
   @Post('email/start')
@@ -83,5 +88,20 @@ export class PatientAuthController {
   async logout(@Headers('x-patient-refresh-token') token?: string) {
     await this.auth.logout(token);
     return ResponseWrapper.success({ ok: true }, 'Signed out');
+  }
+
+  /**
+   * Stops pushes to a phone after a sign-out that could not reach the API (offline) and has no
+   * session left to authenticate with. The Expo push token is the credential: it is device-specific
+   * and unguessable, and all this does is remove it. Always `{ ok: true }` (never reveals whether
+   * the token was known).
+   */
+  @Post('devices/unregister')
+  @HttpCode(200)
+  @PatientAuthRoute()
+  @RateLimit({ maxAttempts: 30, windowSeconds: WINDOW_15_MIN })
+  async unregisterDevice(@Body() dto: UnregisterDeviceDto) {
+    await this.devices.removeTokens([dto.expoPushToken]);
+    return ResponseWrapper.success({ ok: true });
   }
 }

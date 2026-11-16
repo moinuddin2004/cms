@@ -1,4 +1,6 @@
-import { QueryClient } from '@tanstack/react-query';
+import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query';
+
+import { reportError } from '../observability';
 
 /**
  * A TanStack Query client with the app defaults. Each space creates exactly one
@@ -8,6 +10,10 @@ import { QueryClient } from '@tanstack/react-query';
  */
 export function createQueryClient({ gcTime = 10 * 60 * 1000 }: { gcTime?: number } = {}): QueryClient {
   return new QueryClient({
+    // Query keys carry ids, so only the source is reported (A-24); the scrubber
+    // reads just the error's name/code/status.
+    queryCache: new QueryCache({ onError: (err) => reportError(err, { source: 'query' }) }),
+    mutationCache: new MutationCache({ onError: (err) => reportError(err, { source: 'mutation' }) }),
     defaultOptions: {
       queries: {
         staleTime: 5 * 60 * 1000,

@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { TriangleAlert } from 'lucide-react-native';
 import { View } from 'react-native';
 
@@ -23,7 +24,7 @@ export interface ArrivalRowProps {
 }
 
 /** S-03 row: clinic-clock time, patient, doctor · type, [Check in] and an urgent variant. */
-export function ArrivalRow({ row, checkingIn, locked, onCheckIn, onCheckInUrgent }: ArrivalRowProps) {
+export const ArrivalRow = memo(function ArrivalRow({ row, checkingIn, locked, onCheckIn, onCheckInUrgent }: ArrivalRowProps) {
   const canMutate = useCanMutate();
   const time = formatTime(row.startTime);
   const sub = `${doctorLabel(row)} · ${typeLabel(row.type)}`;
@@ -59,4 +60,4 @@ export function ArrivalRow({ row, checkingIn, locked, onCheckIn, onCheckInUrgent
       </Button>
     </View>
   );
-}
+});

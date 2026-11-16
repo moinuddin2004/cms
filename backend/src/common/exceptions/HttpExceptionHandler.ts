@@ -68,7 +68,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 export function maskTokens(url: string | undefined): string | undefined {
   return url
     ?.replace(
-      /(\/(?:lab-link|join-invites|join|patient-api\/claims)\/)[^/?#]+/g,
+      /(\/(?:lab-link|join-invites|join|visit|patient-api\/claims)\/)[^/?#]+/g,
       '$1***',
     )
     .replace(/^(\/(?:c|v)\/)[^/?#]+/, '$1***');

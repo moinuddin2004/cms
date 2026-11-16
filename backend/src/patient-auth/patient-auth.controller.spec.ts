@@ -18,7 +18,7 @@ const handlers = (c: { prototype: object }) =>
 describe('patient controllers: decorators', () => {
   it('/patient-auth: every handler is public, fenced and rate limited', () => {
     const fns = handlers(PatientAuthController);
-    expect(fns).toHaveLength(5);
+    expect(fns).toHaveLength(6);
     for (const fn of fns) {
       expect(Reflect.getMetadata(IS_PUBLIC_KEY, fn)).toBe(true);
       expect(Reflect.getMetadata(IS_PATIENT_AUTH, fn)).toBe(true);
@@ -47,6 +47,6 @@ describe('patient controllers: decorators', () => {
     expect(Reflect.getMetadata(PATH_METADATA, PatientMeController)).toBe(
       'patient-api/me',
     );
-    expect(handlers(PatientMeController)).toHaveLength(2);
+    expect(handlers(PatientMeController)).toHaveLength(3);
   });
 });

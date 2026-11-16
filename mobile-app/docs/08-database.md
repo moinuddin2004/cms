@@ -76,6 +76,7 @@ CREATE TABLE IF NOT EXISTS patient_profiles (
   dob         date,
   gender      varchar(10),
   private_reminders boolean NOT NULL DEFAULT false,
+  deleted_at  timestamptz,                   -- A-22 (M2-10 rework): soft delete, name/dob/gender stripped, links kept
   created_at  timestamptz NOT NULL DEFAULT now(),
   updated_at  timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT fk_patient_profiles_account_id FOREIGN KEY (account_id) REFERENCES patient_accounts (id) ON DELETE CASCADE,
@@ -224,6 +225,8 @@ CREATE TABLE IF NOT EXISTS medication_schedules (
   CONSTRAINT chk_medication_schedules_end_source CHECK (end_date_source IN ('parsed','patient','unknown'))
 );
 CREATE INDEX IF NOT EXISTS idx_medication_schedules_profile_status ON medication_schedules (profile_id, status);
+CREATE INDEX IF NOT EXISTS idx_medication_schedules_profile_updated ON medication_schedules (profile_id, updated_at);   -- updatedSince
+CREATE INDEX IF NOT EXISTS idx_medication_schedules_prescription ON medication_schedules (prescription_id) WHERE prescription_id IS NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS uq_medication_schedules_profile_rx_medicine ON medication_schedules (profile_id, prescription_medicine_id) WHERE prescription_medicine_id IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS medication_dose_events (
@@ -238,6 +241,8 @@ CREATE TABLE IF NOT EXISTS medication_dose_events (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS uq_medication_dose_events_schedule_due ON medication_dose_events (schedule_id, due_at);
 ```
+
+**As built (M3-01):** `backend/database/changes/2026-11-15_medications.sql` + the block in `schema/02_tables.sql`; entities in `src/medications/entities`. The extras above (`patient_edited`, `prescription_version`, `hidden`, two indexes) are the only deviation from this sketch.
 
 No FK from `medication_schedules.organization_id / prescription_*` to clinic tables: the schedule is
 the patient's property and must survive a clinic deleting its data (plan §4.4).

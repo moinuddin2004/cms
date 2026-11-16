@@ -11,6 +11,7 @@ import {
 } from '../api/queue.api';
 import type { CloseSessionInput } from '../types/queue.types';
 import { usePlainQueueMutation, useQueueMutation } from './queue-mutation';
+import { trackStaff } from '@/staff/lib/analytics';
 
 /** Doctor session actions (docs/07 §2.3). One `Idempotency-Key` per tap. */
 
@@ -39,6 +40,7 @@ export const useCallNext = () =>
     (vars: { sessionId: string }, ctx) => callNext(vars, ctx),
     (result) => {
       if (result.reason === 'NO_ELIGIBLE_PATIENT') toast('No one is waiting');
+      else trackStaff('staff_called_next');
     },
   );
 

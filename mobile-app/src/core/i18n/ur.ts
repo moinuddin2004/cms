@@ -2,7 +2,8 @@ import type { Messages } from './en';
 
 /**
  * Urdu catalog — same keys as `en` (the compiler enforces it). Strings without a
- * reviewed translation copy the English text and carry `// TODO(ur)`.
+ * reviewed translation copy the English text and carry `// TODO(ur)` (see
+ * `i18n.test.ts` — only keys in its allow-list may keep the marker).
  */
 export const ur: Messages = {
   common: {
@@ -12,6 +13,23 @@ export const ur: Messages = {
     signOut: 'سائن آؤٹ',
     retry: 'دوبارہ کوشش کریں',
     loading: 'لوڈ ہو رہا ہے…',
+    crashTitle: 'کچھ غلط ہو گیا',
+    crashBody: 'ایپ میں مسئلہ آ گیا۔ براہِ کرم دوبارہ کوشش کریں۔',
+  },
+  shell: {
+    welcome: {
+      title: 'آپ کی صحت، آپ کا کلینک',
+      patient: 'میں مریض ہوں',
+      patientHint: 'ریکارڈ، دوائیں، ٹوکن',
+      staff: 'میں کلینک میں کام کرتا ہوں',
+      staffHint: 'قطار، مریض، شیڈول',
+      legal: 'رازداری · شرائط',
+    },
+    update: {
+      title: 'اپ ڈیٹ ضروری ہے',
+      body: 'ایپ کا یہ ورژن اب سپورٹ نہیں کیا جاتا۔ جاری رکھنے کے لیے براہِ کرم اپ ڈیٹ کریں۔',
+      button: 'اپ ڈیٹ',
+    },
   },
   auth: {
     signIn: {
@@ -22,55 +40,255 @@ export const ur: Messages = {
       emailPlaceholder: 'you@example.com',
       sendCode: 'مجھے کوڈ بھیجیں',
       sending: 'بھیجا جا رہا ہے…',
-      googleSoon: 'Continue with Google', // TODO(ur)
+      googleSoon: 'گوگل کے ساتھ جاری رکھیں',
       legal: 'جاری رکھ کر آپ شرائط اور رازداری کی پالیسی سے اتفاق کرتے ہیں۔',
       invalidEmail: 'براہِ کرم درست ای میل درج کریں',
-      failed: "We couldn't send the code. Please try again.", // TODO(ur)
-      rateLimited: 'Too many tries. Please wait a few minutes and try again.', // TODO(ur)
+      failed: 'کوڈ نہیں بھیجا جا سکا۔ براہِ کرم دوبارہ کوشش کریں۔',
+      rateLimited: 'بہت زیادہ کوششیں ہو گئیں۔ براہِ کرم چند منٹ انتظار کریں اور پھر کوشش کریں۔',
     },
     verify: {
       title: 'اپنا کوڈ درج کریں',
-      subtitle: 'If {email} can receive a code, we sent one. It is valid for 10 minutes.', // TODO(ur)
+      subtitle: 'اگر {email} پر کوڈ پہنچ سکتا ہے تو ہم نے بھیج دیا ہے۔ یہ 10 منٹ تک چلے گا۔',
       codeLabel: '6 ہندسوں کا کوڈ',
       codePlaceholder: '123456',
       codeInvalid: 'ای میل میں موجود 6 ہندسے درج کریں',
       submit: 'تصدیق کریں',
       submitting: 'تصدیق ہو رہی ہے…',
       resend: 'نیا کوڈ بھیجیں',
-      resendIn: 'Send a new code in {seconds}s', // TODO(ur)
-      resent: 'If that email can receive a code, a new one is on its way.', // TODO(ur)
-      wrongCode: 'That code is not right or has expired. Check it or ask for a new one.', // TODO(ur)
+      resendIn: '{seconds} سیکنڈ میں نیا کوڈ بھیجیں',
+      resent: 'اگر اس ای میل پر کوڈ پہنچ سکتا ہے تو نیا کوڈ آ رہا ہے۔',
+      wrongCode: 'یہ کوڈ درست نہیں یا ختم ہو چکا ہے۔ اسے دوبارہ دیکھیں یا نیا کوڈ منگوائیں۔',
       changeEmail: 'دوسری ای میل استعمال کریں',
-      accountDisabled: 'This account is not available. Please contact support.', // TODO(ur)
-      failed: "We couldn't verify the code. Please try again.", // TODO(ur)
+      accountDisabled: 'یہ اکاؤنٹ دستیاب نہیں ہے۔ براہِ کرم مدد کے لیے رابطہ کریں۔',
+      failed: 'کوڈ کی تصدیق نہیں ہو سکی۔ براہِ کرم دوبارہ کوشش کریں۔',
     },
     name: {
       title: 'ہم آپ کو کس نام سے پکاریں؟',
-      subtitle: 'Your name helps your clinic and family recognise you.', // TODO(ur)
+      subtitle: 'آپ کے نام سے آپ کا کلینک اور خاندان آپ کو پہچان لیں گے۔',
       label: 'آپ کا نام',
       placeholder: 'پورا نام',
       required: 'براہِ کرم اپنا نام درج کریں',
-      tooLong: 'Name is too long', // TODO(ur)
+      tooLong: 'نام بہت لمبا ہے',
       submit: 'محفوظ کریں اور جاری رکھیں',
       saving: 'محفوظ ہو رہا ہے…',
-      failed: "We couldn't save your name. Please try again.", // TODO(ur)
+      failed: 'آپ کا نام محفوظ نہیں ہو سکا۔ براہِ کرم دوبارہ کوشش کریں۔',
     },
   },
   home: {
     title: 'خوش آمدید',
     greeting: 'خوش آمدید، {name}',
-    signedInAs: 'Signed in as {email}', // TODO(ur)
-    placeholder: 'Your records, medicines and clinic visits will live here.', // TODO(ur)
-    switchToStaff: 'Switch to clinic staff', // TODO(ur)
+    signedInAs: '{email} کے طور پر سائن اِن ہیں',
+    placeholder: 'آپ کے ریکارڈ، دوائیں اور کلینک کی وزٹس یہاں ملیں گی۔',
+    switchToStaff: 'کلینک اسٹاف پر جائیں',
     signOutTitle: 'سائن آؤٹ کریں؟',
-    signOutBody: 'You will need a new code to sign in again on this phone.', // TODO(ur)
+    signOutBody: 'اس فون پر دوبارہ سائن اِن کرنے کے لیے آپ کو نیا کوڈ چاہیے ہوگا۔',
+  },
+  visit: {
+    title: 'آپ کی وزٹ',
+    cardToken: 'ٹوکن {token}',
+    next: 'اگلی باری آپ کی ہے',
+    aheadOne: 'آپ سے پہلے 1 شخص',
+    aheadMany: 'آپ سے پہلے {count} لوگ',
+    aheadShort: '{count} آگے',
+    waiting: 'انتظار میں',
+    called: 'آپ کی باری',
+    inConsultation: 'ڈاکٹر کے ساتھ',
+    onHold: 'رکی ہوئی',
+    skipped: 'چھوڑی گئی',
+    calledBanner: 'آپ کی باری ہے — براہِ کرم {doctor} کے پاس جائیں',
+    calledBannerNoDoctor: 'آپ کی باری ہے — براہِ کرم اپنے ڈاکٹر کے پاس جائیں',
+    nowServing: 'اب باری: {token}',
+    live: 'لائیو',
+    reconnecting: 'اپ ڈیٹ ہو رہا ہے…',
+    offline: 'آف لائن',
+    updatedAt: 'اپ ڈیٹ {time}',
+    notifyHint: 'آپ کی باری قریب آنے پر ہم آپ کو اطلاع دیں گے۔',
+    backHome: 'ہوم پر واپس',
+    over: {
+      title: 'یہ وزٹ ختم ہو چکی ہے',
+      body: 'اب یہ قطار میں نہیں ہے۔ آگے کیا ہے یہ دیکھنے کے لیے ہوم کھولیں۔',
+    },
+    loadFailed: {
+      title: 'ہم آپ کی وزٹ لوڈ نہیں کر سکے',
+      body: 'اپنا کنکشن چیک کریں اور دوبارہ کوشش کریں۔',
+    },
+  },
+  push: {
+    sheetTitle: 'باری قریب آنے پر الرٹ حاصل کریں',
+    turnOn: 'الرٹس آن کریں',
+    notNow: 'ابھی نہیں',
+  },
+  relation: {
+    self: 'میں خود',
+    child: 'میرا بچہ',
+    parent: 'میرے والدین',
+    spouse: 'میرا جیون ساتھی',
+    other: 'دیگر رشتہ دار',
+  },
+  gender: {
+    male: 'مرد',
+    female: 'عورت',
+    other: 'دیگر',
+  },
+  family: {
+    title: 'خاندان',
+    subtitle: 'وہ افراد جن کا ریکارڈ آپ اس ایپ میں سنبھالتے ہیں۔',
+    add: 'خاندان کا فرد شامل کریں',
+    you: 'آپ',
+    noLinks: 'ابھی کسی کلینک سے منسلک نہیں',
+    linkedCount: 'منسلک کلینک: {count}',
+    addHint:
+      'کسی کو شامل کرنے کے بعد، ان کے کلینک کی ریسپشن سے لنک کوڈ مانگیں، پھر "میرا بچہ" یا "میرے والدین" چنیں۔',
+    empty: {
+      title: 'ابھی خاندان کا کوئی فرد نہیں',
+      body: 'خاندان کا فرد شامل کریں، پھر ان کے کلینک کی ریسپشن سے لنک کوڈ مانگیں۔',
+    },
+    loadFailed: {
+      title: 'آپ کا خاندان لوڈ نہیں ہو سکا',
+      body: 'اپنا انٹرنیٹ چیک کریں اور دوبارہ کوشش کریں۔',
+    },
+    sheet: {
+      addTitle: 'خاندان کا فرد شامل کریں',
+      editTitle: 'پروفائل میں ترمیم',
+      name: 'پورا نام',
+      namePlaceholder: 'نام جیسا کلینک میں درج ہے',
+      relation: 'رشتہ',
+      dob: 'تاریخِ پیدائش',
+      dobHint: 'اس طرح لکھیں: YYYY-MM-DD (ضروری نہیں)',
+      gender: 'جنس',
+      add: 'شامل کریں',
+      save: 'محفوظ کریں',
+      close: 'بند کریں',
+      discardTitle: 'تبدیلیاں رد کریں؟',
+      discardBody: 'آپ کی تبدیلیاں محفوظ نہیں ہوئیں۔',
+      discardConfirm: 'رد کریں',
+      keepEditing: 'ترمیم جاری رکھیں',
+      nameRequired: 'براہِ کرم نام درج کریں',
+      nameTooLong: 'نام بہت لمبا ہے',
+      relationRequired: 'چنیں کہ یہ آپ کے کیا لگتے ہیں',
+      dobInvalid: 'درست تاریخ YYYY-MM-DD کی شکل میں لکھیں',
+      dobFuture: 'تاریخِ پیدائش آنے والے وقت کی نہیں ہو سکتی',
+      addFailed: 'یہ فرد شامل نہیں ہو سکا۔ براہِ کرم دوبارہ کوشش کریں۔',
+      saveFailed: 'تبدیلیاں محفوظ نہیں ہو سکیں۔ براہِ کرم دوبارہ کوشش کریں۔',
+      tooMany: 'ایک اکاؤنٹ میں اس سے زیادہ افراد شامل نہیں ہو سکتے۔',
+    },
+    detail: {
+      title: 'پروفائل',
+      edit: 'پروفائل میں ترمیم',
+      remove: 'خاندان کا فرد ہٹائیں',
+      removeTitle: '{name} کو ہٹائیں؟',
+      removeBody: 'یہ پروفائل آپ کے اکاؤنٹ سے ہٹ جائے گا۔ کلینک کا ریکارڈ جوں کا توں رہے گا۔',
+      removeConfirm: 'ہٹائیں',
+      removeBlocked: 'پہلے اس فرد کو ان کے کلینکس سے الگ کریں۔',
+      removeFailed: 'یہ فرد ہٹایا نہیں جا سکا۔ براہِ کرم دوبارہ کوشش کریں۔',
+      removed: 'خاندان کا فرد ہٹا دیا گیا',
+      notFound: {
+        title: 'پروفائل نہیں ملا',
+        body: 'ہو سکتا ہے اسے ہٹا دیا گیا ہو۔',
+      },
+      loadFailed: {
+        title: 'یہ پروفائل لوڈ نہیں ہو سکا',
+        body: 'اپنا انٹرنیٹ چیک کریں اور دوبارہ کوشش کریں۔',
+      },
+      links: 'منسلک کلینک',
+      noLinks: 'ابھی کسی کلینک سے منسلک نہیں۔ کلینک کی ریسپشن سے لنک کوڈ مانگیں۔',
+      linkedSince: '{date} کو منسلک ہوا',
+      readOnly: 'صرف پڑھنے کے لیے',
+      manageClinics: 'منسلک کلینک سنبھالیں',
+      born: 'پیدائش: {date}',
+    },
+  },
+  clinics: {
+    title: 'منسلک کلینک',
+    subtitle: 'وہ کلینک جو اپنا ریکارڈ آپ کے ساتھ شیئر کرتے ہیں۔',
+    linked: 'منسلک',
+    history: 'تاریخ',
+    forProfile: '{name} کے لیے',
+    since: '{date} کو منسلک ہوا',
+    linkedBy: '{clinic} کی ریسپشن نے منسلک کیا',
+    frozen: 'صرف پڑھنے کے لیے',
+    suspended: 'اس کلینک کی ایپ سروس عارضی طور پر رکی ہوئی ہے',
+    unlink: 'منسلکی ختم کریں',
+    unlinkTitle: '{clinic} سے منسلکی ختم کریں؟',
+    unlinkBody: '{clinic} کا ریکارڈ آپ کی ایپ سے ہٹ جائے گا۔ کلینک کے پاس اس کا ریکارڈ رہے گا۔',
+    unlinkConfirm: 'منسلکی ختم کریں',
+    unlinkFailed: 'منسلکی ختم نہیں ہو سکی۔ براہِ کرم دوبارہ کوشش کریں۔',
+    unlinked: 'کلینک سے منسلکی ختم ہو گئی',
+    showHistory: 'منسلکی کی تاریخ',
+    hideHistory: 'تاریخ چھپائیں',
+    historyLoading: 'لوڈ ہو رہا ہے…',
+    historyFailed: 'تاریخ لوڈ نہیں ہو سکی۔',
+    historyEmpty: 'ابھی کوئی تاریخ نہیں۔',
+    event: {
+      linked: 'منسلک ہوا',
+      unlinked_by_you: 'آپ نے منسلکی ختم کی',
+      revoked_by_clinic: 'کلینک نے ہٹا دیا',
+      revoked_by_system: 'خود بخود ہٹ گیا',
+    },
+    revoked: {
+      patient: 'آپ نے {date} کو منسلکی ختم کی',
+      clinic: 'کلینک نے {date} کو ہٹا دیا',
+      system: '{date} کو خود بخود ہٹ گیا',
+      unknown: '{date} کو منسلکی ختم ہوئی',
+    },
+    empty: {
+      title: 'کوئی کلینک منسلک نہیں',
+      body: 'اپنے کلینک کی ریسپشن سے لنک کوڈ مانگیں اور اسے اسکین کر کے اپنا ریکارڈ منسلک کریں۔',
+    },
+    loadFailed: {
+      title: 'آپ کے کلینک لوڈ نہیں ہو سکے',
+      body: 'اپنا انٹرنیٹ چیک کریں اور دوبارہ کوشش کریں۔',
+    },
+  },
+  account: {
+    delete: {
+      title: 'اکاؤنٹ حذف کریں',
+      subtitle: 'یہ عمل واپس نہیں ہو سکتا۔',
+      willDelete: 'کیا حذف ہوگا',
+      item1: 'آپ کا اکاؤنٹ اور سائن اِن',
+      item2: 'تمام پروفائل، آپ کے اور آپ کے خاندان کے',
+      item3: 'یاد دہانیاں اور دوا لینے کی تاریخ',
+      item4: 'کلینکس سے ہر منسلکی',
+      willKeep:
+        'کیا رہے گا: آپ کے بارے میں کلینکس کا اپنا ریکارڈ۔ وہ کلینکس کی ملکیت ہے اور حذف نہیں ہوگا۔',
+      typeLabel: 'تصدیق کے لیے DELETE لکھیں',
+      typePlaceholder: 'DELETE',
+      mismatch: 'DELETE بالکل ویسے ہی لکھیں جیسے دکھایا گیا ہے',
+      submit: 'میرا اکاؤنٹ حذف کریں',
+      submitting: 'حذف ہو رہا ہے…',
+      confirmTitle: 'کیا اپنا اکاؤنٹ ہمیشہ کے لیے حذف کریں؟',
+      confirmBody:
+        'آپ کا اکاؤنٹ، پروفائل، یاد دہانیاں اور کلینک کی منسلکیاں ہٹ جائیں گی۔ اسے واپس نہیں کیا جا سکتا۔',
+      confirmAction: 'ہمیشہ کے لیے حذف کریں',
+      failed: 'آپ کا اکاؤنٹ حذف نہیں ہو سکا۔ انٹرنیٹ چیک کریں اور دوبارہ کوشش کریں۔',
+    },
+  },
+  contact: {
+    open: 'رابطہ اور ایمرجنسی',
+    title: 'رابطہ اور ایمرجنسی',
+    close: 'رابطے کی شیٹ بند کریں',
+    clinics: 'آپ کے کلینک',
+    none: 'آپ کے منسلک کلینکس کی رابطہ معلومات ابھی موجود نہیں۔',
+    loadFailed: 'آپ کے کلینک لوڈ نہیں ہو سکے',
+    call: 'فون کریں',
+    whatsapp: 'WhatsApp',
+    directions: 'راستہ دیکھیں',
+    callA11y: '{name} کو فون کریں',
+    whatsappA11y: '{name} کو واٹس ایپ کریں',
+    directionsA11y: '{name} کا راستہ دیکھیں',
+    openFailed: 'یہ لنک نہیں کھل سکا',
+    emergency: {
+      title: 'ایمرجنسی',
+      body: 'ایمرجنسی میں پہلے ایمرجنسی نمبر پر فون کریں، کلینک کو نہیں۔',
+      default: 'ایمرجنسی سروس',
+    },
   },
   records: {
     title: 'ریکارڈ',
     tab: 'ریکارڈ',
     homeTab: 'ہوم',
-    search: 'Search clinic or doctor', // TODO(ur)
-    clearSearch: 'Clear search', // TODO(ur)
+    search: 'کلینک یا ڈاکٹر تلاش کریں',
+    clearSearch: 'تلاش صاف کریں',
     segments: {
       appointments: 'اپائنٹمنٹس',
       visits: 'وزٹس',
@@ -78,24 +296,24 @@ export const ur: Messages = {
       bills: 'بل',
     },
     empty: {
-      appointments: 'No appointments yet', // TODO(ur)
-      appointmentsBody: 'Appointments from your linked clinics will show up here.', // TODO(ur)
-      visits: 'No visits yet', // TODO(ur)
-      visitsBody: 'Completed visits from your linked clinics will show up here.', // TODO(ur)
-      prescriptions: 'No prescriptions yet', // TODO(ur)
-      prescriptionsBody: 'Prescriptions from your doctors will show up here.', // TODO(ur)
-      bills: 'No bills yet', // TODO(ur)
-      billsBody: 'Bills from your linked clinics will show up here.', // TODO(ur)
+      appointments: 'ابھی کوئی اپائنٹمنٹ نہیں',
+      appointmentsBody: 'آپ کے منسلک کلینکس کی اپائنٹمنٹس یہاں نظر آئیں گی۔',
+      visits: 'ابھی کوئی وزٹ نہیں',
+      visitsBody: 'آپ کے منسلک کلینکس کی مکمل وزٹس یہاں نظر آئیں گی۔',
+      prescriptions: 'ابھی کوئی نسخہ نہیں',
+      prescriptionsBody: 'آپ کے ڈاکٹروں کے نسخے یہاں نظر آئیں گے۔',
+      bills: 'ابھی کوئی بل نہیں',
+      billsBody: 'آپ کے منسلک کلینکس کے بل یہاں نظر آئیں گے۔',
     },
-    noResults: 'Nothing matches your search', // TODO(ur)
-    noResultsBody: 'Try a different word or clear the search.', // TODO(ur)
-    clearAll: 'Clear search', // TODO(ur)
-    error: "We couldn't load your records", // TODO(ur)
-    errorBody: 'Check your connection and try again.', // TODO(ur)
-    openFailed: 'Could not open this link', // TODO(ur)
-    moreFailed: "We couldn't load more", // TODO(ur)
-    clinicPaused: 'This clinic is paused', // TODO(ur)
-    clinicPausedBody: 'You can still read your records. New bookings are not available.', // TODO(ur)
+    noResults: 'آپ کی تلاش سے کچھ نہیں ملا',
+    noResultsBody: 'کوئی اور لفظ آزمائیں یا تلاش صاف کریں۔',
+    clearAll: 'تلاش صاف کریں',
+    error: 'آپ کا ریکارڈ لوڈ نہیں ہو سکا',
+    errorBody: 'اپنا انٹرنیٹ چیک کریں اور دوبارہ کوشش کریں۔',
+    openFailed: 'یہ لنک نہیں کھل سکا',
+    moreFailed: 'مزید لوڈ نہیں ہو سکا',
+    clinicPaused: 'اس کلینک کی ایپ سروس عارضی طور پر رکی ہوئی ہے',
+    clinicPausedBody: 'آپ اپنا ریکارڈ اب بھی پڑھ سکتے ہیں۔ نئی بکنگ ابھی ممکن نہیں۔',
     with: '{name} کے ساتھ',
     status: {
       scheduled: 'طے شدہ',
@@ -103,120 +321,204 @@ export const ur: Messages = {
       checked_in: 'پہنچ گئے',
       completed: 'مکمل',
       cancelled: 'منسوخ',
-      no_show: 'Missed', // TODO(ur)
+      no_show: 'چھوٹ گئی',
     },
     invoice: {
       paid: 'ادا شدہ',
-      partial: 'Part paid', // TODO(ur)
-      unpaid: 'Unpaid', // TODO(ur)
-      overdue: 'Overdue', // TODO(ur)
+      partial: 'جزوی ادا',
+      unpaid: 'بقایا',
+      overdue: 'مدت گزر گئی',
     },
     appointment: {
       types: {
-        consultation: 'Consultation', // TODO(ur)
-        follow_up: 'Follow-up', // TODO(ur)
-        treatment: 'Treatment', // TODO(ur)
-        checkup: 'Check-up', // TODO(ur)
-        emergency: 'Emergency', // TODO(ur)
-        cleaning: 'Cleaning', // TODO(ur)
+        consultation: 'معائنہ',
+        follow_up: 'دوبارہ دکھانا',
+        treatment: 'علاج',
+        checkup: 'چیک اپ',
+        emergency: 'ایمرجنسی',
+        cleaning: 'صفائی',
       },
       title: 'اپائنٹمنٹ',
-      notFound: 'We could not find this appointment', // TODO(ur)
-      when: 'When', // TODO(ur)
+      notFound: 'یہ اپائنٹمنٹ نہیں ملی',
+      when: 'کب',
       clinic: 'کلینک',
       doctor: 'ڈاکٹر',
-      status: 'Status', // TODO(ur)
-      type: 'Type', // TODO(ur)
-      callClinic: 'Call clinic', // TODO(ur)
-      directions: 'Directions', // TODO(ur)
+      status: 'حالت',
+      type: 'قسم',
+      callClinic: 'کلینک کو فون کریں',
+      directions: 'راستہ دیکھیں',
+      confirm: 'اپائنٹمنٹ کی تصدیق کریں',
+      confirming: 'تصدیق ہو رہی ہے…',
+      confirmed: 'آپ نے اس اپائنٹمنٹ کی تصدیق کر دی ہے',
+      confirmFailed: 'تصدیق نہیں ہو سکی۔ دوبارہ کوشش کریں۔',
+      confirmGone: 'اب اس اپائنٹمنٹ کی تصدیق نہیں ہو سکتی۔',
     },
     visit: {
-      followUp: 'Follow-up on {date}', // TODO(ur)
-      diagnosis: 'Diagnosis', // TODO(ur)
-      treatments: 'Treatments', // TODO(ur)
+      followUp: 'دوبارہ دکھانا: {date}',
+      diagnosis: 'بیماری کی تشخیص',
+      treatments: 'علاج',
     },
     prescription: {
       timing: {
-        morning: 'Morning', // TODO(ur)
-        afternoon: 'Afternoon', // TODO(ur)
-        evening: 'Evening', // TODO(ur)
-        night: 'Night', // TODO(ur)
-        sos: 'Only if needed', // TODO(ur)
+        morning: 'صبح',
+        afternoon: 'دوپہر',
+        evening: 'شام',
+        night: 'رات',
+        sos: 'صرف ضرورت پر',
       },
       title: 'نسخہ',
-      notFound: 'We could not find this prescription', // TODO(ur)
-      medicines: '{count} medicines', // TODO(ur)
-      medicine: '1 medicine', // TODO(ur)
+      notFound: 'یہ نسخہ نہیں ملا',
+      medicines: '{count} دوائیں',
+      medicine: '1 دوا',
       doctor: 'ڈاکٹر',
-      date: 'Date', // TODO(ur)
-      dose: 'Dose', // TODO(ur)
-      howOften: 'How often', // TODO(ur)
-      when: 'When', // TODO(ur)
-      howLong: 'For how long', // TODO(ur)
-      instructions: 'Instructions', // TODO(ur)
+      date: 'تاریخ',
+      dose: 'خوراک',
+      howOften: 'کتنی بار',
+      when: 'کب',
+      howLong: 'کتنی مدت',
+      instructions: 'ہدایات',
       meal: {
-        BEFORE_MEAL: 'Before food', // TODO(ur)
-        AFTER_MEAL: 'After food', // TODO(ur)
-        WITH_MEAL: 'With food', // TODO(ur)
-        EMPTY_STOMACH: 'On an empty stomach', // TODO(ur)
-        NONE: 'Any time', // TODO(ur)
+        BEFORE_MEAL: 'کھانے سے پہلے',
+        AFTER_MEAL: 'کھانے کے بعد',
+        WITH_MEAL: 'کھانے کے ساتھ',
+        EMPTY_STOMACH: 'خالی پیٹ',
+        NONE: 'کسی بھی وقت',
       },
     },
     bill: {
-      total: 'Total', // TODO(ur)
+      total: 'کل رقم',
       paid: 'ادا شدہ',
-      balance: 'Balance', // TODO(ur)
-      number: 'Bill {number}', // TODO(ur)
+      balance: 'باقی رقم',
+      number: 'بل {number}',
     },
   },
-  // TODO(ur): translate the claim strings
   claim: {
-    signInHint: 'Sign in to link your record.',
+    signInHint: 'اپنا ریکارڈ منسلک کرنے کے لیے سائن اِن کریں۔',
     invalid: {
-      title: "This link doesn't work",
-      body: 'The code is not valid. Ask the reception for a new one.',
-      action: 'Close',
+      title: 'یہ لنک کام نہیں کر رہا',
+      body: 'یہ کوڈ درست نہیں۔ ریسپشن سے نیا کوڈ مانگیں۔',
+      action: 'بند کریں',
     },
     confirm: {
-      title: 'Link your record',
-      loading: 'Checking your code…',
-      record: 'Record: {name}',
-      recordAge: 'Record: {name}, {age}',
-      whose: 'Whose record is this?',
-      relSelf: 'Me',
-      relChild: 'My child',
-      relParent: 'My parent',
-      relOther: 'Someone else I care for',
-      nameLabel: 'Name of this person',
-      namePlaceholder: 'Full name',
-      nameRequired: "Please enter this person's name",
-      consent: "I confirm I may view this person's records",
-      consentRequired: 'Please confirm to continue',
-      submit: 'Link record',
-      submitting: 'Linking…',
-      cancel: 'Not now',
-      alreadyYours: 'This record is already linked to your account.',
+      title: 'اپنا ریکارڈ منسلک کریں',
+      loading: 'آپ کا کوڈ دیکھا جا رہا ہے…',
+      record: 'ریکارڈ: {name}',
+      recordAge: 'ریکارڈ: {name}، {age}',
+      whose: 'یہ کس کا ریکارڈ ہے؟',
+      relSelf: 'میرا اپنا',
+      relChild: 'میرا بچہ',
+      relParent: 'میرے والدین',
+      relOther: 'کوئی اور فرد جس کی دیکھ بھال میرے ذمے ہے',
+      nameLabel: 'اس فرد کا نام',
+      namePlaceholder: 'پورا نام',
+      nameRequired: 'براہِ کرم اس فرد کا نام درج کریں',
+      consent: 'مجھے اس فرد کا ریکارڈ دیکھنے کی اجازت ہے',
+      consentRequired: 'جاری رکھنے کے لیے براہِ کرم تصدیق کریں',
+      submit: 'ریکارڈ منسلک کریں',
+      submitting: 'منسلک ہو رہا ہے…',
+      cancel: 'ابھی نہیں',
+      alreadyYours: 'یہ ریکارڈ پہلے ہی آپ کے اکاؤنٹ سے منسلک ہے۔',
     },
     success: {
-      title: 'All set',
-      body: "Linked. You'll now see visits and medicines from {clinic}.",
-      done: 'Continue',
+      title: 'ہو گیا',
+      body: 'منسلک ہو گیا۔ اب آپ {clinic} کی وزٹس اور دوائیں دیکھ سکیں گے۔',
+      done: 'جاری رکھیں',
     },
     errors: {
-      invalid: 'This code has expired or was already used. Ask the reception for a new one.',
-      suspended: "This clinic can't link records right now. Please ask the clinic to help.",
-      appDisabled: "This clinic hasn't turned on the patient app yet. Please ask the reception.",
+      invalid: 'یہ کوڈ ختم ہو چکا ہے یا پہلے استعمال ہو چکا ہے۔ ریسپشن سے نیا کوڈ مانگیں۔',
+      suspended: 'یہ کلینک ابھی ریکارڈ منسلک نہیں کر سکتا۔ براہِ کرم کلینک سے مدد لیں۔',
+      appDisabled: 'اس کلینک نے ابھی مریض ایپ شروع نہیں کی۔ براہِ کرم ریسپشن سے پوچھیں۔',
       alreadyLinked:
-        'This record is already linked to another account. Ask the reception if you think this is a mistake.',
-      nameRequired: "Please enter this person's name.",
-      relationMismatch: 'That choice does not match your saved family members. Please pick again.',
-      rateLimited: 'Too many tries. Please wait a few minutes and try again.',
-      network: 'No connection. Check your internet and try again.',
-      generic: "We couldn't link the record. Please try again.",
+        'یہ ریکارڈ پہلے ہی کسی اور اکاؤنٹ سے منسلک ہے۔ اگر آپ کو لگتا ہے کہ غلطی ہوئی ہے تو ریسپشن سے پوچھیں۔',
+      nameRequired: 'براہِ کرم اس فرد کا نام درج کریں۔',
+      relationMismatch: 'یہ انتخاب آپ کے محفوظ کردہ خاندان سے میل نہیں کھاتا۔ براہِ کرم دوبارہ چنیں۔',
+      rateLimited: 'بہت زیادہ کوششیں ہو گئیں۔ براہِ کرم چند منٹ انتظار کریں اور پھر کوشش کریں۔',
+      network: 'انٹرنیٹ نہیں ہے۔ اپنا انٹرنیٹ چیک کریں اور دوبارہ کوشش کریں۔',
+      generic: 'ریکارڈ منسلک نہیں ہو سکا۔ براہِ کرم دوبارہ کوشش کریں۔',
     },
+  },
+  reminders: {
+    notify: {
+      titleFor: '{name}: {medicine}',
+      bodyFallback: 'دوا لینے کا وقت ہے۔',
+      privateTitle: 'دوا کی یاد دہانی',
+      privateTitleFor: '{name} کے لیے دوا کی یاد دہانی',
+      privateBody: 'خوراک دیکھنے کے لیے ایپ کھولیں۔',
+    },
+    meal: {
+      BEFORE_MEAL: 'کھانے سے پہلے',
+      AFTER_MEAL: 'کھانے کے بعد',
+      WITH_MEAL: 'کھانے کے ساتھ',
+      EMPTY_STOMACH: 'خالی پیٹ',
+    },
+    settings: {
+      title: 'یاد دہانیاں',
+      permissionOn: 'یاد دہانیاں چالو ہیں',
+      permissionOnBody: 'آپ کا فون خوراک کے وقت یاد دلائے گا، انٹرنیٹ کے بغیر بھی۔',
+      permissionOff: 'یاد دہانیاں بند ہیں',
+      permissionOffBody: 'اس ایپ کے نوٹیفکیشن کی اجازت دیں تاکہ فون آپ کو یاد دلا سکے۔',
+      turnOn: 'یاد دہانیاں چالو کریں',
+      openSettings: 'فون کی سیٹنگز کھولیں',
+      privateTitle: 'نجی یاد دہانیاں',
+      privateBody: 'لاک اسکرین پر دوا کا نام نہ دکھائیں۔ یاد دہانی میں صرف "دوا کی یاد دہانی" لکھا آئے گا۔',
+      batteryTitle: 'یاد دہانی نہیں بجتی؟',
+      batteryBody: 'کچھ فون پیچھے چلنے والی ایپس بند کر دیتے ہیں۔ ایک منٹ میں ٹھیک کریں۔',
+    },
+    battery: {
+      title: 'یاد دہانیاں بجتی رہیں',
+      intro:
+        'بیٹری بچانے کے لیے کچھ فون ایپس کو الارم بجانے سے روک دیتے ہیں۔ یہ قدم ایک بار کر لیں تاکہ دوا کی کوئی یاد دہانی نہ چھوٹے۔',
+      stepsTitle: 'ہر فون پر',
+      generic1: 'اس ایپ کے نوٹیفکیشن کی اجازت دیں۔',
+      generic2: 'اس ایپ کی بیٹری سیٹنگ "Unrestricted" یا "No restrictions" پر رکھیں۔',
+      generic3: 'اگر فون پوچھے تو "Alarms & reminders" کی اجازت دیں۔',
+      brandsTitle: 'آپ کے فون کی کمپنی',
+      xiaomi: 'Xiaomi / Redmi / Poco: Settings > Apps > یہ ایپ > Autostart آن کریں، اور Battery saver > No restrictions۔',
+      huawei: 'Huawei / Honor: Settings > Battery > App launch > یہ ایپ > Manage manually، تینوں سوئچ آن کریں۔',
+      oppo: 'Oppo / Realme / Vivo: Settings > Battery > یہ ایپ > Allow background activity، اور Auto launch آن کریں۔',
+      samsung: 'Samsung: Settings > Battery > Background usage limits > "Sleeping apps" سے یہ ایپ ہٹا دیں۔',
+      oneplus: "OnePlus: Settings > Battery > Battery optimisation > یہ ایپ > Don't optimise۔",
+      other: 'دوسرے فون: ایپ کی سیٹنگز میں "Battery optimisation" یا "Background activity" تلاش کریں۔',
+      openSettings: 'ایپ کی سیٹنگز کھولیں',
+    },
+  },
+  today: {
+    title: 'آج',
+    remindersAction: 'یاد دہانی کی سیٹنگز',
+    groups: {
+      morning: 'صبح',
+      afternoon: 'دوپہر',
+      evening: 'شام',
+      night: 'رات',
+    },
+    taken: 'لے لی',
+    skipped: 'چھوڑ دی',
+    skipDose: 'یہ خوراک چھوڑیں',
+    more: '{medicine} کے مزید اختیارات',
+    markTaken: '{medicine} لے لی',
+    waitingToSync: 'انٹرنیٹ آنے پر محفوظ ہو جائے گا',
+    statusFailed: 'خوراک کی حالت لوڈ نہیں ہو سکی — دوبارہ کوشش کے لیے دبائیں',
+    courseEnds: 'دوا کا کورس {days} دن میں ختم',
+    courseEndsToday: 'کورس کا آخری دن',
+    courseEndsTomorrow: 'کورس کل ختم ہو گا',
+    appointmentsToday: 'آج کی اپائنٹمنٹس',
+    comingUp: 'آنے والی',
+    nothingDue: 'آج کچھ لینا نہیں۔',
+    nothingDueBody: 'جب ڈاکٹر دوا لکھیں گے تو خوراکیں یہاں نظر آئیں گی۔',
+    firstTitle: 'اپنا پہلا کلینک جوڑیں',
+    firstBody: 'ریسیپشن سے ایپ کا QR کوڈ مانگیں۔ آپ کی دوائیں اور وزٹ یہاں نظر آئیں گے۔',
+    error: 'آج کی معلومات لوڈ نہیں ہو سکیں',
+    errorBody: 'انٹرنیٹ چیک کریں اور دوبارہ کوشش کریں۔',
+    turnOnTitle: 'یاد دہانیاں چالو کریں؟',
+    turnOnBody: 'آپ کا فون ہر خوراک کے وقت یاد دلا سکتا ہے، انٹرنیٹ کے بغیر بھی۔',
+    deniedTitle: 'یاد دہانیاں بند کی ہوئی ہیں',
+    deniedBody: 'اس ایپ کے نوٹیفکیشن بند ہیں، اس لیے خوراک کی کوئی یاد دہانی نہیں بجے گی۔',
+    unsentOne: '1 تبدیلی محفوظ ہونے کا انتظار کر رہی ہے',
+    unsentMany: '{count} تبدیلیاں محفوظ ہونے کا انتظار کر رہی ہیں',
+    familyMember: 'خاندان کا فرد',
   },
   offline: {
     title: 'آپ آف لائن ہیں',
-    body: "We couldn't reach the server. Your session is safe — check your connection and try again.", // TODO(ur)
+    body: 'سرور سے رابطہ نہیں ہو سکا۔ آپ کا اکاؤنٹ محفوظ ہے — انٹرنیٹ چیک کریں اور دوبارہ کوشش کریں۔',
   },
 };

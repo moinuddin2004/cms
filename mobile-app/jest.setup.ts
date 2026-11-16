@@ -81,6 +81,7 @@ jest.mock(
       clearLastNotificationResponse: jest.fn(),
       DEFAULT_ACTION_IDENTIFIER: 'expo.modules.notifications.actions.DEFAULT',
       AndroidImportance: { DEFAULT: 3, HIGH: 4, MAX: 5 },
+      SchedulableTriggerInputTypes: { DATE: 'date', TIME_INTERVAL: 'timeInterval' },
     };
   },
 );

@@ -1,3 +1,5 @@
+import { View } from 'react-native';
+
 import { StatusBadge } from '@/core/components';
 import { useT, type MessageKey } from '@/core/i18n';
 import { Text } from '@/core/ui/text';
@@ -17,6 +19,7 @@ import type {
   PatientVisit,
 } from '../types/records.types';
 import { ClinicChip } from './ClinicChip';
+import { ConfirmAppointment } from './ConfirmAppointment';
 import { RecordCard } from './RecordCard';
 
 const APPOINTMENT_STATUSES = new Set([
@@ -46,17 +49,22 @@ export function AppointmentCard({
   const statusLabel = useAppointmentStatusLabel();
   const when = formatRecordTime(item.startTime, item.location);
   const label = statusLabel(item.status);
+  // The Confirm button sits OUTSIDE the card's pressable: a button nested in a
+  // button is not reachable by screen readers.
   return (
-    <RecordCard
-      onPress={onPress}
-      accessibilityLabel={[when, item.clinic.name, item.doctorName, label].filter(Boolean).join(', ')}>
-      <Text variant="large">{when}</Text>
-      {item.doctorName ? (
-        <Text variant="muted">{t('records.with', { name: item.doctorName })}</Text>
-      ) : null}
-      <ClinicChip clinic={item.clinic} place={item.location.name} />
-      <StatusBadge tone={appointmentTone(item.status)} label={label} />
-    </RecordCard>
+    <View className="gap-2">
+      <RecordCard
+        onPress={onPress}
+        accessibilityLabel={[when, item.clinic.name, item.doctorName, label].filter(Boolean).join(', ')}>
+        <Text variant="large">{when}</Text>
+        {item.doctorName ? (
+          <Text variant="muted">{t('records.with', { name: item.doctorName })}</Text>
+        ) : null}
+        <ClinicChip clinic={item.clinic} place={item.location.name} />
+        <StatusBadge tone={appointmentTone(item.status)} label={label} />
+      </RecordCard>
+      <ConfirmAppointment appointment={item} />
+    </View>
   );
 }
 

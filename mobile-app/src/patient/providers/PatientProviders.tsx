@@ -2,6 +2,7 @@ import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { MMKV } from 'react-native-mmkv';
 
+import { UrduFontScope } from '@/core/i18n';
 import { currentVersion } from '@/core/app-version';
 import { openSecureCache } from '@/core/storage/secure-cache';
 import { createPatientPersister, idlePersister } from '@/patient/lib/persist-cache';
@@ -79,7 +80,7 @@ export function PatientProviders({
       key={persistKey}
       client={patientQueryClient}
       persistOptions={persistOptions}>
-      {children}
+      <UrduFontScope>{children}</UrduFontScope>
     </PersistQueryClientProvider>
   );
 }

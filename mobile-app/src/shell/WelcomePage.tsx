@@ -2,11 +2,15 @@ import { HeartPulse, Stethoscope, Users, type LucideIcon } from 'lucide-react-na
 import { useEffect } from 'react';
 import { View } from 'react-native';
 
+import { translate, type MessageKey } from '@/core/i18n';
 import { markReady } from '@/core/splash';
 import { switchSpace } from '@/core/space/switch-space';
 import { Button } from '@/core/ui/button';
 import { Icon } from '@/core/ui/icon';
 import { Text } from '@/core/ui/text';
+
+/** These screens appear before a space is chosen (and to staff): English only, never the phone locale. */
+const t = (key: MessageKey) => translate(key, undefined, 'en');
 
 interface SpaceCardProps {
   icon: LucideIcon;
@@ -52,28 +56,28 @@ export function WelcomePage() {
           <Icon as={HeartPulse} className="text-primary size-8" />
         </View>
         <Text variant="h2" className="border-0 pb-0 text-center">
-          Your health, your clinic
+          {t('shell.welcome.title')}
         </Text>
       </View>
 
       <View className="gap-3">
         <SpaceCard
           icon={Users}
-          title="I'm a patient"
-          description="Records, medicines, token"
+          title={t('shell.welcome.patient')}
+          description={t('shell.welcome.patientHint')}
           onPress={() => switchSpace('patient')}
         />
         <SpaceCard
           icon={Stethoscope}
-          title="I work at a clinic"
-          description="Queue, patients, schedule"
+          title={t('shell.welcome.staff')}
+          description={t('shell.welcome.staffHint')}
           onPress={() => switchSpace('staff')}
         />
       </View>
 
       {/* Legal pages arrive before the store release (docs/03 §6); there is no route yet. */}
       <Text variant="muted" className="text-center">
-        Privacy · Terms
+        {t('shell.welcome.legal')}
       </Text>
     </View>
   );

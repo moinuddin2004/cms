@@ -2721,6 +2721,43 @@ Branch: `mobile/M1-05-push` (merged `mobile/develop`; conflicts in `useSignOut.t
 Verification: typecheck clean · eslint 0 errors (3 old warnings) · `lint:fences` ok · full jest 110 suites / 808 tests green. No device.
 
 ---
+## M2-10 + M2-11 — Profiles, Family tab, linked clinics, unlink, delete account  ·  2026-11-15  ·  Sonnet 5.5
+Branch: `claude/m2-10-family-clinics-5e4548` (worktree branch off `mobile/develop`)   Commit(s): see `git log -1`   Status set to: review
+
+### Plan (written first)
+**Endpoints** (all `@PatientApi()`; account = `ctx.accountId`, ids checked against the account's own rows; wrapped in `ResponseWrapper`):
+
+| Method + path | Body | Response | Rules |
+| --- | --- | --- | --- |
+| GET `/patient-api/profiles` | — | `Profile[]` `{ id, relation, fullName, dob, gender, isSelf, links: { id, clinic, location, status, linkedAt }[] }` | self first, then oldest first; links = active + frozen; never-approved clinics hidden (A-19) |
+| POST `/patient-api/profiles` | `{ relation: child\|parent\|spouse\|other, fullName 1–150, dob? (YYYY-MM-DD real, not future), gender? }` | `Profile` (201) | `self` refused; max 20 profiles per account (`409 TOO_MANY_PROFILES`) |
+| PATCH `/patient-api/profiles/:id` | `{ relation?, fullName?, dob?: string\|null, gender?: …\|null }` | `Profile` | `null` clears dob/gender; self keeps its relation (`400 SELF_RELATION_FIXED`); foreign id → 404 |
+| DELETE `/patient-api/profiles/:id` | — | `{ removed: true }` | self → `400 CANNOT_REMOVE_SELF`; a profile with an active/frozen link → `409 PROFILE_HAS_LINKS` (unlink first, so the clinic audit trail of the unlink exists) |
+| GET `/patient-api/links` | — | `PatientLink[]` `{ id, profileId, clinic, location, status: active\|frozen\|revoked, linkedAt, linkMethod, linkedByLabel, revokedAt, revokedBy }` | live links first, then revoked (history); max 200; never-approved clinics hidden |
+| DELETE `/patient-api/links/:id` | — | `{ revoked: true }` | patient-side revoke, allowed for frozen links / app-disabled clinics; not-own or already revoked → 404 |
+| GET `/patient-api/links/:id/history` | — | `{ at, action: linked\|unlinked_by_you\|revoked_by_clinic\|revoked_by_system, label }[]` newest first | derived from the link row (linked, revoked) |
+| DELETE `/patient-api/me` | `{ confirm: 'DELETE' }` | `{ deleted: true }` | rate limit 5 / 15 min; one transaction (below) |
+
+**Unlink** (`PatientAccountLinksService.unlink`, shared `revokeLinkByPatient`): lock link `FOR UPDATE` joined to the account's profiles → `status='revoked', revoked_by_type='patient', revoked_by_id=<account>` → `patient_access_log` (`unlink`) → clinic-visible `audit_logs` row (`patient_app_link`, subject = clinic patient, `{status→revoked, revokedBy:'patient'}`) → realtime outbox `patient.link_revoked` (M2-04's `publishPatientLinkEvent`). All in one transaction. The clinic can issue a new claim token for that record right after.
+
+**Delete account** (`PatientAccountService`, one transaction): lock account (a second delete → 404) → revoke every active/frozen link exactly like an unlink (audit + access log + event per link, reason `account_deleted`) → delete profiles (links cascade) → **delete `patient_account_identities`** (M2-02 review #5) and `patient_login_codes` of the email → revoke all `patient_sessions` → null the IP of `patient_account_consents` (rows stay as the legal record) → soft-delete the account (`status='deleted'`, `deleted_at`, name/phone/email stripped, email becomes `deleted+<id>@deleted.invalid`) → platform audit row (`patient_account`, ids and link count only). `patient_access_log` keeps the account id only. Reminders / dose history tables do not exist yet (M3): they hang off profiles and will cascade.
+
+**Tables:** none added or changed (no schema change, so no `database/schema` or `changes/` script). Re-sign-up works because the unique email index is partial on `deleted_at IS NULL` and the identities are gone.
+
+**Mobile:** `src/patient/features/{profiles,clinics,account}`; shared `src/patient/lib/clinic-types.ts`. Routes: `(main)/(tabs)/family.tsx` (P-04), `(main)/profiles/[profileId].tsx`, `(main)/clinics/index.tsx` (P-08), `(main)/account/delete.tsx` (P-09).
+
+### Done
+- Backend `src/patient-app/{profiles,links,account}` + `DELETE /patient-api/me` on the existing me controller; module wiring; unit spec (DTOs, guards, delete SQL order/audit) + int spec `test/patient/profiles-account.int-spec.ts`.
+- Mobile: Family tab page (loading / empty / error / list, add via bottom-sheet form), profile detail (own data, linked clinics per profile, edit sheet, remove with confirm; remove is disabled while links exist), Linked clinics page (live links + history, unlink with destructive confirm, per-link history), Delete account page (what goes / what stays, type DELETE, then a second destructive confirm, then the sign-out wipe of token + encrypted cache + query cache).
+- Forms: TanStack Form + Zod validators, `FormSheet`, submit disabled on `!canSubmit || isSubmitting`; dirty guard.
+- All strings through `useT` (en + ur; ur copy still English with `TODO(ur)` where not translated). Dates of a link are shown on the clinic location's clock (`formatInZone`).
+- Doc 07 §6.2 updated "as built".
+
+### Files
+- Backend created: `src/patient-app/profiles/{patient-profiles.controller,.service,.dto,.spec}.ts`, `src/patient-app/links/{patient-links.controller,patient-account-links.service,patient-links.dto}.ts`, `src/patient-app/account/{patient-account.service,delete-account.dto}.ts`, `test/patient/profiles-account.int-spec.ts`.
+- Backend modified: `src/patient-app/me.controller.ts`, `src/patient-app/patient-app.module.ts`, `src/patient-auth/patient-auth.controller.spec.ts` (me controller now has 3 handlers).
+- Mobile created: the three feature folders, `src/patient/lib/clinic-types.ts`, 4 route files under `src/app/(patient)/(main)/`.
+- Mobile modified: `src/core/i18n/{en,ur}.ts` (blocks `relation`, `gender`, `family`, `clinics`, `account`, inserted before `offline`), `src/patient/navigation/PatientPlaceholderPage.tsx` (entry buttons).
 ## M2-09 — Patient Records tab  ·  2026-11-15  ·  Claude Sonnet 5.5
 Branch: claude/m2-09-records-ff83ad (from mobile/develop)   Status set to: review
 
@@ -2768,6 +2805,23 @@ Branch: claude/m1-16-staff-hardening-8f8db8 (from mobile/develop)   Commit(s): s
 none
 
 ### Verification
+- Backend: `npm run build` ✓; `jest src/patient-app` 131+ tests ✓; full `jest` run: 1 failure (the me-controller handler count, fixed afterwards and re-run alone ✓) — no other failures. Int spec (`npm run test:int:patient`) is written and compiles but was **not run** (no disposable local Postgres; never touched the shared DB).
+- Mobile: `tsc --noEmit` → only the pre-existing `src/app/_layout.tsx` `@/global.css` declaration error (uniwind types are generated by Metro; not from this change); `npm run lint` 0 errors; `lint:fences` ✓; full jest 115 suites / 835 tests ✓; `CI=1 npx expo start --offline` run once after adding routes.
+- No device / UI run (gate M0-D).
+
+### Acceptance criteria
+- [x] dependents are shown with their links — `GET /profiles` embeds each profile's links; Family card shows the count, detail lists each clinic (int spec: child profile claimed → list shows 1 link).
+- [x] delete → re-sign-up is a fresh account — int spec (written, not run): same email signs up again with a new account id, `isNewAccount: true`, no profiles; unit spec proves identities / login codes / sessions SQL.
+- [x] unlink audited — audit row + access log + outbox event asserted in the unit/int specs.
+
+### Deviations / notes for the architect
+- **No tab layout exists on `mobile/develop`**: I created only my routes. `family.tsx` sits in a `(tabs)` group without a `_layout`; whoever builds the tab bar adds `family` to it. Until then the signed-in placeholder home has buttons to Family, Linked clinics and Delete account (small edit to `PatientPlaceholderPage.tsx`; expect a trivial merge conflict if M2-07/M2-09 edit it too). The same applies to `i18n/en.ts` + `ur.ts` (my keys are one block before `offline`).
+- P-04 text says "no self-service dependent creation in MVP", but the card asks for a create endpoint: `POST /profiles` makes the empty profile (no clinic data); linking still needs the clinic's QR claim with `profileId`. The sheet explains this.
+- `DELETE /profiles/:id` refuses while links exist (instead of cascading) so each unlink is audited on the clinic side. Removing a profile deletes its revoked-link rows with it (the clinic audit rows stay).
+- `GET /links` returns revoked links too (history section). The history endpoint is derived from the link row; `patient_access_log` is not read.
+- Unlink invalidates the whole patient query cache (records of that clinic may be cached under keys owned by M2-09).
+- Prettier was never run on files I did not write (I had to revert an accidental `prettier --write src/patient-app`); my new backend files are prettier-clean.
+- Root-level scratch logs `.be-build.log` / `.be-jest.log` from the backend run were deleted before commit.
 - `tsc --noEmit` clean · `expo lint` 0 errors (5 pre-existing warnings) · `lint:fences` ok · full jest 97 suites / 730 tests green.
 - NOT done: Jest "worker failed to exit" (cause not found; see report section 4); everything needing a device (list in report section 5).
 
@@ -2790,6 +2844,7 @@ Branch: `claude/m1-16-staff-hardening-8f8db8` (merged mobile/develop) · Status 
 | 6 | Nits | eslint --fix applied; pull-to-refresh no longer invalidates the `detail` key (it is refetched directly); test asserts it. |
 
 Verification: tsc clean · lint 0 errors (4 warnings) · lint:fences ok · full jest 115 suites / 836 tests green.
+---
 ## M2-07 + M2-15 — Claim flow (patient) and staff "Link app" QR  ·  2026-11-15  ·  Claude Sonnet 5.5
 Branch: claude/m2-07-claim-flow-b5aeae (from mobile/develop)   Status set to: review (both rows)
 
@@ -2868,6 +2923,57 @@ backend `npm run build` ✓ · `jest src/demo-seed` 7/7 ✓ · seed script `tsc 
 3. Data safety rows for product events (M2-13) and crash reporting (M4-05) are conditional and marked in the doc.
 4. `/c/` and `/v/` open paths from M2-14 are not in this branch; the three new paths are added next to the existing ones.
 ---
+## Rework M2-10 + M2-11 #1 — 2026-11-16
+Branch: `claude/m2-10-family-clinics-5e4548` (merged `mobile/develop`; conflicts in `HANDOFF.md`, `PROGRESS.md`, `core/i18n/en.ts`, `ur.ts` resolved by keeping both sides) · Status stays: review
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| 1 | Keep the clinic's link history | `patient_profiles.deleted_at` added (entity + `schema/02_tables.sql` + `changes/2026-11-15_patient_profiles_soft_delete.sql` + doc 08). Removing a family profile and deleting an account now **soft-delete** profiles (`deleted_at = now()`, name → `'Removed profile'`, dob / gender / `private_reminders` cleared); `patient_record_links` rows (revoked, `revoked_by_*`, reason) are never deleted. Every profile read/write excludes deleted rows: `PatientLinkGuard`, profiles list/count/update/remove, claim accept (existing-profile + self lookups), account links list / unlink / history. Doc 07 §6.5 and DECISIONS **A-22** updated. Unit specs assert UPDATE-not-DELETE and the stripped columns; the int spec (not run) asserts the stripped rows and that the revoked link row survives. |
+| 2 | Concurrency with delete | Create-profile and claim accept both lock the account (`SELECT … FROM patient_accounts WHERE id=$1 AND deleted_at IS NULL FOR UPDATE`) and answer 404 when no row. Specs for both (create on a deleted account inserts nothing; accept stops before touching profiles / links). Lock order: accept = claim token → account → link; delete = account → links; create = account. No cycle. |
+| 3 | Session PII | Account delete sets `revoked_at = COALESCE(revoked_at, now()), ip = NULL, device_label = NULL` on all the account's sessions; spec asserts it. |
+| 4 | Unlink audit actor | The `ActorSide` enum has no patient side, so the audit rows keep `SYSTEM` (as M2-04's claim accept does); the account id is in `after.revokedBy` / the access log. Recorded in A-22 and doc 07. |
+| 5 | Rate limit | `DELETE /patient-api/links/:id` has `@RateLimit` 30 / 15 min (same as claims). |
+| 6 | Delete retry | `deleteWithRetry` (`features/account/lib`): a network error is retried once; a 401 / 404 on the retry counts as success so the wipe still runs; any other failure (or a 401 / 404 on the FIRST call) is thrown and nothing local is touched. Table tests. |
+
+Also fixed while merging: the merge dropped the closing braces of my `account.delete` block in `en.ts` / `ur.ts` (placed before develop's `claim` block).
+
+Install commands: none.
+
+Verification: see the commit message / report (backend build, changed specs, full backend unit suite; mobile typecheck after `CI=1 npx expo start --offline`, lint, `lint:fences`, full jest). The int spec was still not run (no local Postgres).
+
+---
+## M3-01 + M3-02 — Medication schedules + patient medication endpoints — 2026-11-15
+Branch: claude/m3-01-medications-9171d2 · Status: in-progress (plan written before coding)
+
+### Plan
+**Tables** (docs/08 §5 as written, plus one column): `medication_schedules`, `medication_dose_events`; extra column `patient_edited boolean NOT NULL DEFAULT false` (set when the patient changes times/endDate/status via PATCH, so an amended prescription never overwrites the patient's choices). Entities in `src/medications/entities`; schema in `02_tables.sql`; `changes/2026-11-15_medications.sql`.
+
+**Event hook**: no event-emitter package exists and none may be added → `PrescriptionEvents` (RxJS `Subject`, provided + exported by `PrescriptionsModule`). `PrescriptionService.finalize()` calls `events.issued(...)` AFTER its history log inside try/catch (never throws, never awaited work). `MedicationsModule` subscribes on init (`prescription.issued` `{ prescriptionId, organizationId }`); the handler swallows+logs every error. A crash between save and handler loses a sync; `MedicationSyncService.syncPrescription(id)` is idempotent and callable for backfill (backfill on link accept = follow-up).
+
+**Sync** (`MedicationSyncService.syncPrescription`): load FINALIZED prescription + medicines; links = `patient_record_links` active for (org, patient) whose org has `patient_app` enabled (revoked/frozen → skipped); per link profile: existing `source='prescription'` schedules of (profile, prescription) matched to medicines by normalized name (amend re-creates medicine rows with new ids, so the id is re-pointed). Matched: update name/dose/instructions/meal; times/endDate/status kept if `patient_edited`, else recomputed. Unmatched medicine → insert. Existing schedule whose medicine disappeared → `status='stopped'` (unless already stopped/completed). Unique index `(profile_id, prescription_medicine_id)` honoured. `startDate` = issue day in the location's timezone (`ClockService`).
+
+**Parsers** (`src/medications/parsing/`, pure): `parseDoseTimes(tags, frequencyText)` → `{ times, source: 'tags'|'frequency'|'none' }`; `parseDurationDays(text)`; `computeEndDate(start, days)` (inclusive: start + days − 1). Tag table + frequency forms from the card; SOS/PRN/unknown → `times: []` (schedule exists, no reminders).
+
+**Endpoints** (controller lives in `src/patient-app/medications/` because the coverage spec forbids `@PatientApi` elsewhere): GET `/patient-api/medications?updatedSince=&profileId=`, PATCH `/:id` `{times?, endDate?, status?}` (strict allowlist DTO, `forbidNonWhitelisted`), GET `/dose-events?from&to`, POST `/dose-events` `{events[≤200]}`. All scoped by `profile_id IN account profiles` (404 otherwise, one code). Dose events upsert `ON CONFLICT (schedule_id, due_at) DO UPDATE ... WHERE acted_at <= EXCLUDED.acted_at` (latest wins); events for schedules not owned by the account → whole request 404. Schedules are the patient's property (survive link revoke); mutations are therefore not blocked by link state.
+
+### Built (status → review)
+- **Schema**: `database/changes/2026-11-15_medications.sql` + block in `schema/02_tables.sql`; entities `src/medications/entities`. Deviation from docs/08: extra `patient_edited` column + two indexes (documented in docs/08 §5).
+- **Event**: `PrescriptionEvents` (`prescriptions/events`, exported by `PrescriptionsModule`); `finalize()` publishes after its history log. `MedicationsModule` subscribes (`concatMap`, errors logged, never thrown). `MedicationSyncService.syncPrescription(id)` is idempotent and reusable for a backfill. Writes `feed.changed {kinds:['medications']}` to the outbox for the patient room.
+- **Parsers**: `src/medications/parsing/medication-parsers.ts` (`parseDoseTimes`, `parseDurationDays`, `computeEndDate`); table spec has 70 time cases + 34 duration cases.
+- **Endpoints**: `src/patient-app/medications/*` (controller must live under `patient-app` for the coverage spec). Contract notes: docs/07 §6.5.
+- **Specs**: parsers, sync service (in-memory fakes: create, idempotent, amend-by-name, add/stop lines, patient edits kept, revoked link, feature off, multi-profile), patient service (IDOR 404s, whole-batch rejection, replay-safe upsert SQL), controller (route order, DTO allowlist/limits).
+
+### Verification
+`tsc -p tsconfig.build.json` clean · full backend jest 112 suites / 1253 tests ✓ (run in background: this machine needs ~10 min). Pre-existing, untouched: `tsc -p tsconfig.json` errors in `nestjs-cli/` templates and `test/labs/access.int-spec.ts`.
+No integration spec: no local Postgres, so the `ON CONFLICT` upsert SQL and the sync against real tables were **not run** against a database.
+
+### Decisions to review
+- Schedules stay readable/editable after link revoke or `patient_app` off (patient-owned data); only creation needs an active link + feature on.
+- `endDate: null` via PATCH sets `endDateSource: 'patient'` (app asks only when `'unknown'`).
+- No backfill when a patient links *after* a prescription was finalized (follow-up: call `syncPrescription` for the patient's recent finalized prescriptions on claim accept).
+- An in-process event is lost if the process dies between finalize and handler; `syncPrescription` can be re-run.
+
+---
 ## Rework M2-09 #1 — 2026-11-16
 Branch: `claude/m2-09-records-ff83ad` (merged `mobile/develop`; conflicts in HANDOFF, PROGRESS, `core/i18n/{en,ur}.ts` resolved by keeping both sides) · Status stays: review
 
@@ -2919,3 +3025,354 @@ none
 ### Verification
 - `npm run build` ok · eslint clean on touched files · `npm run test`: 382 passed / 5 failed — all in files this card did not touch (DataTable pagination text, builders THEME-15 blue-token count, notifications, roles escalation); same family as the existing fix-5-failing-web-app-tests task. tsc has no errors in touched files.
 
+
+
+---
+## Rework M3-01 + M3-02 #1 — 2026-11-16
+Branch: claude/m3-01-medications-9171d2 · Status stays: review (merged `mobile/develop` first; one HANDOFF conflict resolved by keeping both sides)
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| 1 | `MedicationsModule` / `PatientMedicationsService` not registered (my scripted edit silently missed because of CRLF) | Registered in `PatientAppModule` (`imports` + `providers`). `MedicationsModule` is imported only there, so its subscriber starts once. New `patient-app.module.spec.ts`: compiles `PatientAppModule` + `MedicationsModule` with only infrastructure stubbed (DataSource, config, clock, settings, and stub versions of the prescriptions / feature-flags / patient-links modules), asserts controller + service resolve, and that a `prescription.issued` event reaches `syncPrescription`. |
+| 2 | Missed syncs never repaired | `MedicationSweepService`: on boot (30 s) and every 5 min re-runs `syncPrescription` for FINALIZED prescriptions of the last 14 days that have an active-linked profile with no schedule at `prescription_version >= prescriptions.version`. Every sync stamps `prescription_version` (new column). Also covers a patient who links shortly after a prescription. I chose the sweep (allowed fallback) over an outbox consumer: the outbox/relay only fans out to sockets and has no job-consumer. Spec. |
+| 3 | Weekly / alternate-day wording | Parser returns no default times for weekly / monthly / "every other day" / "every N days" / "har doosre din" / "hafte mein …" / Urdu forms. 15 new table cases (an explicit `frequency_timing` tag still wins). |
+| 4 | Clinic revoke vs patient unlink | **A-23** in DECISIONS. `PatientLinksService.revoke` (clinic) stops + hides (`hidden = true`) that patient's prescription schedules in the same transaction and sends `feed.changed ['links','medications']`. Hidden rows: omitted from the full list, 404 on PATCH, returned once as `stopped` tombstones when `updatedSince` is given (so an incremental app cancels the reminders). Patient-left / frozen / app-off: visible, PATCH → 403 `PATIENT_APP_DISABLED`; dose events still accepted. Re-finalize stops schedules of any profile without an active link. docs/07 §6.5 + docs/08 updated. |
+| 5 | Rate limits | `@RateLimit` 120 / 15 min on PATCH and POST dose-events (+ metadata spec). |
+| 6 | Concurrent syncs | `pg_advisory_xact_lock(hashtext(prescriptionId))` at the start of each profile transaction (event + sweep serialize; no 23505). |
+| 7 | updatedSince paging | List ordered `updated_at, id` ascending, 500 per call, response is now `{ items, nextUpdatedSince }` (cursor = last item's `updatedAt` when more exist). **Contract change** vs the earlier array — docs/07 table + notes updated; M3-03/04 must use it. |
+| 8 | Feature check / `completed` | `isFeatureEnabled(org, 'patient_app', locationId)` so location overrides apply. **`status = 'completed'` is not set by the backend**: nothing flips it when `endDate` passes; the app should treat `endDate < today` (phone clock) as finished. A server sweep that sets it is a follow-up (not in this card). |
+
+Schema (same commit): `medication_schedules.prescription_version int`, `hidden boolean NOT NULL DEFAULT false` — entity, `schema/02_tables.sql`, `changes/2026-11-15_medications.sql` (also ALTERs, safe on a DB that already ran the first version), docs/08.
+
+### Notes
+- `backend/node_modules/.bin` is absent in the shared junction right now, so `npx jest` / `npx tsc` fail ("not recognized"); I ran `node node_modules/jest/bin/jest.js` and `node node_modules/typescript/bin/tsc` instead. Nothing installed.
+- Still no database: the new SQL (`pg_advisory_xact_lock`, the sweep query, the revoke UPDATE, the version-stop UPDATE) is covered only against fakes / SQL-text assertions — **not run on Postgres**.
+- The foreground rule: full suite takes ~10 min on this machine, so build + the targeted specs + full suite were run as background commands and awaited.
+
+### Verification
+`tsc -p tsconfig.build.json` clean · full backend jest 114 suites / 1283 tests green (incl. the new module smoke spec, sweep spec, weekly parser cases).
+
+---
+## M3-03 — Reminder engine — 2026-11-16
+Branch: claude/m3-03-reminders-033e68 · Status: review
+
+### Built (`src/patient/features/medications/`)
+- **`lib/plan-reminders.ts`** — pure `planReminders(schedules, events, now, horizonMs = 72 h, cap = 60, ctx)`: doses due in `(now, now+horizon]` of ACTIVE schedules (start/end date inclusive, phone calendar), minus doses that already have a taken/skipped event (matched by instant), earliest first, capped. Private reminders carry `medicineName/doseText/mealRelation = null` (the text builder cannot leak what it never receives). `lib/doses.ts` holds the shared dose expansion (also used by Today).
+- **`lib/reminder-scheduler.ts`** — `diffReminders` (cancel only `dose.*` ids no longer planned; add missing), `syncReminders(port, planned)` (cancel first, then schedule; one failing call never stops the rest and is retried next pass because the diff is recomputed from the OS state), `runSerialised` (passes never overlap), `cancelAllDoseReminders`. Notification id = `dose.<scheduleId>.<dueMs>.<contentHash>`, so a changed text (private toggled, language, renamed medicine) replaces the old one. `lib/expo-reminder-port.ts` = real `expo-notifications` DATE triggers on the `reminders` channel (fire with no network).
+- **`components/ReminderSync.tsx`** — mounted in `PatientMainLayout`: re-plans on start, on return to foreground and whenever schedules / dose events / private setting / language change (the persisted cache is enough, so it runs offline). Needs the OS permission to already be `granted` (never prompts; Today / settings do).
+- **Private reminders**: `lib/reminder-settings.ts` (prefs MMKV `patient.reminders.private`, a yes/no only). Text: "Medicine reminder for Ali" + "Open the app to see the dose." (`lib/reminder-content.ts`).
+- **Screens**: `/reminders` (permission status + turn on, private switch, link to guide) and `/reminders/battery` (OEM battery guide: generic steps, Xiaomi / Huawei / Oppo-Realme-Vivo / Samsung / OnePlus / other, opens system settings).
+- Data: `api/medications.api.ts` (follows `nextUpdatedSince`, replaces by id), queries `['medications', accountId]` / `['dose-events', accountId, fromYmd]` added to the patient persist allow-list.
+- Core: `foregroundBehavior` now also shows + sounds `medication.*` notifications while the app is open; `jest.setup.ts` mock gets `SchedulableTriggerInputTypes`; pref key added. Sign-out calls `clearMedicationLocalState()` (cancels all dose reminders, resets the queue).
+
+### Decisions / gaps for the architect
+1. **Profile names**: no profiles endpoint exists on `mobile/develop` (M2-10 is in flight), and `patient_profiles.private_reminders` is not served by any API. `hooks/useReminderProfiles.ts` is the seam (returns "unknown" now → reminders carry no name) and "private reminders" is one per-phone switch. Once M2-10 merges: wire `nameOf`, and optionally make `isPrivate` per profile.
+2. Dose `dueAt` = phone wall-clock converted to a UTC instant. If the phone changes timezone, already-recorded events no longer match the new instants (a dose could be reminded again). Accepted.
+3. Tap on a reminder only opens the app (the router ignores patient pushes until M3-07); `data.route` is `/today` for later.
+4. No quiet hours (not in the card).
+5. `completed` is never set by the backend: the planner stops at `endDate` itself.
+6. The medications barrel (`index.ts`) is deliberately UI-free (hooks, logic, types, `ReminderSync`); its two screens are exported from `medications/pages` (route files import them there) — otherwise sign-out and pure-logic tests would pull `expo-router` / keyboard-controller into jest.
+
+### Device check (HANDOFF for the lead — not done here)
+Airplane mode: link/finalise a prescription, grant notifications, set a dose a few minutes ahead, enable airplane mode, lock the phone → it must ring; also with the app swiped away. Check on a Xiaomi/Oppo/Samsung with and without the battery steps; check Android 13+ and exact-alarm behaviour (`SCHEDULE_EXACT_ALARM`/Doze may delay a DATE trigger by minutes on some OEMs — if so the app config needs the exact-alarm permission).
+
+### Verification
+typecheck clean · lint 0 errors · `lint:fences` ok · new specs: planner table (17), content, scheduler diff/sync/serialise, doses, dose queue (48 tests in 5 suites) · `jest src/patient src/core` 48 suites / 272 tests green (foreground, `--runInBand`).
+
+---
+## M3-04 — Patient Today (P-02) — 2026-11-16
+Branch: claude/m3-03-reminders-033e68 (after M3-03) · Status: review
+
+### Built (`src/patient/features/today/`, new "Today" tab, route `(patient)/(main)/(tabs)/today.tsx`)
+- `lib/today-model.ts` (pure, tested): today's doses on the phone calendar with state `pending | taken | skipped` (server events + unsent local ones, latest wins), grouped Morning / Afternoon / Evening / Night (05 / 12 / 17 / 21), "course ends" hint (≤ 2 days), appointments split into **today** and **next 3 days** judged on each appointment's own location timezone, open statuses only.
+- `pages/TodayPage.tsx`: dose rows (Taken button, ⋯ → "Skip this dose"), appointment rows, pull to refresh, states: loading skeleton, error + retry (only when nothing is cached), "Link your first clinic" (no schedules and no appointments), "Nothing due today.", notification-permission card (undetermined → turn on; denied → open settings), unsent-changes line and per-row "Will sync when you are back online". Header gear → `/reminders`.
+- **Offline dose queue** (from M3-03, `medications/lib/dose-queue.ts`): decision saved to the encrypted patient cache first, then flushed — on enqueue, when the phone is online again, and on foreground (`ReminderSync`). Batches ≤ 200; network/5xx keep everything; a 400/404 batch is retried one by one and only the rejected event is dropped; server upsert is idempotent per `(scheduleId, dueAt)`. After a successful flush the `dose-events` queries are invalidated. Upcoming appointments come from the cached `records-appointments-upcoming` query.
+- i18n en (+ ur copies marked TODO(ur)).
+
+### Not done (outside the card / blocked)
+- Profile filter + avatars: no profiles endpoint yet (M2-10) — rows show an avatar only once `useReminderProfiles().nameOf` knows the name.
+- Live token card (needs M3-05/06), appointment "Confirm" (M3-08), ⋯ "Change time" / "Stop reminders" and "How many days? [Set]" (need `PATCH /medications/:id` UI — follow-up).
+- The Home tab (placeholder with sign-out) is still the landing tab; Today is the second tab.
+
+### Verification
+typecheck clean · eslint 0 errors (3 old warnings) · `lint:fences` ok · `jest src/patient src/core src/shell` 53 suites / 293 tests green (foreground, `--runInBand`; the new `TodayPage` suite covers: grouped list, Taken saved + sent, offline "will sync" with the queue kept, server-taken row, empty/link-first, nothing due, error + retry). `CI=1 npx expo start --offline` run for the new routes. No device: airplane-mode ring + offline sync on a phone still to be checked (see M3-03 device check).
+
+---
+## M2-13 — Product events (privacy-safe analytics)  ·  2026-11-16  ·  Claude Sonnet 5.5
+Branch: claude/m2-13-product-events-f86696 (merged mobile/develop)   Status set to: review
+
+### Done
+- **Backend** `src/product-events/` (+ `patient-app/events.controller.ts`): `product_events` entity; `POST /me/events` (`@ContextFree`, justified: the sign-in event is sent before org/location selection, nothing clinic-scoped is read) and `POST /patient-api/events` (`@PatientApi`); both `@RateLimit` 60 / 5 min, ≤ 50 events per call. Catalog (`product-event-catalog.ts`) = event names + per-prop enum values; the service drops unknown names (also names of the other space), unknown props and out-of-enum values, clamps client time to the last 7 days. Stored: actor type + account/user id, name, props, time. `organization_id` is never client-supplied (currently always null; per-clinic staff metrics join `employee_org_location_assignments`).
+- **Schema**: entity + block in `database/schema/02_tables.sql` + `database/changes/2026-11-15_product_events.sql`.
+- **Mobile** `core/analytics` `createTracker({ send })` (batched 5 s, in-memory, fire-and-forget, retry on network/5xx/429, drop on other 4xx, capped queue, no-op under Jest); senders in `staff/lib/analytics.ts` and `patient/lib/analytics.ts`. One `track` call each in: staff sign-in (password + Google), check-in from the schedule sheet, call next; patient email sign-in, claim accepted, Records tab list shown.
+- **Docs** `docs/analytics-events.md`: rules, event list, retention (400 days + delete statement), six pilot metric queries.
+
+### Install commands for the user
+none
+
+### Verification
+- Backend: `nest build` clean; new `product-events.spec.ts` (sanitising, other-space names, time clamp, rate limit + fence metadata). Full backend jest: see the lead's note below.
+- Mobile: eslint 0 errors (4 old warnings) · `lint:fences` ok · new `tracker.test.ts`. 
+- **tsc**: the ONLY error is `mobile-app/node_modules/@types/node/test.d.ts(453)` — that file in the shared node_modules is TRUNCATED (23 959 bytes, ends mid-word) from the disk-full incident. Nothing in `src` errors. Fix: reinstall `@types/node` in `mobile-app/node_modules` (lead/user, not me).
+
+### Deviations / notes
+- `app_opened` / `patient_app_opened` are in the catalog but not sent yet (daily use is measured from any event).
+- Events are memory-only: a phone closing within ~5 s of an action can lose it (documented caveat).
+- Not run against Postgres; SQL in the docs is untested.
+
+
+---
+## Rework M2-13 #1 - 2026-11-16
+Branch: claude/m2-13-product-events-f86696 - Status stays: review
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| 1 | Queued events survive sign-out | `createTracker` takes `getActor`; each queued event stores its actor, a batch is sent only while that actor is signed in (signed out = drop all, `track()` ignored while signed out). `clearStaffEvents` / `clearPatientEvents` run first in both sign-out flows; forced session loss is covered by the actor check. Tests added. |
+| 2 | Flush on background | AppState listener inside `createTracker` (`flushOnBackground`, default on when enabled). |
+| 3 | Out-of-range times | Server DROPS events > 5 min in the future or > 7 days old (small skew clamped to now). Spec. |
+| 4 | org index | `idx_product_events_org_name_at` removed from entity, schema block, changes script; org tagging noted as future work. |
+| 5 | Docs | Rate limit is per IP (shared NAT); retention delete is manual (open item); sign-out/actor behaviour documented. |
+
+Verification: backend build clean, product-events + patient-app + access specs green (260 tests); mobile lint 0 errors (4 old warnings), lint:fences ok, jest on core/analytics + staff/patient auth + queue + lib + shell green (43 suites). tsc: only the known `@/global.css` message (expo-env.d.ts not generated; I did not run expo start - my attempt to kill its node process was refused by the sandbox). Full-suite runs were not completed on this memory-starved machine.
+Note: my first pass re-encoded three existing files through PowerShell (mojibake); restored from HEAD and re-edited byte-safely - the final diff touches only the intended lines.
+---
+## M3-05 — Patient realtime, active queue, visit tokens  ·  2026-11-16  ·  Claude Sonnet 5.5
+Branch: claude/m3-05-patient-realtime-9b1e4c (from mobile/develop)   Commit(s): see report   Status set to: review
+
+### Plan (written first)
+1. `queue_visit_tokens` (entity + `schema/02_tables.sql` block + `changes/2026-11-15_queue_visit_tokens.sql`).
+2. `QueuePositionService` (queue module, exported): token / status / `peopleAhead` / `nowServingToken` / doctor name per entry, reusing `QueueQueryService.engineOrder` (no new orchestrator mutation).
+3. Public `GET /visit/:token/state` (`@Public`, 120/min/IP, one generic 404) + staff `POST /queue/entries/:entryId/visit-link` (`@Can('queue.checkin')`, active location only). Token = 32 random bytes base64url, only sha256 stored, 12 h TTL.
+4. `GET /patient-api/queue/active` (`PatientQueueService`, scoped with `linkedPatientWhere` + A-19 clinic visibility, "today" per location tz).
+5. `PatientRealtimeGateway` on `/patient-realtime`: patient secret + `aud` + live session on connect; joins `patient:<accountId>`; `subscribe entry:<id>` re-checks the link in SQL; relay fan-out through the existing publishers (in-process and Redis subscriber call both gateways).
+6. Specs: socket auth both directions, room isolation, fan-out, link-revoke room leave, visit state, position, active scoping; full backend unit suite.
+
+### Done
+- **Gateway** `patient-app/realtime/patient-realtime.gateway.ts`. A staff token fails signature (other secret) -> `auth_error` + disconnect; a patient token on `/realtime` already failed the same way (test added for both). `subscribe` only accepts `entry:<uuid>` (no `patient:`/`session:`/staff rooms), max 20 entry rooms per socket, ack `{ ok:false, error:'NOT_FOUND' }` otherwise. `unsubscribe` supported.
+- **Fan-out**: relay messages for `session:<id>` `queue.event` become `visit.event { entryId, seq }` (exactly these two keys) for every subscribed entry of that session on this instance (a call moves everybody's place, so all subscribers of the session are nudged, not only the entry in the event). `patient:<accountId>` topics (e.g. `feed.changed`, the M2-04 link events) go to that account only. Board / display / org / user topics are ignored. No new outbox rows, no orchestrator change.
+- **Revocation**: a `feed.changed` with `kinds` containing `links` re-checks every entry room of that account's sockets and leaves the ones no longer covered. Subscribe re-checks on every call.
+- **Availability** mirrors the staff gateway: Redis subscriber toggles both; while down new patient sockets are refused and open ones closed (clients poll).
+- **`GET /patient-api/queue/active`**: today's active-status entries (per location clock) of linked patients at approved clinics (suspended clinics stay visible, A-19), shape per 07 §6.2 with `location { id, name, timezone }`.
+- **Visit link**: `POST /queue/entries/:entryId/visit-link` -> `{ url: FRONTEND_URL/v/<token>, expiresAt }`; expired rows are purged on create. `GET /visit/:token/state` -> `{ clinicName, locationName, token, status, peopleAhead, nowServingToken, updatedAt }`; hash lookup, expiry and approved clinic checked in SQL. `maskTokens` now also masks `/visit/<token>`.
+
+### Files
+- Created: `queue/entities/queue-visit-token.entity.ts`, `queue/services/queue-position.service.ts`, `queue/visit/{visit-token.ts,visit.service.ts,visit.controller.ts}`, `patient-app/queue/{patient-queue.service.ts,patient-queue.controller.ts}`, `patient-app/realtime/patient-realtime.gateway.ts`, specs for each, `database/changes/2026-11-15_queue_visit_tokens.sql`.
+- Modified: `queue.module.ts`, `queue-runtime.module.ts`, `patient-app.module.ts`, in-process publisher, redis subscriber, `HttpExceptionHandler.ts` (+ mask spec), `database/schema/02_tables.sql`.
+
+### Install commands for the user
+none (apply `backend/database/changes/2026-11-15_queue_visit_tokens.sql` to existing databases)
+
+### Decisions to review
+- The staff link endpoint is new and not in 07; permission `queue.checkin`. If you want a different permission or a QR on the staff ticket, say so.
+- `visit.event` is session-wide, so one queue change nudges all subscribed patients of that doctor; payload stays `{ entryId, seq }` and the app refetches `/patient-api/queue/active`.
+- Socket access tokens are verified at connect only (15 min), like the staff gateway; the mobile client reconnects with a fresh token, and subscribe re-checks the live session through links, not the token age.
+- Visit page state keeps working after the entry finishes until the token expires (status shows the final state, `peopleAhead: null`).
+- Not run: DB-backed integration test (no local Postgres); SQL for the join in `subscribableSession` is checked by shape only.
+
+---
+## M3-06 + M3-07 — Live token / visit screen, patient push  ·  2026-11-16  ·  Claude Sonnet 5.5
+Branch: claude/ecstatic-curran-0783c6 (from mobile/develop)   Commit(s): see report   Status set to: review (both)
+
+### Done — backend (M3-07)
+- `patient_devices` (entity in new `src/patient-devices/`, schema block, `changes/2026-11-16_patient_push.sql`), `POST/DELETE /patient-api/devices` (same bodies as staff `/me/devices`, `@PatientApi`, account-owned, upsert by token).
+- `CHANNELS_BY_AUDIENCE.patient = [PUSH]`; `CHANNELS_BY_RECIPIENT.patient` + PUSH; patient audience switch defaults ON and a patient push rule defaults ON only for events listing `push` (every other patient channel stays off). Specs updated.
+- Resolver: patient -> ACTIVE link -> profile -> live account -> `patient_devices` (approved clinic only), `PatientDevicesService` + `notifications/recipients/patient-recipients.ts`. `ExpoPushProvider` sends to patient recipients with `data.space = 'patient'`, route = payload link; dead tokens are removed from both tables.
+- Events (seeds, push-only): `queue.turn_near` ("Your turn is near" / "{clinic}: N people ahead of you"), `queue.called` ("It's your turn" / "{clinic}: please go to {doctor}"), `appointment.reminder` ("Appointment tomorrow" / "{clinic} at {time}"). A spec asserts no clinical words and only whitelisted placeholders.
+- `queue.called`: in `callNext` + `selectPatient`. `queue.turn_near`: end of every mutation in `mutate()` except a plain check-in, threshold = new `queue_policies.patient_turn_near_ahead` (default 2, 0..20, in the policy DTO), once per entry via new `queue_entries.turn_near_notified_at` set atomically (`UPDATE ... WHERE ... IS NULL RETURNING`). Patients without a device are skipped and left unmarked.
+- `appointment.reminder`: enqueued with `scheduledFor = start - 24h` on create and on time change (`AppointmentReminderService`); a `PayloadFinalizers` check at send time skips (`skipped_disabled`) when the appointment is no longer scheduled/confirmed at exactly that start time, so cancel/reschedule need no row cleanup. Not queued when < 24 h away.
+- Account deletion removes the account's devices.
+
+### Done — mobile
+- M3-06: `patient/lib/realtime.ts` (+provider, invalidator), `patient/features/queue` (`useActiveQueue`, `LiveTokenCard`, `LiveTokenSection`, `VisitPage`), route `(patient)/(main)/visit/[entryId]`. Realtime only invalidates `['queue-active']`; socket joins `entry:<id>` for every active entry; live = connected AND a subscribe was acked; otherwise the query polls every 5 s. Socket errors never sign out: `auth_error`/`unavailable`/server disconnect -> not live + invalidate + reconnect with 2..30 s backoff (token refresh is left to the HTTP client); refused subscribe retried at 0.5/1.5/4/10 s (the server verifies the token after the first packets); background > 30 s disconnects, foreground reconnects.
+- M3-07: `patient/features/devices` mirrors staff M1-05 (explanation sheet once via pref `patient.push.asked`, register after sign-in when permitted, unregister in `signOutPatient` before logout with a 4 s timeout, secure item `patient.pushToken`), tap routing via `shell/notification-router.ts` (patient branch) -> `PatientPushRoute` -> `/visit/<id>` or `/appointments/<id>` (strict id/route validation). Strings via `useT` (en + ur).
+
+### Decisions / for the architect
+- Permission sheet shows once after sign-in (as the card says), not at the first live token as docs/02 §8 suggests.
+- Today wiring: Today (M3-04) is not merged. `<LiveTokenSection />` (from `@/patient/features/queue`) renders nothing when empty; I placed it at the top of the placeholder home. **M3-04: pin `<LiveTokenSection />` at the top of Today and drop it from `PatientPlaceholderPage`.**
+- `feed.changed` kinds map to roots `medications`, `records-appointments(-upcoming)`, `links`/`profiles` (see `patient/lib/realtime-invalidation.ts`): M3-03/04 must use `['medications', ...]` as the key root or adjust that map.
+- Visit screen has no Call clinic / WhatsApp buttons: `/queue/active` carries no phone (add `location.phone` server side if wanted).
+- "Updated within 2 s" = event -> 150 ms coalesce -> refetch; not measured on a device.
+
+### Verification
+Backend: build clean; full unit suite 123 suites / 1362 tests pass. Mobile: tsc clean, lint 0 errors (4 old warnings), lint:fences ok, jest all suites pass (new: realtime, invalidation, push-route, queue-text, notification-router). Not run: DB-backed tests (no local Postgres), real device push.
+
+### Install commands for the user
+none. Apply `backend/database/changes/2026-11-16_patient_push.sql` to existing databases.
+## M3-05 follow-up — socket lifetime hardening  ·  2026-11-16  ·  Claude Sonnet 5.5
+Branch: claude/m3-05-followup (from mobile/develop)   Status: review
+
+### Done
+- Sockets close at access-token `exp` (timer, cleared on disconnect); every `subscribe` re-checks `isAlive(sid, sub)` and drops the socket when it ended.
+- `PatientSessionEvents` (patient-auth, in-process): fired on logout, refresh-token reuse and account deletion; the gateway disconnects that session (or all of the account's sockets). Other API instances rely on the exp timer + per-subscribe check (no Redis fan-out).
+- Patient gateway publish wrapped in try/catch in the in-process publisher and the Redis subscriber (spec).
+- Bus down -> `unavailable { retryAfterSeconds }` + disconnect, never `auth_error`.
+- Max 5 sockets per account, oldest dropped.
+- Doc 07 §7: active+frozen links, finished entries, lifetime, availability.
+
+### Verification
+tsc clean; patient-app/auth/queue + rest of the backend unit suite green in chunks (90 + 32 suites, 1,345 tests). New specs: gateway lifetime/cap/unavailable, session events, publisher isolation.
+Mobile note: handle `unavailable` (poll, keep session) separately from `auth_error` (refresh token, reconnect).
+
+### M3-06/07 addendum (after merging the M3-05 follow-up)
+Mobile socket now follows the follow-up: `unavailable { retryAfterSeconds }` -> not live, poll, reconnect after that wait, no session refresh; `auth_error` -> one `refreshSession()` (single-flight, errors swallowed) then reconnect with backoff. Specs added. Re-verified after merge: backend build, 43 suites (queue, notifications, patient-app, appointments, access, devices) green; mobile tsc, lint 0 errors, fences, jest 135 suites / 949 tests green.
+---
+## Rework M3-03 + M3-04 #1 — 2026-11-16
+Branch: claude/m3-03-reminders-033e68 (merged `mobile/develop` first; HANDOFF/PROGRESS conflicts kept both sides) · Status stays: review
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| 1 | Sent events left the queue before the server copy was refetched (double-dose risk) | `flushDoseQueue(queryClient)` now calls `applySentToCache` BEFORE `remove`: existing `['dose-events', accountId, *]` queries are patched with `mergeDoseEvents` (newer `actedAt` wins); if none exists the current window's query is created with the sent events (the invalidate after a flush refetches). Tests: cache patched before removal (subscription order), created when absent, merge rules, Today stays "Taken" after the send. TodayPage shows a tappable "Couldn't load dose status — tap to retry" note when the events query failed and nothing is cached. |
+| 2 | A11y: row was one accessible block | `accessible` moved to the time/name block; Taken and ⋯ are separate focus targets (test). |
+| 3 | Re-plan after permission is granted | Permission is one shared zustand store (`useNotificationPermission`); `ReminderSync` depends on its state (test: nothing scheduled, press grant → scheduled). |
+| 4 | Cancelled / account re-check; per-account private pref | Re-checked inside the serialised task (before and after the permission read). `private reminders` moved from prefs MMKV to the account's encrypted patient cache (`reminderSettings:<accountId>`), reset on sign-out. The planner does not run until the choice is loaded (`hydrated`) — test. **Default stays OFF**: docs/03 §5 says the clinical text shows "unless the user enabled Private reminders"; flip `privateReminders: false` in `reminder-settings.ts` + docs/03 if you want private-by-default. |
+| 5 | DST tests | `today/lib/dst.test.ts` spawns a child jest with `TZ=America/New_York` on `dst.tzcase.ts` (a zone can't be changed from inside a test file): 23 h / 25 h days, skipped 02:30 and repeated 01:30, windows across both changes via `expandDoses` and `buildTodayDoses`. (Takes ~10 s.) |
+| 6 | enqueue with null account dropped silently | `enqueue` returns `false`; `useDoseActions` returns `{ record, ready }`; DoseRow Taken / ⋯ are disabled until the queue knows the account. |
+| 7 | 44 pt | `min-h-11` on the Today and settings buttons, `size="lg"` on the battery button. The private-reminders switch is the RNR switch (unchanged). |
+| 8 | Comment / barrel | Window comment fixed (`doseEventsWindow`: yesterday 00:00 → +6 days); barrel comment reworded: it exports no screens (ReminderSync / clear-local-state stay in it — they are native-free enough for jest and the layout needs them). |
+
+Test note: `ReminderSync.test.tsx` has two scenarios because a third render in the same file stopped running effects (RNTL/zustand interaction I could not pin down); the signed-out account guard is covered by code review only.
+
+### Verification
+typecheck clean (`CI=1 npx expo start --offline` run for the merged routes) · eslint 0 errors (4 old warnings) · `lint:fences` ok · jest (foreground, `--runInBand`): `src/patient src/core src/shell` 62 suites / 344 tests, `src/staff` 78 suites / 662 tests — all green.
+
+
+---
+## M3-08 + M3-09 — Appointment confirm, contact/emergency sheet  ·  2026-11-16  ·  Sonnet 5.5
+Branch: claude/m3-08-confirm-contact-1551df · Status: review
+
+### M3-08 (BE + MOB + WEB)
+- **Schema:** `appointments.patient_confirmed_at timestamptz` — entity, `schema/02_tables.sql`, `changes/2026-11-16_appointment_patient_confirmed.sql` (idempotent). Appointment `status` is NOT changed by a patient confirm (staff status flow untouched).
+- **Backend:** `POST /patient-api/appointments/:id/confirm` (`patient-app/appointments/`), rate-limited, 200 with `{ id, patientConfirmedAt }`. Scoped with `linkedPatientWhere` over ACTIVE, app-enabled links of ACTIVE clinics (frozen link / other family / other clinic = 404); row lock; idempotent (second call returns the first timestamp, no write, no audit); 409 `APPOINTMENT_NOT_CONFIRMABLE` for past / cancelled / checked-in / completed / no-show; audited (`audit_logs`, entity `appointment`, actor system, `confirmedBy: patient_app`).
+- **Read API:** `GET /patient-api/appointments` now returns the real `patientConfirmedAt` and `canConfirm` (future, scheduled|confirmed, link active + app enabled, clinic active).
+- **Mobile:** `records/components/ConfirmAppointment.tsx` on appointment cards (compact) and the detail page; `useConfirmAppointment` invalidates both appointment lists, toasts a calm error (409 → "can no longer be confirmed", refreshes). Confirmed state shows "You confirmed this appointment".
+- **Web (staff):** "Confirmed by patient" badge on the appointment detail modal and calendar card, and a timeline step in the patient history appointment sheet (`patientConfirmedAt` added to the `Appointment` type).
+
+### M3-09 (MOB)
+- New feature `src/patient/features/contact/`: `ContactSheet` (bottom `ReadOnlySheet`), `ContactButton` (header icon, "Contact and emergency"). Lists one card per linked (clinic, location) from `useLinks()` — Call (`tel:`), WhatsApp (`wa.me`, only if the API sends `whatsapp`), Directions (maps search on the address). Emergency block on top.
+- **Data check:** the patient read/link API carries `location.phone` and `location.address`; **`whatsapp` is always null** because `locations` has no WhatsApp column — the button appears automatically once the backend fills it (no change needed in the app).
+- **Emergency numbers:** configured with `EXPO_PUBLIC_EMERGENCY_NUMBERS` (`Label:number;Label:number`, e.g. `Ambulance:1122;Police:15`). Default if unset: **112** (documented in `lib/emergency-numbers.ts`; the GSM-wide number, no country assumption beyond that).
+- **Entry points:** Records header (done). **For the Today session (M3-03/04):** put `<ContactButton />` from `@/patient/features/contact` in Today's `ScreenHeader actions`; I did not touch `features/today` or `features/medications`.
+
+### Install commands for the user
+none
+
+### Verification
+- Backend: `nest build` clean; full backend jest 117 suites / 1320 tests green (new `patient-appointments.service.spec.ts`: scope, idempotent, 404, 409 x3; reads spec covers `canConfirm`).
+- Mobile: eslint 0 errors (4 old warnings) · `lint:fences` ok · new `contact/lib/contacts.test.ts`. tsc: only the known `@/global.css` message. Full jest: 131/132 suites on the first run, the one failure (RecordsPage.test: new contact import) fixed by mocking; records + contact suites re-run green.
+- Web: `tsc` has no errors in touched files (other old ones exist). **`vite build` / `vitest` could not start**: `@rolldown/binding-*` native module missing in the linked web-app node_modules (environment, needs the user's reinstall) — web changes are unverified by tests/build.
+
+### Deviations / notes
+- No component test for ConfirmAppointment / ContactSheet (needs the sheet + query mocks; logic is in tested pure helpers).
+- Not run against Postgres; the confirm SQL is covered by mocks only.
+
+
+---
+
+---
+## Rework M3-08 + M3-09 #1 — 2026-11-16
+Branch: claude/m3-08-confirm-contact-1551df · Status stays: review
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| 1 | Reschedule keeps confirmation | `AppointmentsService.update()` clears `patientConfirmedAt` when the time (start or length) changes (`appointments/patient-confirmation.ts` + spec). |
+| 2 | Audit convention | confirm audit `after` carries `accountId` and `profileId`; spec asserts it. |
+| 3 | Nested button | Confirm is now outside the card's pressable (wrapper View), `size="lg"` + `min-h-11`; RecordsPage test covers press + confirmed note. |
+| 4 | docs/07 | confirm returns `{ id, patientConfirmedAt }`; `canConfirm` text updated. |
+| 5 | Raw tel | Detail page uses `telUrl()` (exported from the contact barrel). |
+| 6 | P-07 entry | Clinic chip on appointment detail opens the contact sheet (`ClinicChip onPress`, 44 pt). Cut: not on list cards (chip would nest in the card pressable); Today entry stays with the Today session. |
+
+
+---
+## M4-01 — Urdu translation pass + Noto Nastaliq font + layout check - 2026-11-16
+Branch: claude/m4-01-urdu-46c4ef - Status: review
+
+### What was done
+- `src/core/i18n/ur.ts`: every `TODO(ur)` string and the whole `claim` block translated (simple, kind Urdu; `{params}` untouched; OTP-style/brand terms and `DELETE`/`YYYY-MM-DD` kept Latin). Header comment points at the allow-list rule.
+- `i18n.test.ts`: new tests - `{param}`s of every `en` string appear in `ur`; no `// TODO(ur)` marker left (allow-list `UR_TODO_ALLOW_LIST` is empty). **New keys after M4-01:** add to `en.ts` AND give `ur.ts` real Urdu in the same change; only if it truly can't be translated yet, copy the English, mark `// TODO(ur)` and add the dotted key to the allow-list (the test fails otherwise).
+- Font: `src/core/i18n/urdu-font.ts` - `useUrduFont()` / `loadUrduFont()` load `NotoNastaliqUrdu_400Regular` / `_700Bold` through `expo-font` from an OPTIONAL `require('@expo-google-fonts/noto-nastaliq-urdu')`; when the package is missing it stays on the system font. `src/core/ui/text.tsx` (the one Text wrapper) applies the family (bold for `font-semibold|bold|extrabold|black`) and `leading-loose` only when locale is `ur` and the font is ready. `urdu-font.test.ts` covers the fallback.
+- Layout check: patient screens use `min-h-*` everywhere (no fixed text heights); `small` Text variant's `leading-none` is overridden by `leading-loose` for Urdu. No string concatenation around `t()` in `src/patient|shell|core`.
+
+### Install commands for the user
+```
+npx expo install @expo-google-fonts/noto-nastaliq-urdu expo-font
+```
+(expo-font is already a dependency; the command pins the font package.) No other code change needed after installing.
+
+### Device check needed (gate M0-D)
+- Install the package, switch to Urdu on a real Android + iPhone: verify the font loads, `leading-loose` (2x) is enough/not too much, bold weights look right.
+- `numberOfLines={1}` places: `ClinicLinkCard` (clinic name), `ClinicChip`, `ActionSheet` subtitle - check Nastaliq descenders are not clipped.
+- Buttons with `min-h-11` + long Urdu labels wrap OK; tab bar labels; the OTP/code inputs (digits stay Latin).
+- RTL stays OFF in the pilot (O-06): check mixed-direction lines (email, dates) read sensibly.
+- Native-speaker review of the translations is still advised before release.
+
+### Verification
+eslint 0 errors (4 old warnings) · lint:fences ok · tsc: only the known `@/global.css` message (expo-env.d.ts not generated; I did not run expo start) · jest result below.
+
+
+---
+## Rework M4-01 #1 - 2026-11-16
+Branch: claude/m4-01-urdu-46c4ef - Status stays: review
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| merge | mobile/develop merged (HANDOFF conflict: kept both sides; PROGRESS clean) | done |
+| 1 | Urdu font leaked to staff Text | `UrduFontScope` (core/i18n) wraps the patient space in `PatientProviders`; `useUrduFont()` is inactive outside it. `text.test.tsx`: staff Text unaffected under `ur`. Device check: portals/sheets that render outside the provider tree would stay on the system font. |
+| 2 | load during render | load now starts in `UrduFontScope`'s `useEffect` |
+| 3 | caller `style` dropped Urdu font | `style` destructured and merged after `{...props}`; test |
+| 4 | Latin-only Urdu values | new test, allow-list = 3 placeholders |
+| 5 | wording | suspended/clinicPaused, howLong, consent, relOther updated |
+| 6 | no bold weight | `bold` falls back to the regular family |
+
+Also fixed a bug of mine: the bold-detection regex contained a stray backspace char and never matched (found via the new test).
+Note: `@expo-google-fonts/noto-nastaliq-urdu` is now present in node_modules but NOT in package.json - the install command in the previous entry is still needed.
+Verification: tsc clean · eslint 0 errors · lint:fences ok · core/i18n + core/ui jest green; the full `src/core src/patient src/staff` run exceeded the tool timeout on this machine - lead to re-run.
+
+
+---
+## Rework M4-01 #2 - 2026-11-16
+mobile/develop merged (clean; package + expo-font plugin now present). `urdu-font.ts` doc updated (optional `require` kept as a safety fallback); bold maps to `NotoNastaliqUrdu_700Bold`. Tests now use the REAL package: `text.test.tsx` (virtual mock removed) and new `urdu-font-installed.test.ts`. tsc clean, eslint 0 errors, core/i18n + core/ui jest 13/13. The install command from the first entry is no longer needed.
+
+
+---
+## M4-05 - release hardening (error-reporting seam, perf budgets, patient gate QA) - 2026-11-16
+Branch: claude/m4-05-release-hardening-d6067b - Status: review
+
+### What was done
+- **A-24** (DECISIONS): recommendation = no provider for the pilot (Play Console vitals); Sentry requirements written down. `src/core/observability` (`reportError`, `setErrorReporter`, `scrub*`) + tests, wired into a new root `ErrorBoundary` (`shell/RootErrorBoundary.tsx`) and the QueryCache/MutationCache `onError`. Release = no-op, dev = PHI-safe `log.warn`.
+- docs/09 section 5 performance budgets, section 6 patient gate checklist. `memo` on ArrivalRow / ScheduleRow / NotificationRow / WaitingRow.
+- Patient gate walk: `WelcomePage` + `UpdateRequiredPage` moved to `useT` (en + ur `shell.*`), `common.crashTitle/crashBody` added. Everything else passed. Table in `docs/reviews/M4-05/report.md`.
+
+### Install commands for the user
+none (only if Sentry is later chosen: `npx expo install @sentry/react-native`)
+
+### Device check needed (M0-D)
+Report section 4: cold start, bundle size, fling, TalkBack, Urdu on the new screens, forced render-crash retry.
+
+### Verification
+tsc: only the known `@/global.css` message · eslint 0 errors (4 old warnings) · lint:fences ok · jest in foreground chunks, all green: core 37 suites, patient 26/179, staff 78 suites, shell 4 suites (a plain `jest src/shell` hangs after finishing on open handles; `--forceExit` ends it).
+### M3-06/07 rework-1
+1. Reminders: any change of time, length or patient, cancel and no-show first skip the appointment's queued/held `appointment.reminder` rows (`skipPending`), then schedule a fresh one when still > 24 h away. Send-time finalizer requires status scheduled/confirmed AND `patient_id = recipient` AND exact start + end stored in the row (value-compared "generation": covers duration-only change, patient change, move-back). Specs for each.
+2. `AND o.is_active` in both device queries (spec).
+3. Patient pushes run behind `SAVEPOINT patient_push` (`patientPush()`): error -> rollback to savepoint, log, staff action continues. Spec with a throwing helper.
+4. `useActiveQueue`: 5 s poll only with live entries and socket down; otherwise 60 s safety poll.
+5. Turn-near is evaluated on CHECKED_IN too.
+6. Strict UUID in `push-route.ts` (tests).
+7. Offline sign-out: token kept; `PendingDeviceCleanup` (patient layout, signed out on start) calls new public `POST /patient-auth/devices/unregister` (rate-limited, token is the credential, always `{ok:true}`) and clears it; skipped while a session exists. New backend route + specs; mobile test.
+8. `removeAllOfAccount` removed (account deletion deletes via SQL).
+Also: merged develop (conflicts: PatientMainLayout, patient-app module, docs); `<LiveTokenSection />` now pinned at the top of `TodayPage` (removed from the placeholder); Urdu for all strings (no TODO(ur)).
+Checks: backend build; specs patient-auth/patient-app/patient-devices/appointments (28 suites), queue/notifications/access/common (29 suites) green; mobile tsc, lint 0 errors, fences, jest core+patient+shell (71 suites) green.
+
+---
+## Rework M4-05 #1 - 2026-11-17
+Status stays: review. mobile/develop merged (HANDOFF conflict: kept both).
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| 1 | Staff could see Urdu | Welcome + Update pages English-only; crash boundary Urdu only in the patient space |
+| 2 | No Nastaliq outside scope | boundary wraps `UrduFontScope` in patient space; report corrected |
+| 3 | Names in messages | `scrubError` forwards name/code/status + known generic transport messages only; A-24 updated |
+| 4 | Scrubber gaps | JWT first, secret key=value pairs, route ids after known nouns of any length, segments string-scrubbed; tests for each |
+| 5 | memo without stable props | `useStableCallback` (core/hooks), `useCallback`, memoised notification models; row `onPress` now gets row/id |
+| 6 | Dev noise | expected failures (code/status/offline) not warned |
+
+Verification: tsc only the known global.css message; eslint 0 errors (5 warnings, 1 new from merged develop code in patient devices test); lint:fences ok; jest foreground chunks green: core 37 suites, patient 31, staff queue 19 + others 15 + 31, shell/appointments/notifications 17.
