@@ -2016,6 +2016,24 @@ CREATE INDEX idx_patient_access_log_org_patient_at ON patient_access_log (organi
 CREATE INDEX idx_patient_access_log_account_at ON patient_access_log (account_id, at);
 
 -- ------------------------------------------------------------------------
+-- product_events   (src/product-events/entities/product-event.entity.ts)
+-- Privacy-safe product analytics (M2-13): allow-listed name + scalar props,
+-- account/user id only. No FKs (survives account deletion), no health data.
+-- Retention: 400 days (mobile-app/docs/analytics-events.md).
+-- ------------------------------------------------------------------------
+CREATE TABLE product_events (
+  id              bigserial PRIMARY KEY,
+  actor_type      varchar(10) NOT NULL,    -- staff | patient | anon
+  actor_id        uuid,                    -- users.uuid / patient_accounts.id
+  organization_id uuid,                    -- only when the server knows it
+  name            varchar(60) NOT NULL,
+  props           jsonb NOT NULL DEFAULT '{}'::jsonb,
+  at              timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT chk_product_events_actor_type CHECK (actor_type IN ('staff','patient','anon'))
+);
+CREATE INDEX idx_product_events_name_at ON product_events (name, at);
+
+-- ------------------------------------------------------------------------
 -- medication_schedules / medication_dose_events   (src/medications/entities)
 -- ------------------------------------------------------------------------
 CREATE TABLE medication_schedules (

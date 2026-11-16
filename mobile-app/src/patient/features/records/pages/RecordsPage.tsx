@@ -1,9 +1,10 @@
 import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
 
 import { Screen, ScreenHeader, SearchBar, SegmentedControl } from '@/core/components';
 import { useT } from '@/core/i18n';
+import { trackPatient } from '@/patient/lib/analytics';
 
 import { AppointmentCard, BillCard, PrescriptionCard, VisitCard } from '../components/RecordCards';
 import { RecordsList } from '../components/RecordsList';
@@ -36,6 +37,11 @@ export function RecordsPage() {
   // Hide Bills once we KNOW no clinic shows billing (never while loading or failed).
   const showBills = !(billing.isSuccess && (billing.data?.length ?? 0) === 0);
   const active: RecordSegment = segment === 'bills' && !showBills ? 'appointments' : segment;
+
+  // Product metric (M2-13): which record list the patient opens. The kind is the tab, never a record.
+  useEffect(() => {
+    trackPatient('records_opened', { kind: active === 'bills' ? 'invoices' : active });
+  }, [active]);
 
   const segments = useMemo(() => {
     const all: { value: RecordSegment; label: string }[] = [

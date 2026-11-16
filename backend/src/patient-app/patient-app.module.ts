@@ -7,6 +7,8 @@ import { PatientAccessLog } from './entities/patient-access-log.entity';
 import { PatientAccountConsent } from './entities/patient-account-consent.entity';
 import { PatientProfile } from './entities/patient-profile.entity';
 import { PatientRecordLink } from './entities/patient-record-link.entity';
+import { ProductEventsModule } from 'src/product-events/product-events.module';
+import { PatientEventsController } from './events.controller';
 import { MedicationsModule } from 'src/medications/medications.module';
 import { PatientMedicationsController } from './medications/patient-medications.controller';
 import { PatientMedicationsService } from './medications/patient-medications.service';
@@ -28,6 +30,7 @@ import './patient-app.settings';
     FeatureFlagsModule,
     PrescriptionsModule,
     PatientLinksModule,
+    ProductEventsModule,
     MedicationsModule,
     TypeOrmModule.forFeature([
       PatientAccount,
@@ -40,8 +43,9 @@ import './patient-app.settings';
   controllers: [
     PatientMeController,
     PatientReadsController,
-    PatientMedicationsController,
     ClaimsController,
+    PatientEventsController,
+    PatientMedicationsController,
   ],
   providers: [
     PatientMeService,
