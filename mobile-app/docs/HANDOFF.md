@@ -3227,3 +3227,54 @@ Branch: claude/m3-08-confirm-contact-1551df · Status stays: review
 | 4 | docs/07 | confirm returns `{ id, patientConfirmedAt }`; `canConfirm` text updated. |
 | 5 | Raw tel | Detail page uses `telUrl()` (exported from the contact barrel). |
 | 6 | P-07 entry | Clinic chip on appointment detail opens the contact sheet (`ClinicChip onPress`, 44 pt). Cut: not on list cards (chip would nest in the card pressable); Today entry stays with the Today session. |
+
+
+---
+## M4-01 — Urdu translation pass + Noto Nastaliq font + layout check - 2026-11-16
+Branch: claude/m4-01-urdu-46c4ef - Status: review
+
+### What was done
+- `src/core/i18n/ur.ts`: every `TODO(ur)` string and the whole `claim` block translated (simple, kind Urdu; `{params}` untouched; OTP-style/brand terms and `DELETE`/`YYYY-MM-DD` kept Latin). Header comment points at the allow-list rule.
+- `i18n.test.ts`: new tests - `{param}`s of every `en` string appear in `ur`; no `// TODO(ur)` marker left (allow-list `UR_TODO_ALLOW_LIST` is empty). **New keys after M4-01:** add to `en.ts` AND give `ur.ts` real Urdu in the same change; only if it truly can't be translated yet, copy the English, mark `// TODO(ur)` and add the dotted key to the allow-list (the test fails otherwise).
+- Font: `src/core/i18n/urdu-font.ts` - `useUrduFont()` / `loadUrduFont()` load `NotoNastaliqUrdu_400Regular` / `_700Bold` through `expo-font` from an OPTIONAL `require('@expo-google-fonts/noto-nastaliq-urdu')`; when the package is missing it stays on the system font. `src/core/ui/text.tsx` (the one Text wrapper) applies the family (bold for `font-semibold|bold|extrabold|black`) and `leading-loose` only when locale is `ur` and the font is ready. `urdu-font.test.ts` covers the fallback.
+- Layout check: patient screens use `min-h-*` everywhere (no fixed text heights); `small` Text variant's `leading-none` is overridden by `leading-loose` for Urdu. No string concatenation around `t()` in `src/patient|shell|core`.
+
+### Install commands for the user
+```
+npx expo install @expo-google-fonts/noto-nastaliq-urdu expo-font
+```
+(expo-font is already a dependency; the command pins the font package.) No other code change needed after installing.
+
+### Device check needed (gate M0-D)
+- Install the package, switch to Urdu on a real Android + iPhone: verify the font loads, `leading-loose` (2x) is enough/not too much, bold weights look right.
+- `numberOfLines={1}` places: `ClinicLinkCard` (clinic name), `ClinicChip`, `ActionSheet` subtitle - check Nastaliq descenders are not clipped.
+- Buttons with `min-h-11` + long Urdu labels wrap OK; tab bar labels; the OTP/code inputs (digits stay Latin).
+- RTL stays OFF in the pilot (O-06): check mixed-direction lines (email, dates) read sensibly.
+- Native-speaker review of the translations is still advised before release.
+
+### Verification
+eslint 0 errors (4 old warnings) · lint:fences ok · tsc: only the known `@/global.css` message (expo-env.d.ts not generated; I did not run expo start) · jest result below.
+
+
+---
+## Rework M4-01 #1 - 2026-11-16
+Branch: claude/m4-01-urdu-46c4ef - Status stays: review
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| merge | mobile/develop merged (HANDOFF conflict: kept both sides; PROGRESS clean) | done |
+| 1 | Urdu font leaked to staff Text | `UrduFontScope` (core/i18n) wraps the patient space in `PatientProviders`; `useUrduFont()` is inactive outside it. `text.test.tsx`: staff Text unaffected under `ur`. Device check: portals/sheets that render outside the provider tree would stay on the system font. |
+| 2 | load during render | load now starts in `UrduFontScope`'s `useEffect` |
+| 3 | caller `style` dropped Urdu font | `style` destructured and merged after `{...props}`; test |
+| 4 | Latin-only Urdu values | new test, allow-list = 3 placeholders |
+| 5 | wording | suspended/clinicPaused, howLong, consent, relOther updated |
+| 6 | no bold weight | `bold` falls back to the regular family |
+
+Also fixed a bug of mine: the bold-detection regex contained a stray backspace char and never matched (found via the new test).
+Note: `@expo-google-fonts/noto-nastaliq-urdu` is now present in node_modules but NOT in package.json - the install command in the previous entry is still needed.
+Verification: tsc clean · eslint 0 errors · lint:fences ok · core/i18n + core/ui jest green; the full `src/core src/patient src/staff` run exceeded the tool timeout on this machine - lead to re-run.
+
+
+---
+## Rework M4-01 #2 - 2026-11-16
+mobile/develop merged (clean; package + expo-font plugin now present). `urdu-font.ts` doc updated (optional `require` kept as a safety fallback); bold maps to `NotoNastaliqUrdu_700Bold`. Tests now use the REAL package: `text.test.tsx` (virtual mock removed) and new `urdu-font-installed.test.ts`. tsc clean, eslint 0 errors, core/i18n + core/ui jest 13/13. The install command from the first entry is no longer needed.

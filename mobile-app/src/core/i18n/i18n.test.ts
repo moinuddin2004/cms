@@ -1,4 +1,6 @@
+import { readFileSync } from 'fs';
 import { getLocales } from 'expo-localization';
+import { join } from 'path';
 
 import { getPref } from '@/core/storage/prefs';
 
@@ -45,6 +47,50 @@ describe('i18n', () => {
 
   it('ur has exactly the keys of en', () => {
     expect(keysOf(ur).sort()).toEqual(keysOf(en).sort());
+  });
+
+  it('keeps the {params} of every English string in the Urdu one', () => {
+    const flat = (o: object, prefix = ''): Record<string, string> =>
+      Object.fromEntries(
+        Object.entries(o).flatMap(([k, v]) =>
+          typeof v === 'string' ? [[prefix + k, v]] : Object.entries(flat(v as object, `${prefix}${k}.`)),
+        ),
+      );
+    const params = (v: string) => (v.match(/\{\w+\}/g) ?? []).sort();
+    const enFlat = flat(en);
+    const urFlat = flat(ur);
+    for (const key of Object.keys(enFlat)) {
+      expect({ key, params: params(urFlat[key]) }).toEqual({ key, params: params(enFlat[key]) });
+    }
+  });
+
+  // How to add a string after M4-01: add the key to `en.ts`, then give `ur.ts` a real Urdu text in the
+  // SAME change. Only if it genuinely cannot be translated yet, copy the English and mark the line
+  // `// TODO(ur)` AND list its dotted key here so the gap is visible. Remove it from here when done.
+  const UR_TODO_ALLOW_LIST: readonly string[] = [];
+
+  it('every Urdu string has Urdu script unless its key is allow-listed', () => {
+    const LATIN_OK = new Set([
+      'auth.signIn.emailPlaceholder',
+      'auth.verify.codePlaceholder',
+      'account.delete.typePlaceholder',
+      'contact.whatsapp', // brand name
+      'reminders.notify.titleFor', // only params: '{name}: {medicine}'
+    ]);
+    const flat = (o: object, prefix = ''): [string, string][] =>
+      Object.entries(o).flatMap(([k, v]): [string, string][] =>
+        typeof v === 'string' ? [[prefix + k, v]] : flat(v as object, `${prefix}${k}.`),
+      );
+    const bad = flat(ur)
+      .filter(([k, v]) => !LATIN_OK.has(k) && !/[؀-ۿ]/.test(v))
+      .map(([k]) => k);
+    expect(bad).toEqual([]);
+  });
+
+  it('has no untranslated TODO(ur) markers outside the allow-list', () => {
+    const source = readFileSync(join(__dirname, 'ur.ts'), 'utf8');
+    const markers = source.split('\n').filter((l) => l.includes('// TODO(ur)') && !l.trimStart().startsWith('*'));
+    expect(markers.length).toBeLessThanOrEqual(UR_TODO_ALLOW_LIST.length);
   });
 
   it('follows the phone language, an override wins and persists, null clears it', () => {
