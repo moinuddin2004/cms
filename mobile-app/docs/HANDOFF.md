@@ -2955,3 +2955,29 @@ Schema (same commit): `medication_schedules.prescription_version int`, `hidden b
 
 ### Verification
 `tsc -p tsconfig.build.json` clean · full backend jest 114 suites / 1283 tests green (incl. the new module smoke spec, sweep spec, weekly parser cases).
+
+---
+## M3-03 — Reminder engine — 2026-11-16
+Branch: claude/m3-03-reminders-033e68 · Status: review
+
+### Built (`src/patient/features/medications/`)
+- **`lib/plan-reminders.ts`** — pure `planReminders(schedules, events, now, horizonMs = 72 h, cap = 60, ctx)`: doses due in `(now, now+horizon]` of ACTIVE schedules (start/end date inclusive, phone calendar), minus doses that already have a taken/skipped event (matched by instant), earliest first, capped. Private reminders carry `medicineName/doseText/mealRelation = null` (the text builder cannot leak what it never receives). `lib/doses.ts` holds the shared dose expansion (also used by Today).
+- **`lib/reminder-scheduler.ts`** — `diffReminders` (cancel only `dose.*` ids no longer planned; add missing), `syncReminders(port, planned)` (cancel first, then schedule; one failing call never stops the rest and is retried next pass because the diff is recomputed from the OS state), `runSerialised` (passes never overlap), `cancelAllDoseReminders`. Notification id = `dose.<scheduleId>.<dueMs>.<contentHash>`, so a changed text (private toggled, language, renamed medicine) replaces the old one. `lib/expo-reminder-port.ts` = real `expo-notifications` DATE triggers on the `reminders` channel (fire with no network).
+- **`components/ReminderSync.tsx`** — mounted in `PatientMainLayout`: re-plans on start, on return to foreground and whenever schedules / dose events / private setting / language change (the persisted cache is enough, so it runs offline). Needs the OS permission to already be `granted` (never prompts; Today / settings do).
+- **Private reminders**: `lib/reminder-settings.ts` (prefs MMKV `patient.reminders.private`, a yes/no only). Text: "Medicine reminder for Ali" + "Open the app to see the dose." (`lib/reminder-content.ts`).
+- **Screens**: `/reminders` (permission status + turn on, private switch, link to guide) and `/reminders/battery` (OEM battery guide: generic steps, Xiaomi / Huawei / Oppo-Realme-Vivo / Samsung / OnePlus / other, opens system settings).
+- Data: `api/medications.api.ts` (follows `nextUpdatedSince`, replaces by id), queries `['medications', accountId]` / `['dose-events', accountId, fromYmd]` added to the patient persist allow-list.
+- Core: `foregroundBehavior` now also shows + sounds `medication.*` notifications while the app is open; `jest.setup.ts` mock gets `SchedulableTriggerInputTypes`; pref key added. Sign-out calls `clearMedicationLocalState()` (cancels all dose reminders, resets the queue).
+
+### Decisions / gaps for the architect
+1. **Profile names**: no profiles endpoint exists on `mobile/develop` (M2-10 is in flight), and `patient_profiles.private_reminders` is not served by any API. `hooks/useReminderProfiles.ts` is the seam (returns "unknown" now → reminders carry no name) and "private reminders" is one per-phone switch. Once M2-10 merges: wire `nameOf`, and optionally make `isPrivate` per profile.
+2. Dose `dueAt` = phone wall-clock converted to a UTC instant. If the phone changes timezone, already-recorded events no longer match the new instants (a dose could be reminded again). Accepted.
+3. Tap on a reminder only opens the app (the router ignores patient pushes until M3-07); `data.route` is `/today` for later.
+4. No quiet hours (not in the card).
+5. `completed` is never set by the backend: the planner stops at `endDate` itself.
+
+### Device check (HANDOFF for the lead — not done here)
+Airplane mode: link/finalise a prescription, grant notifications, set a dose a few minutes ahead, enable airplane mode, lock the phone → it must ring; also with the app swiped away. Check on a Xiaomi/Oppo/Samsung with and without the battery steps; check Android 13+ and exact-alarm behaviour (`SCHEDULE_EXACT_ALARM`/Doze may delay a DATE trigger by minutes on some OEMs — if so the app config needs the exact-alarm permission).
+
+### Verification
+typecheck clean · lint 0 errors · `lint:fences` ok · new specs: planner table (17), content, scheduler diff/sync/serialise, doses, dose queue (48 tests in 5 suites) · full jest: see commit message.
