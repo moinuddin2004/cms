@@ -39,6 +39,13 @@ export const entryRoom = (entryId: string) => `entry:${entryId}`;
 export interface PatientRealtimeDeps {
   getToken: () => string | null;
   invalidator: PatientInvalidator;
+  /**
+   * Patient `refreshSession` (single-flight; resolves null when the server rejected the refresh
+   * token, throws offline). Called once per `auth_error` so the reconnect carries a fresh token.
+   * The socket never signs out itself: what the refresh does with a dead session is the HTTP
+   * layer's decision.
+   */
+  refreshSession?: () => Promise<unknown>;
   /** Test seam. */
   createSocket?: (getToken: () => string | null) => Socket;
 }
@@ -107,8 +114,8 @@ export class PatientRealtime {
     // `io server disconnect` (a refused token / server down) never auto-reconnects: we do.
     socket.on('disconnect', (reason?: string) => this.onDown(reason === 'io server disconnect'));
     socket.on('connect_error', () => this.onDown(false));
-    socket.on('auth_error', () => this.onDown(true));
-    socket.on('unavailable', () => this.onDown(true));
+    socket.on('auth_error', () => this.onAuthError());
+    socket.on('unavailable', (e?: { retryAfterSeconds?: number }) => this.onUnavailable(e));
     socket.on('visit.event', (e: { entryId?: string; seq?: number }) =>
       this.deps.invalidator.visitEvent(e),
     );
@@ -134,9 +141,28 @@ export class PatientRealtime {
     this.scheduleReconnect();
   }
 
-  private scheduleReconnect(): void {
+  /** The access token was refused or expired: refresh once, then reconnect (backoff if it fails). */
+  private onAuthError(): void {
+    this.onDown(false);
+    const refresh = this.deps.refreshSession;
+    if (!refresh || this.disposed) return this.scheduleReconnect();
+    void refresh()
+      .catch(() => undefined) // offline: the backoff below retries
+      .finally(() => this.scheduleReconnect(this.attempt === 0 ? 0 : undefined));
+  }
+
+  /** Bus down: the session is fine. Poll, and come back after the server's suggested wait. */
+  private onUnavailable(e?: { retryAfterSeconds?: number }): void {
+    this.onDown(false);
+    const s = e?.retryAfterSeconds;
+    this.scheduleReconnect(
+      typeof s === 'number' && s > 0 ? Math.min(RECONNECT_MAX_MS, s * 1000) : undefined,
+    );
+  }
+
+  private scheduleReconnect(delayMs?: number): void {
     if (this.reconnectTimer) return;
-    const wait = reconnectDelay(this.attempt);
+    const wait = delayMs ?? reconnectDelay(this.attempt);
     this.attempt += 1;
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;

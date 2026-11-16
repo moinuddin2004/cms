@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from 'react';
 
+import { refreshSession } from '@/patient/lib/api';
 import { usePatientAuthStore } from '@/patient/store/usePatientAuthStore';
 
 import { PatientRealtime } from './realtime';
@@ -26,6 +27,7 @@ export function PatientRealtimeProvider({ children }: { children: ReactNode }) {
     const realtime = new PatientRealtime({
       getToken: () => usePatientAuthStore.getState().accessToken,
       invalidator,
+      refreshSession,
     });
     return { realtime, invalidator };
   });

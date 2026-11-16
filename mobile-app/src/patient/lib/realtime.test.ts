@@ -44,7 +44,7 @@ class FakeSocket {
   }
 }
 
-function setup() {
+function setup(withRefresh = false) {
   const socket = new FakeSocket();
   const invalidator: jest.Mocked<PatientInvalidator> = {
     visitEvent: jest.fn(),
@@ -52,12 +52,14 @@ function setup() {
     all: jest.fn(),
     dispose: jest.fn(),
   };
+  const refreshSession = jest.fn(async () => ({ ok: true }));
   const realtime = new PatientRealtime({
     getToken: () => 'tok',
     invalidator,
+    ...(withRefresh ? { refreshSession } : {}),
     createSocket: () => socket as unknown as Socket,
   });
-  return { socket, invalidator, realtime };
+  return { socket, invalidator, realtime, refreshSession };
 }
 
 beforeEach(() => jest.useFakeTimers());
@@ -101,6 +103,7 @@ describe('PatientRealtime', () => {
 
   it('auth_error: not live, schedules a reconnect with backoff, never signs out', () => {
     const { socket, invalidator, realtime } = setup();
+    // no refreshSession dep here: plain backoff
     realtime.connect();
     realtime.watchEntry('e1');
     socket.serverConnect();
@@ -143,6 +146,47 @@ describe('PatientRealtime', () => {
     socket.connect.mockClear();
     jest.advanceTimersByTime(RECONNECT_BASE_MS);
     expect(socket.connect).toHaveBeenCalled();
+  });
+
+  it('unavailable honours retryAfterSeconds and does not refresh the session', () => {
+    const { socket, realtime, refreshSession } = setup();
+    realtime.connect();
+    socket.serverConnect();
+    socket.connect.mockClear();
+    socket.fire('unavailable', { retryAfterSeconds: 7 });
+    expect(realtime.isLive()).toBe(false);
+    jest.advanceTimersByTime(6_999);
+    expect(socket.connect).not.toHaveBeenCalled();
+    jest.advanceTimersByTime(1);
+    expect(socket.connect).toHaveBeenCalledTimes(1);
+    expect(refreshSession).not.toHaveBeenCalled();
+  });
+
+  it('auth_error with a refresh: refreshes once, then reconnects', async () => {
+    const { socket, realtime, refreshSession } = setup(true);
+    realtime.connect();
+    socket.serverConnect();
+    socket.connect.mockClear();
+    socket.fire('auth_error', { message: 'x' });
+    expect(refreshSession).toHaveBeenCalledTimes(1);
+    await Promise.resolve();
+    await Promise.resolve();
+    jest.advanceTimersByTime(0);
+    expect(socket.connect).toHaveBeenCalledTimes(1);
+  });
+
+  it('a failing refresh (offline) still reconnects and never throws', async () => {
+    const { socket, realtime, refreshSession } = setup(true);
+    refreshSession.mockRejectedValue(new Error('offline'));
+    realtime.connect();
+    socket.serverConnect();
+    socket.connect.mockClear();
+    socket.fire('auth_error');
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+    jest.advanceTimersByTime(0);
+    expect(socket.connect).toHaveBeenCalledTimes(1);
   });
 
   it('a reconnect refetches once (events may have been missed)', () => {

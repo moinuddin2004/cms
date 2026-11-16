@@ -3131,3 +3131,20 @@ Backend: build clean; full unit suite 123 suites / 1362 tests pass. Mobile: tsc 
 
 ### Install commands for the user
 none. Apply `backend/database/changes/2026-11-16_patient_push.sql` to existing databases.
+## M3-05 follow-up — socket lifetime hardening  ·  2026-11-16  ·  Claude Sonnet 5.5
+Branch: claude/m3-05-followup (from mobile/develop)   Status: review
+
+### Done
+- Sockets close at access-token `exp` (timer, cleared on disconnect); every `subscribe` re-checks `isAlive(sid, sub)` and drops the socket when it ended.
+- `PatientSessionEvents` (patient-auth, in-process): fired on logout, refresh-token reuse and account deletion; the gateway disconnects that session (or all of the account's sockets). Other API instances rely on the exp timer + per-subscribe check (no Redis fan-out).
+- Patient gateway publish wrapped in try/catch in the in-process publisher and the Redis subscriber (spec).
+- Bus down -> `unavailable { retryAfterSeconds }` + disconnect, never `auth_error`.
+- Max 5 sockets per account, oldest dropped.
+- Doc 07 §7: active+frozen links, finished entries, lifetime, availability.
+
+### Verification
+tsc clean; patient-app/auth/queue + rest of the backend unit suite green in chunks (90 + 32 suites, 1,345 tests). New specs: gateway lifetime/cap/unavailable, session events, publisher isolation.
+Mobile note: handle `unavailable` (poll, keep session) separately from `auth_error` (refresh token, reconnect).
+
+### M3-06/07 addendum (after merging the M3-05 follow-up)
+Mobile socket now follows the follow-up: `unavailable { retryAfterSeconds }` -> not live, poll, reconnect after that wait, no session refresh; `auth_error` -> one `refreshSession()` (single-flight, errors swallowed) then reconnect with backoff. Specs added. Re-verified after merge: backend build, 43 suites (queue, notifications, patient-app, appointments, access, devices) green; mobile tsc, lint 0 errors, fences, jest 135 suites / 949 tests green.

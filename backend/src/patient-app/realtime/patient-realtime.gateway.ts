@@ -1,14 +1,16 @@
-import { Logger } from '@nestjs/common';
+import { Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import {
   ConnectedSocket,
   MessageBody,
   OnGatewayConnection,
+  OnGatewayDisconnect,
   SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Namespace, Socket } from 'socket.io';
 import { allowedOrigins } from 'src/common/cors';
+import { PatientSessionEvents } from 'src/patient-auth/patient-session-events';
 import { PatientSessionService } from 'src/patient-auth/patient-session.service';
 import { PatientTokenService } from 'src/patient-auth/patient-token.service';
 import { PatientQueueService } from '../queue/patient-queue.service';
@@ -16,6 +18,9 @@ import { PatientQueueService } from '../queue/patient-queue.service';
 const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
 const ENTRY_ROOM = new RegExp(`^entry:(${UUID})$`, 'i');
 const MAX_ENTRY_ROOMS = 20;
+/** Sockets one account may hold at once; the oldest are dropped. */
+export const MAX_SOCKETS_PER_ACCOUNT = 5;
+const MAX_TIMER_MS = 2_147_000_000;
 
 export const patientRoom = (accountId: string) => `patient:${accountId}`;
 export const entryRoom = (entryId: string) => `entry:${entryId}`;
@@ -35,7 +40,13 @@ export const entryRoom = (entryId: string) => `entry:${entryId}`;
   cors: { origin: allowedOrigins(), credentials: true },
   transports: ['websocket', 'polling'],
 })
-export class PatientRealtimeGateway implements OnGatewayConnection {
+export class PatientRealtimeGateway
+  implements
+    OnGatewayConnection,
+    OnGatewayDisconnect,
+    OnModuleInit,
+    OnModuleDestroy
+{
   private readonly logger = new Logger(PatientRealtimeGateway.name);
   private open = true;
   /** queue session → entries that have (had) a subscriber on this instance. */
@@ -47,11 +58,67 @@ export class PatientRealtimeGateway implements OnGatewayConnection {
     private readonly tokens: PatientTokenService,
     private readonly sessions: PatientSessionService,
     private readonly queue: PatientQueueService,
+    private readonly sessionEvents?: PatientSessionEvents,
   ) {}
 
-  async handleConnection(socket: Socket) {
+  private stopEvents: (() => void) | null = null;
+
+  onModuleInit() {
+    this.stopEvents =
+      this.sessionEvents?.onRevoked(
+        (e) => void this.disconnectAccount(e.accountId, e.sessionId),
+      ) ?? null;
+  }
+
+  onModuleDestroy() {
+    this.stopEvents?.();
+  }
+
+  handleDisconnect(socket: Socket) {
+    clearTimeout(socket.data?.expiryTimer as NodeJS.Timeout | undefined);
+  }
+
+  /** Drop an account's sockets (one session, or all of them). */
+  async disconnectAccount(accountId: string, sessionId?: string) {
     try {
-      if (!this.open) throw new Error('unavailable');
+      const sockets = await this.server
+        .in(patientRoom(accountId))
+        .fetchSockets();
+      for (const s of sockets) {
+        if (sessionId && s.data?.sessionId !== sessionId) continue;
+        s.emit('auth_error', { message: 'Session ended' });
+        s.disconnect(true);
+      }
+    } catch (err) {
+      this.logger.warn(`Dropping sockets failed: ${(err as Error).message}`);
+    }
+  }
+
+  /** Keep at most MAX_SOCKETS_PER_ACCOUNT sockets per account; the oldest go. */
+  private async enforceCap(accountId: string) {
+    if (!this.server) return;
+    const sockets = await this.server
+      .in(patientRoom(accountId))
+      .fetchSockets();
+    if (sockets.length <= MAX_SOCKETS_PER_ACCOUNT) return;
+    sockets.sort(
+      (a, b) =>
+        Number(a.data?.connectedAt ?? 0) - Number(b.data?.connectedAt ?? 0),
+    );
+    for (const s of sockets.slice(0, sockets.length - MAX_SOCKETS_PER_ACCOUNT)) {
+      s.emit('auth_error', { message: 'Too many connections' });
+      s.disconnect(true);
+    }
+  }
+
+  async handleConnection(socket: Socket) {
+    if (!this.open) {
+      // Not an auth failure: clients keep their session and poll instead.
+      socket.emit('unavailable', { retryAfterSeconds: 10 });
+      socket.disconnect(true);
+      return;
+    }
+    try {
       const token = socket.handshake.auth?.token;
       if (typeof token !== 'string' || !token) throw new Error('no token');
       const payload = await this.tokens.verify(token);
@@ -61,7 +128,22 @@ export class PatientRealtimeGateway implements OnGatewayConnection {
       }
       socket.data.accountId = payload.sub;
       socket.data.sessionId = payload.sid;
+      socket.data.connectedAt = Date.now();
+      if (payload.exp) {
+        // The socket must not outlive its access token; the client reconnects with a fresh one.
+        const ms = Math.min(
+          Math.max(payload.exp * 1000 - Date.now(), 0),
+          MAX_TIMER_MS,
+        );
+        const timer = setTimeout(() => {
+          socket.emit('auth_error', { message: 'Token expired' });
+          socket.disconnect(true);
+        }, ms);
+        timer.unref?.();
+        socket.data.expiryTimer = timer;
+      }
       await socket.join(patientRoom(payload.sub));
+      await this.enforceCap(payload.sub);
     } catch {
       socket.emit('auth_error', { message: 'Invalid or expired token' });
       socket.disconnect(true);
@@ -77,6 +159,11 @@ export class PatientRealtimeGateway implements OnGatewayConnection {
     const accountId: string | undefined = socket.data?.accountId;
     const denied = { ok: false, room, error: 'NOT_FOUND' };
     if (!accountId) return denied;
+    if (!(await this.sessions.isAlive(socket.data.sessionId, accountId))) {
+      socket.emit('auth_error', { message: 'Session ended' });
+      socket.disconnect(true);
+      return denied;
+    }
     const match = room.match(ENTRY_ROOM);
     if (!match) return denied;
     const entryId = match[1].toLowerCase();
