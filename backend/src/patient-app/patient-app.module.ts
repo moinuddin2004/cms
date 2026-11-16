@@ -7,6 +7,9 @@ import { PatientAccessLog } from './entities/patient-access-log.entity';
 import { PatientAccountConsent } from './entities/patient-account-consent.entity';
 import { PatientProfile } from './entities/patient-profile.entity';
 import { PatientRecordLink } from './entities/patient-record-link.entity';
+import { MedicationsModule } from 'src/medications/medications.module';
+import { PatientMedicationsController } from './medications/patient-medications.controller';
+import { PatientMedicationsService } from './medications/patient-medications.service';
 import { PatientLinksModule } from 'src/patient-links/patient-links.module';
 import { ClaimsController } from './claims.controller';
 import { PatientAccountService } from './account/patient-account.service';
@@ -24,12 +27,13 @@ import { PatientReadsController } from './reads/patient-reads.controller';
 import { PatientReadsService } from './reads/patient-reads.service';
 import './patient-app.settings';
 
-/** Patient-space API: `/patient-api/me` (M2-02, delete M2-11), claims (M2-04), reads (M2-08), profiles (M2-10), links (M2-11). */
+/** Patient-space API: `/patient-api/me` (M2-02, delete M2-11), claims (M2-04), reads (M2-08), medications (M3-02), profiles (M2-10), links (M2-11). */
 @Module({
   imports: [
     FeatureFlagsModule,
     PrescriptionsModule,
     PatientLinksModule,
+    MedicationsModule,
     TypeOrmModule.forFeature([
       PatientAccount,
       PatientProfile,
@@ -41,6 +45,7 @@ import './patient-app.settings';
   controllers: [
     PatientMeController,
     PatientReadsController,
+    PatientMedicationsController,
     ClaimsController,
     PatientProfilesController,
     PatientAccountLinksController,
@@ -55,6 +60,7 @@ import './patient-app.settings';
     PatientClinicsService,
     PatientAccessLogService,
     PatientReadsService,
+    PatientMedicationsService,
   ],
   exports: [TypeOrmModule, PatientJwtGuard, PatientLinkGuard],
 })

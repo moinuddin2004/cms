@@ -89,6 +89,8 @@ export interface PatientInvoiceDto {
   profileId: string;
   number: string;
   issuedAt: string;
+  /** IANA zone of the invoice's location: show `issuedAt` on this clock. */
+  timezone: string;
   totalMinor: number;
   paidMinor: number;
   balanceMinor: number;
