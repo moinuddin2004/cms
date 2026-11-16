@@ -7,11 +7,6 @@ import { loadUrduFont } from "@/core/i18n/urdu-font";
 import { Text } from "./text";
 
 jest.mock("expo-font", () => ({ loadAsync: jest.fn(() => Promise.resolve()) }));
-jest.mock(
-  "@expo-google-fonts/noto-nastaliq-urdu",
-  () => ({ NotoNastaliqUrdu_400Regular: 1, NotoNastaliqUrdu_700Bold: 2 }),
-  { virtual: true },
-);
 
 const styleOf = (node: { props: { style?: unknown } }) =>
   JSON.stringify(node.props.style ?? null);

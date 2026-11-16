@@ -3163,3 +3163,8 @@ Branch: claude/m4-01-urdu-46c4ef - Status stays: review
 Also fixed a bug of mine: the bold-detection regex contained a stray backspace char and never matched (found via the new test).
 Note: `@expo-google-fonts/noto-nastaliq-urdu` is now present in node_modules but NOT in package.json - the install command in the previous entry is still needed.
 Verification: tsc clean · eslint 0 errors · lint:fences ok · core/i18n + core/ui jest green; the full `src/core src/patient src/staff` run exceeded the tool timeout on this machine - lead to re-run.
+
+
+---
+## Rework M4-01 #2 - 2026-11-16
+mobile/develop merged (clean; package + expo-font plugin now present). `urdu-font.ts` doc updated (optional `require` kept as a safety fallback); bold maps to `NotoNastaliqUrdu_700Bold`. Tests now use the REAL package: `text.test.tsx` (virtual mock removed) and new `urdu-font-installed.test.ts`. tsc clean, eslint 0 errors, core/i18n + core/ui jest 13/13. The install command from the first entry is no longer needed.

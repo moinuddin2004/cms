@@ -13,10 +13,8 @@ import { useT, type Locale } from "./i18n";
 /**
  * Noto Nastaliq Urdu for the patient space when the language is Urdu (DECISIONS O-06).
  *
- * The font package is NOT a dependency yet (adding packages is reserved for the user):
- *   npx expo install @expo-google-fonts/noto-nastaliq-urdu expo-font
- * Until it is installed the optional `require` below fails quietly and every screen keeps the system
- * font, so the app builds and runs either way. Once installed nothing else needs to change.
+ * The package `@expo-google-fonts/noto-nastaliq-urdu` is installed; the `require` stays optional so a
+ * missing module (tests, a broken install) falls back to the system font instead of crashing.
  */
 
 export const URDU_FONT_REGULAR = "NotoNastaliqUrdu_400Regular";
