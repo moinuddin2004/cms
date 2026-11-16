@@ -2,12 +2,15 @@ import { HeartPulse, Stethoscope, Users, type LucideIcon } from 'lucide-react-na
 import { useEffect } from 'react';
 import { View } from 'react-native';
 
-import { useT } from '@/core/i18n';
+import { translate, type MessageKey } from '@/core/i18n';
 import { markReady } from '@/core/splash';
 import { switchSpace } from '@/core/space/switch-space';
 import { Button } from '@/core/ui/button';
 import { Icon } from '@/core/ui/icon';
 import { Text } from '@/core/ui/text';
+
+/** These screens appear before a space is chosen (and to staff): English only, never the phone locale. */
+const t = (key: MessageKey) => translate(key, undefined, 'en');
 
 interface SpaceCardProps {
   icon: LucideIcon;
@@ -42,7 +45,6 @@ function SpaceCard({ icon, title, description, onPress }: SpaceCardProps) {
  * product name (F-05).
  */
 export function WelcomePage() {
-  const { t } = useT();
   useEffect(() => {
     markReady();
   }, []);

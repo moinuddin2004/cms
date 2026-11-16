@@ -3338,3 +3338,18 @@ tsc: only the known `@/global.css` message Â· eslint 0 errors (4 old warnings) Â
 8. `removeAllOfAccount` removed (account deletion deletes via SQL).
 Also: merged develop (conflicts: PatientMainLayout, patient-app module, docs); `<LiveTokenSection />` now pinned at the top of `TodayPage` (removed from the placeholder); Urdu for all strings (no TODO(ur)).
 Checks: backend build; specs patient-auth/patient-app/patient-devices/appointments (28 suites), queue/notifications/access/common (29 suites) green; mobile tsc, lint 0 errors, fences, jest core+patient+shell (71 suites) green.
+
+---
+## Rework M4-05 #1 - 2026-11-17
+Status stays: review. mobile/develop merged (HANDOFF conflict: kept both).
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| 1 | Staff could see Urdu | Welcome + Update pages English-only; crash boundary Urdu only in the patient space |
+| 2 | No Nastaliq outside scope | boundary wraps `UrduFontScope` in patient space; report corrected |
+| 3 | Names in messages | `scrubError` forwards name/code/status + known generic transport messages only; A-24 updated |
+| 4 | Scrubber gaps | JWT first, secret key=value pairs, route ids after known nouns of any length, segments string-scrubbed; tests for each |
+| 5 | memo without stable props | `useStableCallback` (core/hooks), `useCallback`, memoised notification models; row `onPress` now gets row/id |
+| 6 | Dev noise | expected failures (code/status/offline) not warned |
+
+Verification: tsc only the known global.css message; eslint 0 errors (5 warnings, 1 new from merged develop code in patient devices test); lint:fences ok; jest foreground chunks green: core 37 suites, patient 31, staff queue 19 + others 15 + 31, shell/appointments/notifications 17.

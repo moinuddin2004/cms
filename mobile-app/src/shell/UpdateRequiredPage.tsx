@@ -3,11 +3,14 @@ import { CircleArrowUp } from 'lucide-react-native';
 import { useEffect } from 'react';
 import { Linking, Platform, View } from 'react-native';
 
-import { useT } from '@/core/i18n';
+import { translate, type MessageKey } from '@/core/i18n';
 import { markReady } from '@/core/splash';
 import { Button } from '@/core/ui/button';
 import { Icon } from '@/core/ui/icon';
 import { Text } from '@/core/ui/text';
+
+/** These screens appear before a space is chosen (and to staff): English only, never the phone locale. */
+const t = (key: MessageKey) => translate(key, undefined, 'en');
 
 interface UpdateRequiredPageProps {
   /** Optional line from the backend (`MOBILE_MIN_VERSION_MESSAGE`). */
@@ -50,7 +53,6 @@ async function openStore(): Promise<void> {
  * build as well.
  */
 export function UpdateRequiredPage({ message }: UpdateRequiredPageProps) {
-  const { t } = useT();
   useEffect(() => {
     markReady();
   }, []);

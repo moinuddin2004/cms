@@ -10,6 +10,7 @@ import {
   Screen,
   ScreenHeader,
 } from '@/core/components';
+import { useStableCallback } from '@/core/hooks/use-stable-callback';
 import { useCanMutate } from '@/core/http';
 import { Text } from '@/core/ui/text';
 import { useAccess } from '@/staff/features/access';
@@ -45,6 +46,8 @@ export function ArrivalsPage() {
     flow.start(row.id, urgentReason);
   };
 
+  const checkInRow = useStableCallback((row: AppointmentListItem) => startCheckIn(row));
+
   const rows = query.data ?? [];
   const savedAt = query.dataUpdatedAt ? formatInClinic(query.dataUpdatedAt, 'HH:mm') : undefined;
 
@@ -79,7 +82,7 @@ export function ArrivalsPage() {
             row={item}
             checkingIn={flow.checkingIn && checkingId === item.id}
             locked={flow.checkingIn || !canMutate}
-            onCheckIn={(row) => startCheckIn(row)}
+            onCheckIn={checkInRow}
             onCheckInUrgent={setUrgentFor}
           />
         )}

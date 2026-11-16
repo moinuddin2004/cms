@@ -5,7 +5,7 @@
  * one cannot leak a body, name, token or URL by mistake.
  */
 import { log } from '../log';
-import { scrubContext, scrubError, type ScrubbedContext, type ScrubbedError } from './scrub';
+import { isExpectedError, scrubContext, scrubError, type ScrubbedContext, type ScrubbedError } from './scrub';
 
 export interface ErrorReport {
   error: ScrubbedError;
@@ -29,7 +29,8 @@ export function reportError(err: unknown, context?: Record<string, unknown>): vo
   try {
     const report: ErrorReport = { error: scrubError(err), context: scrubContext(context) };
     if (reporter) reporter(report);
-    else {
+    else if (!isExpectedError(report.error)) {
+      // Expected failures (API code / HTTP status / offline) are shown in the UI already: no dev noise.
       // `log.warn` is dev-only and compiled out of release builds.
       const where = report.context.route ?? report.context.screen ?? report.context.source ?? '';
       log.warn(`[report] ${report.error.name} ${report.error.code ?? report.error.status ?? ''} ${where}`.trim());

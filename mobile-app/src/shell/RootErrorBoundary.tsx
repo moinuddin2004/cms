@@ -3,8 +3,9 @@ import { useEffect } from 'react';
 import { View } from 'react-native';
 
 import { ErrorState } from '@/core/components';
-import { useT } from '@/core/i18n';
+import { translate, UrduFontScope, useT } from '@/core/i18n';
 import { reportError } from '@/core/observability';
+import { useSpaceStore } from '@/core/space/useSpaceStore';
 
 /**
  * Expo Router's root error boundary: a render crash anywhere below shows a
@@ -12,13 +13,17 @@ import { reportError } from '@/core/observability';
  * seam (A-24) — the error's name/message pass the scrubber, never props or state.
  */
 export function RootErrorBoundary({ error, retry }: ErrorBoundaryProps) {
-  const { t } = useT();
+  const { locale } = useT();
+  const patient = useSpaceStore((s) => s.activeSpace) === 'patient';
+  // Staff and the pre-space picker stay English; only the patient space follows the phone locale.
+  const t = (key: 'common.crashTitle' | 'common.crashBody' | 'common.retry') =>
+    translate(key, undefined, patient ? locale : 'en');
 
   useEffect(() => {
     reportError(error, { source: 'boundary' });
   }, [error]);
 
-  return (
+  const body = (
     <View className="bg-background flex-1 justify-center">
       <ErrorState
         title={t('common.crashTitle')}
@@ -28,4 +33,5 @@ export function RootErrorBoundary({ error, retry }: ErrorBoundaryProps) {
       />
     </View>
   );
+  return patient ? <UrduFontScope>{body}</UrduFontScope> : body;
 }

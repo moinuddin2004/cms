@@ -12,7 +12,7 @@ export const doctorLabel = (row: Pick<AppointmentListItem, 'doctor'>) =>
   row.doctor.fullName || 'No doctor';
 
 /** One appointment: clinic-clock time, patient, doctor · type, status badge, queue token. */
-export const ScheduleRow = memo(function ScheduleRow({ row, onPress }: { row: AppointmentListItem; onPress: () => void }) {
+export const ScheduleRow = memo(function ScheduleRow({ row, onPress }: { row: AppointmentListItem; onPress: (row: AppointmentListItem) => void }) {
   const status = APPOINTMENT_STATUS_TONES[row.status];
   const time = formatTime(row.startTime);
   const sub = `${doctorLabel(row)} · ${typeLabel(row.type)}`;
@@ -26,7 +26,7 @@ export const ScheduleRow = memo(function ScheduleRow({ row, onPress }: { row: Ap
       accessible
       accessibilityRole="button"
       accessibilityLabel={label}
-      onPress={onPress}
+      onPress={() => onPress(row)}
       className="min-h-14 flex-row items-center gap-3 px-4 py-3 active:bg-accent">
       <Text className="w-20 text-sm font-medium tabular-nums">{time}</Text>
       <View className="flex-1 gap-0.5">
