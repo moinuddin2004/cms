@@ -17,7 +17,8 @@ Who is responsible: the operator of [APP_NAME] ("we", "us") is [OPERATOR_LEGAL_N
 - **Clinic data you work with:** patient records, appointments, queue, prescriptions and similar information, shown to you only as far as your clinic's permissions allow. You and your clinic create this data; the app only displays and edits it.
 - **Device and notification details:** a push notification token, the phone type (Android or iOS), a device label and the app version, so we can send you alerts such as "patient checked in".
 - **Session and audit records:** sign-in sessions, and a log of who changed which record and when. Clinics use it for accountability.
-- **Basic usage events:** which app features are used (for example, "queue opened"). These contain no patient names or health details. [CONFIRM when product events ship.]
+- **Security and sign-in logs:** for each sign-in session and each sign-in or security event (login, failed login, password change) we keep your IP address and the device or browser type (user agent). We use them to protect your account and detect fraud or misuse, and show you your active sessions. We keep them for [SECURITY_LOG_RETENTION_MONTHS] months. [CONFIRM.]
+- **Basic usage events:** which app features are used (for example, "queue opened"). These contain no patient names or health details.
 
 ### Patients
 
@@ -26,12 +27,13 @@ Who is responsible: the operator of [APP_NAME] ("we", "us") is [OPERATOR_LEGAL_N
 - **Linked clinic records:** after a clinic staff member shows you a QR code and you accept it, the app can show you your visits, appointments, queue position, prescriptions and medicine reminders held by that clinic. Clinical notes and the clinic's internal comments are never shown in the app.
 - **Reminders and dose history:** the medicine schedules created from your prescriptions and which doses you marked as taken.
 - **Device and notification details:** push token, phone type, app version.
+- **Security and sign-in logs:** for each sign-in session we keep your IP address and a device label (the phone model or type), so we can protect your account, detect misuse and let you see and end your sessions. They are deleted when you sign out of that session or delete your account, and in any case after [SECURITY_LOG_RETENTION_MONTHS] months. [CONFIRM.]
 - **Consents and access log:** which version of these terms and this policy you accepted, which clinic you linked, and a record of when your own health information was read through the app.
-- **Basic usage events:** which app screens and features are used, without health content. [CONFIRM when product events ship.]
+- **Basic usage events:** which app screens and features are used, without health content.
 
 ### What we do not collect
 
-We do not collect your precise location, contacts, photos or microphone recordings. The camera is used by clinic staff only to scan a code and nothing is stored. We do not show advertising and we do not sell personal data. No analytics or advertising company receives your health information.
+We do not collect your precise location, contacts, photos or microphone recordings. The app does not use your camera: codes shown by the clinic are scanned with your phone's own camera app, which opens a link. We do not show advertising and we do not sell personal data. No analytics or advertising company receives your health information.
 
 ## 2. Why we use it
 

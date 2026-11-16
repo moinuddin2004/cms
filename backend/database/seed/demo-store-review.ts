@@ -44,6 +44,9 @@ import { PatientAccount } from 'src/patient-auth/entities/patient-account.entity
 import { PatientAccountIdentity } from 'src/patient-auth/entities/patient-account-identity.entity';
 import { PatientProfile } from 'src/patient-app/entities/patient-profile.entity';
 import { PatientRecordLink } from 'src/patient-app/entities/patient-record-link.entity';
+import { SubscriptionPayment } from 'src/subscriptions/entities/subscription-payment.entity';
+import { ClinicApprovalStatus } from 'src/common/enums/clinic-approval-status.enum';
+import { planDemoClinic, staffAction } from 'src/demo-seed/demo-seed-plan';
 import { ActorSide } from 'src/common/audit/audit.enums';
 import { ProviderEnum } from 'src/auth/enum/ProviderEnum';
 import { GlobalRole } from 'src/common/enums/global-role.enum';
@@ -63,6 +66,9 @@ const FEATURES_OFF = new Set([
 
 // eslint-disable-next-line no-console
 const log = (m: string) => console.log(`[demo-seed] ${m}`);
+
+/** Obviously fictional: an all-zero subscriber number after the 0300 prefix (the app only requires a non-empty phone). */
+const DEMO_PHONES = { owner: '03000000100', doctor: '03000000110', desk: '03000000111' };
 
 const DEMO_PATIENTS = [
   { name: 'Demo Patient One', gender: 'female', dob: '1990-04-12', phone: '03000000101' },
@@ -93,30 +99,64 @@ async function run(app: SeedApp, cfg: DemoSeedConfig) {
   const superAdmin = await users.findOne({ where: { globalRole: GlobalRole.SUPER_ADMIN } });
   const platform = { userId: superAdmin?.uuid ?? null, side: ActorSide.PLATFORM };
 
-  // ── Clinic + owner ────────────────────────────────────────────────────
+  // ── Clinic + owner (each piece is checked, so a half-finished run resumes) ──
+  const orgRepo = ds.getRepository(Organization);
   let owner = await users.findOne({ where: { email: emailOf('owner') } });
-  let orgId: string;
-  let locationId: string;
-  if (!owner) {
+  let org = await orgRepo.findOne({ where: { name: CLINIC_NAME } });
+  const plan = planDemoClinic({
+    ownerExists: !!owner,
+    orgExists: !!org,
+    orgApproved: org?.approvalStatus === ClinicApprovalStatus.APPROVED,
+    paymentRecorded: org
+      ? (await ds.getRepository(SubscriptionPayment).count({ where: { organizationId: org.id } })) > 0
+      : false,
+  });
+
+  if (plan.createOwner) {
     owner = await users.save(
       users.create({
         email: emailOf('owner'),
         name: 'Demo Owner',
-        phone: '03000000100',
+        phone: DEMO_PHONES.owner,
         password: hash,
         provider: ProviderEnum.LOCAL,
         globalRole: null,
         emailVerifiedAt: new Date(),
       } as Partial<User>),
     );
+  }
+  if (!owner) throw new Error('unreachable: owner missing');
+
+  let orgId: string;
+  let locationId: string;
+  if (plan.createClinic) {
     const created = await app
       .get(ClinicSetupService)
-      .createClinicForOwner(owner, { clinicName: CLINIC_NAME, phone: '03000000100' });
+      .createClinicForOwner(owner, { clinicName: CLINIC_NAME, phone: DEMO_PHONES.owner });
     orgId = created.organizationId;
     locationId = created.locationId;
+    await orgRepo.update(orgId, { onboardingPending: false, clinicType: 'general' } as any);
+    await ds.getRepository(Location).update(locationId, {
+      name: 'Demo Main Branch',
+      timezone: TZ,
+      currency: 'PKR',
+      city: 'Karachi',
+      country: 'Pakistan',
+    } as any);
+    log('clinic created');
+  } else {
+    orgId = org!.id;
+    locationId = (
+      await ds.getRepository(Location).findOneOrFail({ where: { organizationId: orgId } })
+    ).id;
+    log('clinic already exists: reusing');
+  }
+  if (plan.approve) {
     await app
       .get(ClinicAccessService)
       .decideApproval(orgId, { decision: 'approve' }, platform as any);
+  }
+  if (plan.recordPayment) {
     await app.get(SubscriptionsService).recordPayment(
       orgId,
       {
@@ -129,37 +169,20 @@ async function run(app: SeedApp, cfg: DemoSeedConfig) {
       } as any,
       platform as any,
     );
-    await ds
-      .getRepository(Organization)
-      .update(orgId, { onboardingPending: false, clinicType: 'general' } as any);
-    await ds.getRepository(Location).update(locationId, {
-      name: 'Demo Main Branch',
-      timezone: TZ,
-      currency: 'PKR',
-      city: 'Karachi',
-      country: 'Pakistan',
-    } as any);
-    await app.get(FeatureFlagsService).seedFlagsForOrg(orgId);
-    await app.get(AccessTemplatesService).seedForOrg(orgId);
-    const flags = ds.getRepository(OrgFeatureFlag);
-    for (const f of await flags.find({ where: { organizationId: orgId } })) {
-      const on = !FEATURES_OFF.has(f.featureKey) && !f.featureKey.startsWith('dental.');
+  }
+  // Every run: both calls insert only what is missing, and the flag pass is idempotent.
+  await app.get(FeatureFlagsService).seedFlagsForOrg(orgId);
+  await app.get(AccessTemplatesService).seedForOrg(orgId);
+  const flags = ds.getRepository(OrgFeatureFlag);
+  for (const f of await flags.find({ where: { organizationId: orgId } })) {
+    const on = !FEATURES_OFF.has(f.featureKey) && !f.featureKey.startsWith('dental.');
+    if (f.isEntitled !== on || f.isEnabled !== on) {
       await flags.update(f.id, { isEntitled: on, isEnabled: on, enabledBy: owner.uuid } as any);
     }
-    (app.get(FeatureFlagsService) as any).invalidateCache(orgId);
-    log('clinic created and approved');
-  } else {
-    const org = await ds.getRepository(Organization).findOne({ where: { name: CLINIC_NAME } });
-    if (!org) {
-      throw new Error('The demo owner exists but the demo clinic was not found; resolve manually.');
-    }
-    orgId = org.id;
-    locationId = (
-      await ds.getRepository(Location).findOneOrFail({ where: { organizationId: orgId } })
-    ).id;
-    log('clinic already exists — reusing');
   }
+  (app.get(FeatureFlagsService) as any).invalidateCache(orgId);
   const t = { organizationId: orgId, locationId };
+
 
   // ── Staff ─────────────────────────────────────────────────────────────
   const roles = await ds.getRepository(EmploymentRole).find({ where: { organizationId: orgId } });
@@ -175,9 +198,18 @@ async function run(app: SeedApp, cfg: DemoSeedConfig) {
   ) {
     const email = emailOf(local);
     const existing = await users.findOne({ where: { email } });
+    const prior = existing
+      ? await assign.findOne({ where: { organizationId: orgId, userId: existing.uuid } })
+      : null;
+    if (staffAction({ userExists: !!existing, hasAssignment: !!prior }) === 'reuse') {
+      return { userId: existing!.uuid, employeeId: prior!.employeeId, created: false };
+    }
     if (existing) {
-      const a = await assign.findOne({ where: { organizationId: orgId, userId: existing.uuid } });
-      if (a) return { userId: existing.uuid, employeeId: a.employeeId, created: false };
+      // A login with this email exists but has no assignment at the demo clinic (a run that
+      // stopped half-way). Creating the employee again would fail on the duplicate email.
+      throw new Error(
+        `demo user ${email} exists without a demo-clinic assignment: delete that user, then re-run the seed`,
+      );
     }
     const created: any = await employees.create(
       t,
@@ -211,9 +243,10 @@ async function run(app: SeedApp, cfg: DemoSeedConfig) {
     return { userId: a.userId!, employeeId, created: true };
   }
 
-  const doctor = await ensureStaff('doctor', 'Dr. Demo Doctor', 'doctor', '03000000110');
-  const desk = await ensureStaff('reception', 'Demo Receptionist', 'receptionist', '03000000111');
-  if (doctor.created) {
+  const doctor = await ensureStaff('doctor', 'Dr. Demo Doctor', 'doctor', DEMO_PHONES.doctor);
+  const desk = await ensureStaff('reception', 'Demo Receptionist', 'receptionist', DEMO_PHONES.desk);
+  {
+    // Every run: setting the same weekly schedule again is harmless and repairs a half-finished run.
     await app.get(ScheduleService).setSchedule(
       doctor.employeeId,
       {
@@ -273,12 +306,12 @@ async function run(app: SeedApp, cfg: DemoSeedConfig) {
   const today = localDate(TZ, new Date());
   const slot = (daysAhead: number, hhmm: string) =>
     zonedTimeToUtc(TZ, addDays(today, daysAhead), hhmm).toISOString();
-  const plan: Array<[number, number, string, string]> = [
+  const apptPlan: Array<[number, number, string, string]> = [
     [0, 1, '10:00', 'Demo follow-up visit'],
     [1, 2, '11:00', 'Demo check-up'],
     [2, 3, '12:00', 'Demo consultation'],
   ];
-  for (const [i, daysAhead, hhmm, reason] of plan) {
+  for (const [i, daysAhead, hhmm, reason] of apptPlan) {
     const patient = patients[i];
     const has = await ds
       .getRepository(Appointment)

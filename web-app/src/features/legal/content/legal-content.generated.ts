@@ -2,357 +2,357 @@
 // DRAFT legal text: the owner and a lawyer must review it before publishing.
 import type { LegalBlock } from './types'
 
-export const LEGAL_CONTENT: Record<
-  'privacy' | 'terms' | 'deletion',
-  Array<LegalBlock>
-> = {
-  privacy: [
+export const LEGAL_CONTENT: Record<'privacy' | 'terms' | 'deletion', Array<LegalBlock>> = {
+  "privacy": [
     {
-      type: 'h1',
-      text: 'Privacy Policy',
+      "type": "h1",
+      "text": "Privacy Policy"
     },
     {
-      type: 'note',
-      text: 'DRAFT for the owner and a lawyer to review. Not legal advice. Replace every [PLACEHOLDER] before publishing.',
+      "type": "note",
+      "text": "DRAFT for the owner and a lawyer to review. Not legal advice. Replace every [PLACEHOLDER] before publishing."
     },
     {
-      type: 'p',
-      text: '**Last updated:** [DATE]',
+      "type": "p",
+      "text": "**Last updated:** [DATE]"
     },
     {
-      type: 'p',
-      text: '[APP_NAME] is a mobile app used in two ways: by **clinic staff** (doctors, receptionists and other team members of a clinic that uses our platform), and by **patients** who want to see their own visit information. This policy explains what we collect in each case, why, who sees it, how long we keep it and how you can delete it.',
+      "type": "p",
+      "text": "[APP_NAME] is a mobile app used in two ways: by **clinic staff** (doctors, receptionists and other team members of a clinic that uses our platform), and by **patients** who want to see their own visit information. This policy explains what we collect in each case, why, who sees it, how long we keep it and how you can delete it."
     },
     {
-      type: 'p',
-      text: 'Who is responsible: the operator of [APP_NAME] ("we", "us") is [OPERATOR_LEGAL_NAME]. Each clinic owns its own patient records. For those records the clinic decides what is kept and for how long; we store and process them on the clinic\'s behalf. Contact: [CLINIC_PLATFORM_CONTACT].',
+      "type": "p",
+      "text": "Who is responsible: the operator of [APP_NAME] (\"we\", \"us\") is [OPERATOR_LEGAL_NAME]. Each clinic owns its own patient records. For those records the clinic decides what is kept and for how long; we store and process them on the clinic's behalf. Contact: [CLINIC_PLATFORM_CONTACT]."
     },
     {
-      type: 'h2',
-      text: '1. What we collect',
+      "type": "h2",
+      "text": "1. What we collect"
     },
     {
-      type: 'h3',
-      text: 'Clinic staff',
+      "type": "h3",
+      "text": "Clinic staff"
     },
     {
-      type: 'ul',
-      items: [
-        '**Account details:** your name, email address, phone number and password (stored only as a one-way hash), and your sign-in method (password or Google).',
-        '**Work details:** your clinic, location, role and permissions.',
+      "type": "ul",
+      "items": [
+        "**Account details:** your name, email address, phone number and password (stored only as a one-way hash), and your sign-in method (password or Google).",
+        "**Work details:** your clinic, location, role and permissions.",
         "**Clinic data you work with:** patient records, appointments, queue, prescriptions and similar information, shown to you only as far as your clinic's permissions allow. You and your clinic create this data; the app only displays and edits it.",
-        '**Device and notification details:** a push notification token, the phone type (Android or iOS), a device label and the app version, so we can send you alerts such as "patient checked in".',
-        '**Session and audit records:** sign-in sessions, and a log of who changed which record and when. Clinics use it for accountability.',
-        '**Basic usage events:** which app features are used (for example, "queue opened"). These contain no patient names or health details. [CONFIRM when product events ship.]',
-      ],
+        "**Device and notification details:** a push notification token, the phone type (Android or iOS), a device label and the app version, so we can send you alerts such as \"patient checked in\".",
+        "**Session and audit records:** sign-in sessions, and a log of who changed which record and when. Clinics use it for accountability.",
+        "**Security and sign-in logs:** for each sign-in session and each sign-in or security event (login, failed login, password change) we keep your IP address and the device or browser type (user agent). We use them to protect your account and detect fraud or misuse, and show you your active sessions. We keep them for [SECURITY_LOG_RETENTION_MONTHS] months. [CONFIRM.]",
+        "**Basic usage events:** which app features are used (for example, \"queue opened\"). These contain no patient names or health details."
+      ]
     },
     {
-      type: 'h3',
-      text: 'Patients',
+      "type": "h3",
+      "text": "Patients"
     },
     {
-      type: 'ul',
-      items: [
-        '**Account details:** your email address (used to send you a 6-digit sign-in code), your name, optionally your phone number, and, if you choose Google sign-in, your Google account identifier. We do not receive your Google password.',
-        '**Profiles:** the name, date of birth, gender and relationship (self, child, parent, spouse, other) of each person you manage in the app, for example your children.',
+      "type": "ul",
+      "items": [
+        "**Account details:** your email address (used to send you a 6-digit sign-in code), your name, optionally your phone number, and, if you choose Google sign-in, your Google account identifier. We do not receive your Google password.",
+        "**Profiles:** the name, date of birth, gender and relationship (self, child, parent, spouse, other) of each person you manage in the app, for example your children.",
         "**Linked clinic records:** after a clinic staff member shows you a QR code and you accept it, the app can show you your visits, appointments, queue position, prescriptions and medicine reminders held by that clinic. Clinical notes and the clinic's internal comments are never shown in the app.",
-        '**Reminders and dose history:** the medicine schedules created from your prescriptions and which doses you marked as taken.',
-        '**Device and notification details:** push token, phone type, app version.',
-        '**Consents and access log:** which version of these terms and this policy you accepted, which clinic you linked, and a record of when your own health information was read through the app.',
-        '**Basic usage events:** which app screens and features are used, without health content. [CONFIRM when product events ship.]',
-      ],
+        "**Reminders and dose history:** the medicine schedules created from your prescriptions and which doses you marked as taken.",
+        "**Device and notification details:** push token, phone type, app version.",
+        "**Security and sign-in logs:** for each sign-in session we keep your IP address and a device label (the phone model or type), so we can protect your account, detect misuse and let you see and end your sessions. They are deleted when you sign out of that session or delete your account, and in any case after [SECURITY_LOG_RETENTION_MONTHS] months. [CONFIRM.]",
+        "**Consents and access log:** which version of these terms and this policy you accepted, which clinic you linked, and a record of when your own health information was read through the app.",
+        "**Basic usage events:** which app screens and features are used, without health content."
+      ]
     },
     {
-      type: 'h3',
-      text: 'What we do not collect',
+      "type": "h3",
+      "text": "What we do not collect"
     },
     {
-      type: 'p',
-      text: 'We do not collect your precise location, contacts, photos or microphone recordings. The camera is used by clinic staff only to scan a code and nothing is stored. We do not show advertising and we do not sell personal data. No analytics or advertising company receives your health information.',
+      "type": "p",
+      "text": "We do not collect your precise location, contacts, photos or microphone recordings. The app does not use your camera: codes shown by the clinic are scanned with your phone's own camera app, which opens a link. We do not show advertising and we do not sell personal data. No analytics or advertising company receives your health information."
     },
     {
-      type: 'h2',
-      text: '2. Why we use it',
+      "type": "h2",
+      "text": "2. Why we use it"
     },
     {
-      type: 'ul',
-      items: [
-        'To provide the service: sign you in, show your records, send reminders and notifications, run the clinic queue.',
-        'To keep the service secure: detect misuse, limit sign-in attempts, keep audit logs.',
-        'To improve the app using the basic usage events described above.',
-        'To meet legal obligations that apply to us or to the clinic.',
-      ],
+      "type": "ul",
+      "items": [
+        "To provide the service: sign you in, show your records, send reminders and notifications, run the clinic queue.",
+        "To keep the service secure: detect misuse, limit sign-in attempts, keep audit logs.",
+        "To improve the app using the basic usage events described above.",
+        "To meet legal obligations that apply to us or to the clinic."
+      ]
     },
     {
-      type: 'p',
-      text: 'We do not use your information for advertising or for profiling.',
+      "type": "p",
+      "text": "We do not use your information for advertising or for profiling."
     },
     {
-      type: 'h2',
-      text: '3. Who can see it',
+      "type": "h2",
+      "text": "3. Who can see it"
     },
     {
-      type: 'ul',
-      items: [
-        '**Your clinic:** its authorised staff see its own patient records.',
+      "type": "ul",
+      "items": [
+        "**Your clinic:** its authorised staff see its own patient records.",
         "**You (patients):** only the profiles and linked clinics of your account. A patient account never sees another person's records.",
-        '**Service providers** that help us run the service: cloud hosting and database ([HOSTING_PROVIDER]), email delivery for sign-in codes ([EMAIL_PROVIDER]), push notification delivery through Expo and the Google and Apple notification services (they receive the push token and a short notification text, never medicine names or diagnoses), and Google when you use Google sign-in.',
-        '**Authorities,** only when the law requires it.',
-      ],
+        "**Service providers** that help us run the service: cloud hosting and database ([HOSTING_PROVIDER]), email delivery for sign-in codes ([EMAIL_PROVIDER]), push notification delivery through Expo and the Google and Apple notification services (they receive the push token and a short notification text, never medicine names or diagnoses), and Google when you use Google sign-in.",
+        "**Authorities,** only when the law requires it."
+      ]
     },
     {
-      type: 'h2',
-      text: '4. How long we keep it',
+      "type": "h2",
+      "text": "4. How long we keep it"
     },
     {
-      type: 'ul',
-      items: [
-        '**Patient app account:** until you delete it. Deleting it removes your account, profiles, reminders, dose history, linked-clinic connections and device tokens straight away. [CONFIRM timing.]',
-        '**Clinic patient records:** kept by the clinic according to its own policy and medical record rules. Deleting your app account does not delete what the clinic holds about you. Ask the clinic directly.',
-        '**Staff accounts:** kept while the clinic employs you. The clinic or we can remove the login; the audit log may keep your name against past changes for accountability.',
-        '**Sign-in codes** expire after 10 minutes. **Sign-in sessions** are revoked when you sign out or delete the account.',
-        '**Backups** are overwritten within [BACKUP_RETENTION_DAYS] days.',
-        '**Usage events** are kept for [EVENT_RETENTION_MONTHS] months. [CONFIRM.]',
-      ],
+      "type": "ul",
+      "items": [
+        "**Patient app account:** until you delete it. Deleting it removes your account, profiles, reminders, dose history, linked-clinic connections and device tokens straight away. [CONFIRM timing.]",
+        "**Clinic patient records:** kept by the clinic according to its own policy and medical record rules. Deleting your app account does not delete what the clinic holds about you. Ask the clinic directly.",
+        "**Staff accounts:** kept while the clinic employs you. The clinic or we can remove the login; the audit log may keep your name against past changes for accountability.",
+        "**Sign-in codes** expire after 10 minutes. **Sign-in sessions** are revoked when you sign out or delete the account.",
+        "**Backups** are overwritten within [BACKUP_RETENTION_DAYS] days.",
+        "**Usage events** are kept for [EVENT_RETENTION_MONTHS] months. [CONFIRM.]"
+      ]
     },
     {
-      type: 'h2',
-      text: '5. Deleting your data',
+      "type": "h2",
+      "text": "5. Deleting your data"
     },
     {
-      type: 'p',
-      text: 'Patients can delete their app account inside the app: **Account, then Delete account**. A web page that explains this and tells you how to ask us to do it is at [WEB_BASE_URL]/delete-account. Staff should ask the clinic owner to remove their login or write to [CLINIC_PLATFORM_CONTACT].',
+      "type": "p",
+      "text": "Patients can delete their app account inside the app: **Account, then Delete account**. A web page that explains this and tells you how to ask us to do it is at [WEB_BASE_URL]/delete-account. Staff should ask the clinic owner to remove their login or write to [CLINIC_PLATFORM_CONTACT]."
     },
     {
-      type: 'h2',
-      text: '6. Your choices and rights',
+      "type": "h2",
+      "text": "6. Your choices and rights"
     },
     {
-      type: 'p',
-      text: 'You can ask to see, correct or delete your information, withdraw consent, or turn off notifications in your phone settings. You can unlink a clinic at any time in the app. Write to [CLINIC_PLATFORM_CONTACT]. For clinic records, we may pass your request to the clinic. [LAWYER: align with the Pakistani data protection law applicable at publication, including any cross-border transfer rules.]',
+      "type": "p",
+      "text": "You can ask to see, correct or delete your information, withdraw consent, or turn off notifications in your phone settings. You can unlink a clinic at any time in the app. Write to [CLINIC_PLATFORM_CONTACT]. For clinic records, we may pass your request to the clinic. [LAWYER: align with the Pakistani data protection law applicable at publication, including any cross-border transfer rules.]"
     },
     {
-      type: 'h2',
-      text: '7. Security',
+      "type": "h2",
+      "text": "7. Security"
     },
     {
-      type: 'p',
-      text: "Data travels over encrypted connections. Sign-in tokens are kept in the phone's secure storage. Patient and staff sign-ins are separate, and a patient can only read records linked to their own account. Cached data is encrypted on the phone and removed when you sign out. No system is perfectly secure; if a breach affects you we will tell you as the law requires.",
+      "type": "p",
+      "text": "Data travels over encrypted connections. Sign-in tokens are kept in the phone's secure storage. Patient and staff sign-ins are separate, and a patient can only read records linked to their own account. Cached data is encrypted on the phone and removed when you sign out. No system is perfectly secure; if a breach affects you we will tell you as the law requires."
     },
     {
-      type: 'h2',
-      text: '8. Children',
+      "type": "h2",
+      "text": "8. Children"
     },
     {
-      type: 'p',
-      text: 'A parent or guardian may create profiles for their children and manage them. We do not knowingly let children under [MINIMUM_AGE] create their own account.',
+      "type": "p",
+      "text": "A parent or guardian may create profiles for their children and manage them. We do not knowingly let children under [MINIMUM_AGE] create their own account."
     },
     {
-      type: 'h2',
-      text: '9. Where data is stored',
+      "type": "h2",
+      "text": "9. Where data is stored"
     },
     {
-      type: 'p',
-      text: 'Data is stored on servers in [HOSTING_REGION] and may be processed in other countries by our service providers. [LAWYER: confirm transfer wording.]',
+      "type": "p",
+      "text": "Data is stored on servers in [HOSTING_REGION] and may be processed in other countries by our service providers. [LAWYER: confirm transfer wording.]"
     },
     {
-      type: 'h2',
-      text: '10. Changes',
+      "type": "h2",
+      "text": "10. Changes"
     },
     {
-      type: 'p',
-      text: 'We will post changes here and, for important changes, tell you in the app. The date above shows the latest version.',
+      "type": "p",
+      "text": "We will post changes here and, for important changes, tell you in the app. The date above shows the latest version."
     },
     {
-      type: 'h2',
-      text: '11. Contact',
+      "type": "h2",
+      "text": "11. Contact"
     },
     {
-      type: 'p',
-      text: '[CLINIC_PLATFORM_CONTACT]',
-    },
+      "type": "p",
+      "text": "[CLINIC_PLATFORM_CONTACT]"
+    }
   ],
-  terms: [
+  "terms": [
     {
-      type: 'h1',
-      text: 'Terms of Use',
+      "type": "h1",
+      "text": "Terms of Use"
     },
     {
-      type: 'note',
-      text: 'DRAFT for the owner and a lawyer to review. Not legal advice. Replace every [PLACEHOLDER] before publishing.',
+      "type": "note",
+      "text": "DRAFT for the owner and a lawyer to review. Not legal advice. Replace every [PLACEHOLDER] before publishing."
     },
     {
-      type: 'p',
-      text: '**Last updated:** [DATE]',
+      "type": "p",
+      "text": "**Last updated:** [DATE]"
     },
     {
-      type: 'p',
-      text: 'These terms apply when you use the [APP_NAME] mobile app and website ("the service"), operated by [OPERATOR_LEGAL_NAME] ("we", "us"). By creating an account or using the service you agree to them and to our Privacy Policy.',
+      "type": "p",
+      "text": "These terms apply when you use the [APP_NAME] mobile app and website (\"the service\"), operated by [OPERATOR_LEGAL_NAME] (\"we\", \"us\"). By creating an account or using the service you agree to them and to our Privacy Policy."
     },
     {
-      type: 'h2',
-      text: '1. What the service is',
+      "type": "h2",
+      "text": "1. What the service is"
     },
     {
-      type: 'p',
-      text: '[APP_NAME] helps clinics run their daily work (appointments, queue, records, prescriptions) and lets patients linked to a clinic see their own visit information and medicine reminders. It is a tool for communication and organisation.',
+      "type": "p",
+      "text": "[APP_NAME] helps clinics run their daily work (appointments, queue, records, prescriptions) and lets patients linked to a clinic see their own visit information and medicine reminders. It is a tool for communication and organisation."
     },
     {
-      type: 'p',
-      text: "**It is not medical advice and not an emergency service.** Information in the app comes from your clinic and may not be complete or current. If you are unwell or think you have an emergency, call your doctor or your local emergency number. Medicine reminders are an aid; always follow your doctor's instructions.",
+      "type": "p",
+      "text": "**It is not medical advice and not an emergency service.** Information in the app comes from your clinic and may not be complete or current. If you are unwell or think you have an emergency, call your doctor or your local emergency number. Medicine reminders are an aid; always follow your doctor's instructions."
     },
     {
-      type: 'h2',
-      text: '2. Accounts',
+      "type": "h2",
+      "text": "2. Accounts"
     },
     {
-      type: 'ul',
-      items: [
-        'Give correct information and keep your sign-in details private. You are responsible for what happens under your account.',
-        '**Clinic staff** accounts are created by, and belong to, the clinic. The clinic decides your role and what you may see, and may suspend your access.',
-        '**Patient** accounts are personal. A clinic record is linked to your account only after clinic staff confirm it in person (QR code) and you accept. You may link records only for yourself or for people you are legally allowed to manage, such as your children.',
-        'You must be at least [MINIMUM_AGE] to create an account.',
-      ],
+      "type": "ul",
+      "items": [
+        "Give correct information and keep your sign-in details private. You are responsible for what happens under your account.",
+        "**Clinic staff** accounts are created by, and belong to, the clinic. The clinic decides your role and what you may see, and may suspend your access.",
+        "**Patient** accounts are personal. A clinic record is linked to your account only after clinic staff confirm it in person (QR code) and you accept. You may link records only for yourself or for people you are legally allowed to manage, such as your children.",
+        "You must be at least [MINIMUM_AGE] to create an account."
+      ]
     },
     {
-      type: 'h2',
-      text: '3. Acceptable use',
+      "type": "h2",
+      "text": "3. Acceptable use"
     },
     {
-      type: 'p',
-      text: 'Do not: access records that are not yours or not permitted by your role; share a QR code or sign-in code with others; try to break, overload or reverse-engineer the service; upload unlawful content; use the service to harass anyone. We may suspend accounts that break these terms.',
+      "type": "p",
+      "text": "Do not: access records that are not yours or not permitted by your role; share a QR code or sign-in code with others; try to break, overload or reverse-engineer the service; upload unlawful content; use the service to harass anyone. We may suspend accounts that break these terms."
     },
     {
-      type: 'h2',
-      text: '4. Clinic records',
+      "type": "h2",
+      "text": "4. Clinic records"
     },
     {
-      type: 'p',
-      text: 'Records belong to the clinic that created them. We process them for the clinic. The clinic is responsible for the accuracy of its records and for how long it keeps them. Questions about treatment or records go to your clinic.',
+      "type": "p",
+      "text": "Records belong to the clinic that created them. We process them for the clinic. The clinic is responsible for the accuracy of its records and for how long it keeps them. Questions about treatment or records go to your clinic."
     },
     {
-      type: 'h2',
-      text: '5. Notifications',
+      "type": "h2",
+      "text": "5. Notifications"
     },
     {
-      type: 'p',
-      text: 'If you allow notifications we send alerts such as queue updates, appointment notices and medicine reminders. Notification texts avoid sensitive details. You can turn them off in your phone settings.',
+      "type": "p",
+      "text": "If you allow notifications we send alerts such as queue updates, appointment notices and medicine reminders. Notification texts avoid sensitive details. You can turn them off in your phone settings."
     },
     {
-      type: 'h2',
-      text: '6. Availability and changes',
+      "type": "h2",
+      "text": "6. Availability and changes"
     },
     {
-      type: 'p',
-      text: 'We try to keep the service running but do not promise it will always be available or error free. We may change or stop features, with notice where reasonable. The app may require you to update to a minimum version.',
+      "type": "p",
+      "text": "We try to keep the service running but do not promise it will always be available or error free. We may change or stop features, with notice where reasonable. The app may require you to update to a minimum version."
     },
     {
-      type: 'h2',
-      text: '7. Intellectual property',
+      "type": "h2",
+      "text": "7. Intellectual property"
     },
     {
-      type: 'p',
-      text: "The app, its design and software belong to us or our licensors. We give you a personal, non-transferable licence to use the app. Your clinic's records stay the clinic's.",
+      "type": "p",
+      "text": "The app, its design and software belong to us or our licensors. We give you a personal, non-transferable licence to use the app. Your clinic's records stay the clinic's."
     },
     {
-      type: 'h2',
-      text: '8. Ending your account',
+      "type": "h2",
+      "text": "8. Ending your account"
     },
     {
-      type: 'p',
-      text: 'You can delete your patient account in the app at any time (Account, then Delete account), or see [WEB_BASE_URL]/delete-account. Staff access ends when the clinic removes it. What happens to data is described in the Privacy Policy.',
+      "type": "p",
+      "text": "You can delete your patient account in the app at any time (Account, then Delete account), or see [WEB_BASE_URL]/delete-account. Staff access ends when the clinic removes it. What happens to data is described in the Privacy Policy."
     },
     {
-      type: 'h2',
-      text: '9. Liability',
+      "type": "h2",
+      "text": "9. Liability"
     },
     {
-      type: 'p',
-      text: 'To the extent the law allows, we are not liable for indirect or consequential loss, or for medical decisions made using the app. Nothing here limits liability that cannot be limited by law. [LAWYER: review limitation wording for Pakistan.]',
+      "type": "p",
+      "text": "To the extent the law allows, we are not liable for indirect or consequential loss, or for medical decisions made using the app. Nothing here limits liability that cannot be limited by law. [LAWYER: review limitation wording for Pakistan.]"
     },
     {
-      type: 'h2',
-      text: '10. Governing law',
+      "type": "h2",
+      "text": "10. Governing law"
     },
     {
-      type: 'p',
-      text: 'These terms are governed by the laws of Pakistan. Disputes are handled by the courts of [CITY], Pakistan. [LAWYER: confirm.]',
+      "type": "p",
+      "text": "These terms are governed by the laws of Pakistan. Disputes are handled by the courts of [CITY], Pakistan. [LAWYER: confirm.]"
     },
     {
-      type: 'h2',
-      text: '11. Changes to these terms',
+      "type": "h2",
+      "text": "11. Changes to these terms"
     },
     {
-      type: 'p',
-      text: 'We may update these terms. We will post the new version and, for important changes, ask you to accept it in the app. Continuing to use the service means you accept the update.',
+      "type": "p",
+      "text": "We may update these terms. We will post the new version and, for important changes, ask you to accept it in the app. Continuing to use the service means you accept the update."
     },
     {
-      type: 'h2',
-      text: '12. Contact',
+      "type": "h2",
+      "text": "12. Contact"
     },
     {
-      type: 'p',
-      text: '[CLINIC_PLATFORM_CONTACT]',
-    },
+      "type": "p",
+      "text": "[CLINIC_PLATFORM_CONTACT]"
+    }
   ],
-  deletion: [
+  "deletion": [
     {
-      type: 'h1',
-      text: 'Delete your account',
+      "type": "h1",
+      "text": "Delete your account"
     },
     {
-      type: 'note',
-      text: 'DRAFT for the owner and a lawyer to review.',
+      "type": "note",
+      "text": "DRAFT for the owner and a lawyer to review."
     },
     {
-      type: 'p',
-      text: 'This page explains how to delete your [APP_NAME] account. It is the public deletion URL given to Google Play.',
+      "type": "p",
+      "text": "This page explains how to delete your [APP_NAME] account. It is the public deletion URL given to Google Play."
     },
     {
-      type: 'h2',
-      text: 'Patients: delete inside the app',
+      "type": "h2",
+      "text": "Patients: delete inside the app"
     },
     {
-      type: 'ol',
-      items: [
-        'Open [APP_NAME] and sign in to the patient space.',
-        'Go to **Account**, then **Delete account**.',
-        'Read what will be deleted, type **DELETE** and confirm.',
-      ],
+      "type": "ol",
+      "items": [
+        "Open [APP_NAME] and sign in to the patient space.",
+        "Go to **Account**, then **Delete account**.",
+        "Read what will be deleted, type **DELETE** and confirm."
+      ]
     },
     {
-      type: 'h2',
-      text: 'What is deleted',
+      "type": "h2",
+      "text": "Ask us to delete your account"
     },
     {
-      type: 'ul',
-      items: [
-        'Your app account and sign-in details (email, Google link)',
-        'All profiles you created (yourself and family members)',
-        'Medicine reminders and dose history',
-        'Connections to clinics (links) and your push notification devices',
-        'Your sessions on every phone',
-      ],
+      "type": "p",
+      "text": "Email [CLINIC_PLATFORM_CONTACT] from the email address of the account, with the subject \"Delete my account\". We may ask you to confirm your identity first and will reply within [RESPONSE_DAYS] days. Clinic staff accounts belong to the clinic: ask your clinic owner to remove your login."
     },
     {
-      type: 'h2',
-      text: 'What is not deleted',
+      "type": "h2",
+      "text": "What is deleted"
     },
     {
-      type: 'ul',
-      items: [
-        'Records your clinic holds about you (visits, prescriptions, invoices). The clinic owns them and keeps them under its own rules and medical record requirements. Ask the clinic if you want them corrected or removed.',
-        'A minimal access log that says an account (with no name or email) read a record, kept for security and clinic accountability.',
-        'Backups, which are overwritten within [BACKUP_RETENTION_DAYS] days.',
-      ],
+      "type": "ul",
+      "items": [
+        "Your app account and sign-in details (email, Google link)",
+        "All profiles you created (yourself and family members): names, dates of birth and other details are erased",
+        "Medicine reminders and dose history",
+        "Your push notification devices. Connections to clinics (links) are ended at once, so no clinic data reaches the app any more",
+        "Your sessions on every phone, including the IP address and device label kept for them"
+      ]
     },
     {
-      type: 'h2',
-      text: 'Cannot use the app, or you are clinic staff?',
+      "type": "h2",
+      "text": "What is not deleted"
     },
     {
-      type: 'p',
-      text: 'Staff accounts belong to the clinic: ask your clinic owner to remove your login. To ask us to delete a patient account or any personal data without using the app, email [CLINIC_PLATFORM_CONTACT] from the email address of the account, with the subject "Delete my account". We may ask you to confirm your identity first and will reply within [RESPONSE_DAYS] days.',
-    },
-  ],
+      "type": "ul",
+      "items": [
+        "Records your clinic holds about you (visits, prescriptions, invoices). The clinic owns them and keeps them under its own rules and medical record requirements. Ask the clinic if you want them corrected or removed.",
+        "A minimal access log that says an account (with no name or email) read a record, kept for security and clinic accountability.",
+        "A record at the clinic that its link to the app was ended (when and why), without your name or contact details, so the clinic can see the history of its own records.",
+        "Backups, which are overwritten within [BACKUP_RETENTION_DAYS] days."
+      ]
+    }
+  ]
 }
