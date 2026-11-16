@@ -1,5 +1,6 @@
 import {
   CHANNELS_BY_AUDIENCE,
+  defaultAudienceEnabled,
   defaultRuleEnabled,
   NotificationAudience,
   NotificationChannel,
@@ -14,13 +15,15 @@ import { channelsFor } from './services/notification.service';
 import { renderTemplate } from './templates/template-render';
 
 /**
- * The system is for clinic users only (2026-11-05 decision): patients get no
- * message on any channel until the patient follow-up project switches them
- * on deliberately (see docs/notifications-email-plan.md, "Patients later").
+ * The system is for clinic users, plus the patient APP's push (M3-07): patients
+ * get no email / SMS / WhatsApp until the patient follow-up project switches
+ * them on deliberately (see docs/notifications-email-plan.md, "Patients later").
  */
 describe('notification channels', () => {
-  it('reaches patients on no channel', () => {
-    expect(CHANNELS_BY_AUDIENCE[NotificationAudience.PATIENT]).toEqual([]);
+  it('reaches patients on app push only', () => {
+    expect(CHANNELS_BY_AUDIENCE[NotificationAudience.PATIENT]).toEqual([
+      'push',
+    ]);
   });
 
   it('reaches clinic-side audiences in-app, by email and by push (labs: no push)', () => {
@@ -60,7 +63,7 @@ describe('notification channels', () => {
     ).toBe(false);
   });
 
-  it('pushes by default only for events that opt in, and never to patients', () => {
+  it('pushes by default only for events that opt in; patients get no other default', () => {
     expect(
       defaultRuleEnabled(NotificationAudience.DOCTOR, NotificationChannel.PUSH),
     ).toBe(false);
@@ -79,7 +82,19 @@ describe('notification channels', () => {
         false,
         true,
       ),
+    ).toBe(true);
+    expect(
+      defaultRuleEnabled(NotificationAudience.PATIENT, NotificationChannel.PUSH),
     ).toBe(false);
+    expect(
+      defaultRuleEnabled(
+        NotificationAudience.PATIENT,
+        NotificationChannel.IN_APP,
+        true,
+        true,
+      ),
+    ).toBe(false);
+    expect(defaultAudienceEnabled(NotificationAudience.PATIENT)).toBe(true);
   });
 
   it('channelsFor only offers push when the event itself allows it', () => {
@@ -129,7 +144,12 @@ describe('event catalog', () => {
       NOTIFICATION_EVENT_SEEDS.filter((e) =>
         eventChannels(e).includes(NotificationChannel.PUSH),
       ).map((e) => e.code),
-    ).toEqual(['queue.patient_checked_in']);
+    ).toEqual([
+      'queue.patient_checked_in',
+      'queue.turn_near',
+      'queue.called',
+      'appointment.reminder',
+    ]);
   });
 
   it('creates a push template only for the push events', () => {
@@ -137,7 +157,40 @@ describe('event catalog', () => {
       defaultTemplateSeeds()
         .filter((t) => t.channel === NotificationChannel.PUSH)
         .map((t) => t.eventCode),
-    ).toEqual(['queue.patient_checked_in']);
+    ).toEqual([
+      'queue.patient_checked_in',
+      'queue.turn_near',
+      'queue.called',
+      'appointment.reminder',
+    ]);
+  });
+
+  it('patient pushes carry no clinical text (docs/03 §5)', () => {
+    const patientPushes = NOTIFICATION_EVENT_SEEDS.filter(
+      (e) =>
+        e.audiences.includes(NotificationAudience.PATIENT) &&
+        eventChannels(e).includes(NotificationChannel.PUSH),
+    );
+    expect(patientPushes.map((e) => e.code)).toEqual([
+      'queue.turn_near',
+      'queue.called',
+      'appointment.reminder',
+    ]);
+    const allowed = [
+      '{clinic_name}',
+      '{ahead_text}',
+      '{doctor_name}',
+      '{appointment_time}',
+    ];
+    for (const e of patientPushes) {
+      const text = `${e.pushTitle ?? e.title} ${e.pushBody ?? e.body}`;
+      expect(text).not.toMatch(
+        /medicine|diagnos|prescri|treatment|notes?|patient_name|reason/i,
+      );
+      for (const v of text.match(/\{\w+\}/g) ?? []) {
+        expect(allowed).toContain(v);
+      }
+    }
   });
 
   it('push wording carries the patient first name + token only (docs/03 §5)', () => {

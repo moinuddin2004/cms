@@ -16,6 +16,7 @@ export type PrefKey =
   | 'staff.lastFilter'
   | 'staff.tips.dismissed'
   | 'staff.push.asked'
+  | 'patient.push.asked'
   | 'patient.language'
   | 'patient.lastTab'
   | 'patient.tips.dismissed';

@@ -44,6 +44,10 @@ export interface EventInput {
  * committed together or not at all.
  */
 export class QueueTx {
+  /** Sessions this transaction wrote events to, and the event types it wrote (M3-07 turn-near check). */
+  readonly touchedSessions = new Map<string, QueueSession>();
+  readonly eventTypes = new Set<string>();
+
   constructor(
     readonly manager: EntityManager,
     readonly now: Date,
@@ -153,6 +157,8 @@ export class QueueTx {
     );
     const seq = Number(bumped.event_seq);
     session.eventSeq = String(seq);
+    this.touchedSessions.set(session.id, session);
+    this.eventTypes.add(e.eventType);
 
     // Realtime nudges. Payloads carry ids, statuses and tokens — never
     // patient names — so the display room can share them safely.

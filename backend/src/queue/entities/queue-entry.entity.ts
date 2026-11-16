@@ -116,6 +116,10 @@ export class QueueEntry {
   @Column({ name: 'checked_in_at', type: 'timestamptz' })
   checkedInAt: Date;
 
+  /** Set once when the patient's "turn is near" push was decided (M3-07) — never twice. */
+  @Column({ name: 'turn_near_notified_at', type: 'timestamptz', nullable: true })
+  turnNearNotifiedAt: Date | null;
+
   /** FIFO position: checked_in_at, or rejoined_at after an END-policy rejoin. */
   @Column({ name: 'sort_anchor_at', type: 'timestamptz' })
   sortAnchorAt: Date;

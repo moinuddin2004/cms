@@ -19,6 +19,15 @@ const rows: Row[] = [
   { name: 'Charlie', age: 20 },
 ]
 
+// The pagination summary is split across spans ("Showing" hides on mobile),
+// so match the innermost element whose whole text reads e.g. "Showing 1–2 of 3".
+function getSummary(text: RegExp) {
+  return screen.getByText((_, el) => {
+    if (!el || !text.test(el.textContent)) return false
+    return Array.from(el.children).every((c) => !text.test(c.textContent))
+  })
+}
+
 function renderedNames() {
   return screen
     .getAllByRole('row')
@@ -31,12 +40,12 @@ describe('DataTable v9 smoke', () => {
     render(<DataTable columns={columns} data={rows} defaultPageSize={2} />)
 
     expect(renderedNames()).toEqual(['Alpha', 'Bravo'])
-    expect(screen.getByText(/Showing 1–2 of 3/)).toBeTruthy()
+    expect(getSummary(/^Showing 1–2 of 3$/)).toBeTruthy()
 
     fireEvent.click(screen.getByLabelText('Next page'))
 
     expect(renderedNames()).toEqual(['Charlie'])
-    expect(screen.getByText(/Showing 3–3 of 3/)).toBeTruthy()
+    expect(getSummary(/^Showing 3–3 of 3$/)).toBeTruthy()
   })
 
   it('renders every row when pagination is off', () => {

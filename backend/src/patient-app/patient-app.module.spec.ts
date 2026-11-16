@@ -20,6 +20,8 @@ import { PatientQueueService } from './queue/patient-queue.service';
 import { PatientMedicationsController } from './medications/patient-medications.controller';
 import { PatientMedicationsService } from './medications/patient-medications.service';
 import { PatientAppModule } from './patient-app.module';
+import { PatientDevicesController } from './devices/patient-devices.controller';
+import { PatientDevicesService } from 'src/patient-devices/patient-devices.service';
 
 /**
  * DI smoke test: PatientAppModule and the MedicationsModule it imports must
@@ -108,6 +110,13 @@ describe('PatientAppModule wiring (medications)', () => {
     expect(
       moduleRef.get(PatientQueueService, { strict: false }),
     ).toBeInstanceOf(PatientQueueService);
+
+    expect(moduleRef.get(PatientDevicesController)).toBeInstanceOf(
+      PatientDevicesController,
+    );
+    expect(
+      moduleRef.get(PatientDevicesService, { strict: false }),
+    ).toBeInstanceOf(PatientDevicesService);
 
     await moduleRef.init();
     moduleRef

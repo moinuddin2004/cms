@@ -77,7 +77,8 @@
 | M3-08 | Appointment confirm (patient_confirmed_at) | BE+MOB | S | M2-09 | done | Sonnet session | 2026-11-21 | rework-1 |
 | M3-09 | Emergency/contact sheet P-07 | MOB | S | M2-09 | done | Sonnet session (with M3-08) | 2026-11-21 | rework-1 |
 | M3-05 | Patient realtime gateway + queue/active + visit tokens | BE | M | M2-03 | done | Sonnet session | 2026-11-15 | rework-1 |
-| M3-06 … M3-09 | Patient hook | — | — | see 10 | spec | | | |
+| M3-06 | Live token card + visit screen (P-06) | MOB | M | M3-05 | done | Sonnet session | 2026-11-15 | rework-1 |
+| M3-07 | Patient push (BE + MOB) | BE+MOB | M | M3-05, M1-04 | done | Sonnet session (with M3-06) | 2026-11-17 | rework-1 |
 | M4-01 | Urdu translation pass + Noto Nastaliq font | MOB | M | — | done | Sonnet session | 2026-11-21 | rework-1; native-speaker review before release |
 | M4-05 | Release hardening (A-24 error-reporting seam, perf budgets, patient gate QA) | MOB | M | M4-01 | review | Sonnet session | 2026-11-16 | no provider added; device measurements pending |
 | M4-02 … M4-04, M4-06 | Release (rest) | — | — | see 10 | spec | | | |

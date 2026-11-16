@@ -3147,6 +3147,34 @@ none (apply `backend/database/changes/2026-11-15_queue_visit_tokens.sql` to exis
 - Not run: DB-backed integration test (no local Postgres); SQL for the join in `subscribableSession` is checked by shape only.
 
 ---
+## M3-06 + M3-07 — Live token / visit screen, patient push  ·  2026-11-16  ·  Claude Sonnet 5.5
+Branch: claude/ecstatic-curran-0783c6 (from mobile/develop)   Commit(s): see report   Status set to: review (both)
+
+### Done — backend (M3-07)
+- `patient_devices` (entity in new `src/patient-devices/`, schema block, `changes/2026-11-16_patient_push.sql`), `POST/DELETE /patient-api/devices` (same bodies as staff `/me/devices`, `@PatientApi`, account-owned, upsert by token).
+- `CHANNELS_BY_AUDIENCE.patient = [PUSH]`; `CHANNELS_BY_RECIPIENT.patient` + PUSH; patient audience switch defaults ON and a patient push rule defaults ON only for events listing `push` (every other patient channel stays off). Specs updated.
+- Resolver: patient -> ACTIVE link -> profile -> live account -> `patient_devices` (approved clinic only), `PatientDevicesService` + `notifications/recipients/patient-recipients.ts`. `ExpoPushProvider` sends to patient recipients with `data.space = 'patient'`, route = payload link; dead tokens are removed from both tables.
+- Events (seeds, push-only): `queue.turn_near` ("Your turn is near" / "{clinic}: N people ahead of you"), `queue.called` ("It's your turn" / "{clinic}: please go to {doctor}"), `appointment.reminder` ("Appointment tomorrow" / "{clinic} at {time}"). A spec asserts no clinical words and only whitelisted placeholders.
+- `queue.called`: in `callNext` + `selectPatient`. `queue.turn_near`: end of every mutation in `mutate()` except a plain check-in, threshold = new `queue_policies.patient_turn_near_ahead` (default 2, 0..20, in the policy DTO), once per entry via new `queue_entries.turn_near_notified_at` set atomically (`UPDATE ... WHERE ... IS NULL RETURNING`). Patients without a device are skipped and left unmarked.
+- `appointment.reminder`: enqueued with `scheduledFor = start - 24h` on create and on time change (`AppointmentReminderService`); a `PayloadFinalizers` check at send time skips (`skipped_disabled`) when the appointment is no longer scheduled/confirmed at exactly that start time, so cancel/reschedule need no row cleanup. Not queued when < 24 h away.
+- Account deletion removes the account's devices.
+
+### Done — mobile
+- M3-06: `patient/lib/realtime.ts` (+provider, invalidator), `patient/features/queue` (`useActiveQueue`, `LiveTokenCard`, `LiveTokenSection`, `VisitPage`), route `(patient)/(main)/visit/[entryId]`. Realtime only invalidates `['queue-active']`; socket joins `entry:<id>` for every active entry; live = connected AND a subscribe was acked; otherwise the query polls every 5 s. Socket errors never sign out: `auth_error`/`unavailable`/server disconnect -> not live + invalidate + reconnect with 2..30 s backoff (token refresh is left to the HTTP client); refused subscribe retried at 0.5/1.5/4/10 s (the server verifies the token after the first packets); background > 30 s disconnects, foreground reconnects.
+- M3-07: `patient/features/devices` mirrors staff M1-05 (explanation sheet once via pref `patient.push.asked`, register after sign-in when permitted, unregister in `signOutPatient` before logout with a 4 s timeout, secure item `patient.pushToken`), tap routing via `shell/notification-router.ts` (patient branch) -> `PatientPushRoute` -> `/visit/<id>` or `/appointments/<id>` (strict id/route validation). Strings via `useT` (en + ur).
+
+### Decisions / for the architect
+- Permission sheet shows once after sign-in (as the card says), not at the first live token as docs/02 §8 suggests.
+- Today wiring: Today (M3-04) is not merged. `<LiveTokenSection />` (from `@/patient/features/queue`) renders nothing when empty; I placed it at the top of the placeholder home. **M3-04: pin `<LiveTokenSection />` at the top of Today and drop it from `PatientPlaceholderPage`.**
+- `feed.changed` kinds map to roots `medications`, `records-appointments(-upcoming)`, `links`/`profiles` (see `patient/lib/realtime-invalidation.ts`): M3-03/04 must use `['medications', ...]` as the key root or adjust that map.
+- Visit screen has no Call clinic / WhatsApp buttons: `/queue/active` carries no phone (add `location.phone` server side if wanted).
+- "Updated within 2 s" = event -> 150 ms coalesce -> refetch; not measured on a device.
+
+### Verification
+Backend: build clean; full unit suite 123 suites / 1362 tests pass. Mobile: tsc clean, lint 0 errors (4 old warnings), lint:fences ok, jest all suites pass (new: realtime, invalidation, push-route, queue-text, notification-router). Not run: DB-backed tests (no local Postgres), real device push.
+
+### Install commands for the user
+none. Apply `backend/database/changes/2026-11-16_patient_push.sql` to existing databases.
 ## M3-05 follow-up — socket lifetime hardening  ·  2026-11-16  ·  Claude Sonnet 5.5
 Branch: claude/m3-05-followup (from mobile/develop)   Status: review
 
@@ -3162,6 +3190,8 @@ Branch: claude/m3-05-followup (from mobile/develop)   Status: review
 tsc clean; patient-app/auth/queue + rest of the backend unit suite green in chunks (90 + 32 suites, 1,345 tests). New specs: gateway lifetime/cap/unavailable, session events, publisher isolation.
 Mobile note: handle `unavailable` (poll, keep session) separately from `auth_error` (refresh token, reconnect).
 
+### M3-06/07 addendum (after merging the M3-05 follow-up)
+Mobile socket now follows the follow-up: `unavailable { retryAfterSeconds }` -> not live, poll, reconnect after that wait, no session refresh; `auth_error` -> one `refreshSession()` (single-flight, errors swallowed) then reconnect with backoff. Specs added. Re-verified after merge: backend build, 43 suites (queue, notifications, patient-app, appointments, access, devices) green; mobile tsc, lint 0 errors, fences, jest 135 suites / 949 tests green.
 ---
 ## Rework M3-03 + M3-04 #1 — 2026-11-16
 Branch: claude/m3-03-reminders-033e68 (merged `mobile/develop` first; HANDOFF/PROGRESS conflicts kept both sides) · Status stays: review
@@ -3297,3 +3327,14 @@ Report section 4: cold start, bundle size, fling, TalkBack, Urdu on the new scre
 
 ### Verification
 tsc: only the known `@/global.css` message · eslint 0 errors (4 old warnings) · lint:fences ok · jest in foreground chunks, all green: core 37 suites, patient 26/179, staff 78 suites, shell 4 suites (a plain `jest src/shell` hangs after finishing on open handles; `--forceExit` ends it).
+### M3-06/07 rework-1
+1. Reminders: any change of time, length or patient, cancel and no-show first skip the appointment's queued/held `appointment.reminder` rows (`skipPending`), then schedule a fresh one when still > 24 h away. Send-time finalizer requires status scheduled/confirmed AND `patient_id = recipient` AND exact start + end stored in the row (value-compared "generation": covers duration-only change, patient change, move-back). Specs for each.
+2. `AND o.is_active` in both device queries (spec).
+3. Patient pushes run behind `SAVEPOINT patient_push` (`patientPush()`): error -> rollback to savepoint, log, staff action continues. Spec with a throwing helper.
+4. `useActiveQueue`: 5 s poll only with live entries and socket down; otherwise 60 s safety poll.
+5. Turn-near is evaluated on CHECKED_IN too.
+6. Strict UUID in `push-route.ts` (tests).
+7. Offline sign-out: token kept; `PendingDeviceCleanup` (patient layout, signed out on start) calls new public `POST /patient-auth/devices/unregister` (rate-limited, token is the credential, always `{ok:true}`) and clears it; skipped while a session exists. New backend route + specs; mobile test.
+8. `removeAllOfAccount` removed (account deletion deletes via SQL).
+Also: merged develop (conflicts: PatientMainLayout, patient-app module, docs); `<LiveTokenSection />` now pinned at the top of `TodayPage` (removed from the placeholder); Urdu for all strings (no TODO(ur)).
+Checks: backend build; specs patient-auth/patient-app/patient-devices/appointments (28 suites), queue/notifications/access/common (29 suites) green; mobile tsc, lint 0 errors, fences, jest core+patient+shell (71 suites) green.

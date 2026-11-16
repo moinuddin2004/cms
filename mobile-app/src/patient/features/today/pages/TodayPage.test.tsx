@@ -42,6 +42,7 @@ jest.mock('@/core/components/overlays/FormSheet', () => ({ FormSheet: () => null
 jest.mock('@/core/components/overlays/ConfirmDialog', () => ({ ConfirmDialog: () => null }));
 jest.mock('@/core/components/overlays/ActionSheet', () => ({ ActionSheet: () => null }));
 jest.mock('expo-router', () => ({ useRouter: () => ({ push: jest.fn() }) }));
+jest.mock('@/patient/features/queue', () => ({ LiveTokenSection: () => null }));
 
 const mockMeds = jest.fn();
 const mockEvents = jest.fn();

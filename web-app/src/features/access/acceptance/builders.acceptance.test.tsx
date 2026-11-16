@@ -455,7 +455,7 @@ describe('UNIT — static checks over the web source', () => {
           : []
     })
 
-  it('THEME-15 brand tokens used: only the 14 documented status uses of blue/indigo remain', () => {
+  it('THEME-15 brand tokens used: only the 11 documented status uses of blue/indigo remain', () => {
     const rx = /\b(bg|text|border|ring)-(blue|indigo)-[0-9]{3}/
     const hits: string[] = []
     for (const file of walk(SRC)) {
@@ -470,11 +470,12 @@ describe('UNIT — static checks over the web source', () => {
         })
     }
     // Appointment status, employee role chips, inventory badges, production,
-    // clinical/CRM/overview chips and teeth-chart legend: all status colours.
-    expect(hits).toHaveLength(14)
+    // CRM chips and teeth-chart legend: all status colours. (Was 14; three
+    // uses went away in the visit-history and teeth-chart rework.)
+    expect(hits).toHaveLength(11)
     for (const h of hits)
       expect(h).toMatch(
-        /appointments\/types|employees\/components|inventory-ui|ProductionPanel|patients\/components\/tabs/,
+        /appointments\/types|employees\/components|inventory-ui|ProductionPanel|patients\/components\/tabs|patients\/utils\/teethChart/,
       )
   })
 
