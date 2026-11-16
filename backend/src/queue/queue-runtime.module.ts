@@ -9,6 +9,9 @@ import { Organization } from 'src/organizations/entities/organization.entity';
 import { Location } from 'src/locations/entities/location.entity';
 import { Employee } from 'src/employees/entities/employee.entity';
 import { EmployeeOrgLocationAssignment } from 'src/employees/entities/employee-org-location-assignment.entity';
+import { PatientAppModule } from 'src/patient-app/patient-app.module';
+import { PatientAuthModule } from 'src/patient-auth/patient-auth.module';
+import { PatientRealtimeGateway } from 'src/patient-app/realtime/patient-realtime.gateway';
 import { QueueModule } from './queue.module';
 import { QueueSession } from './entities/queue-session.entity';
 import { QueueGateway } from './realtime/queue.gateway';
@@ -31,7 +34,7 @@ export class QueueRuntimeModule {
     const providers: Provider[] = [];
 
     if (runsHttp(role)) {
-      providers.push(QueueGateway, AuthorizationService);
+      providers.push(QueueGateway, PatientRealtimeGateway, AuthorizationService);
       if (role === 'api') providers.push(RedisRealtimeSubscriber);
     }
     if (runsJobs(role)) {
@@ -45,6 +48,8 @@ export class QueueRuntimeModule {
       module: QueueRuntimeModule,
       imports: [
         QueueModule,
+        PatientAppModule,
+        PatientAuthModule,
         TypeOrmModule.forFeature([
           QueueSession,
           // for AuthorizationService (socket room access checks)

@@ -2812,3 +2812,37 @@ Verification: tsc clean · lint 0 errors (3 old warnings) · `lint:fences` ok ·
 
 ### Addendum — real QR (after rework 1)
 `react-native-qrcode-svg` (installed by the user, on mobile/develop) now renders the code in `core/components/QrCode` (black on white, quiet zone; the text fallback shows only if encoding fails). It encodes `claim.url`. The install note in the first M2-07 entry is obsolete. Tests: `QrCode.test.tsx` (renders for the value; falls back on error). Note for the lead: this worktree's own `node_modules` did not contain the package, so I copied `react-native-qrcode-svg`, `qrcode`, `text-encoding` and `dijkstrajs` from the main checkout's `node_modules` (untracked; no package.json/lockfile change by me).
+
+---
+## M3-05 — Patient realtime, active queue, visit tokens  ·  2026-11-16  ·  Claude Sonnet 5.5
+Branch: claude/m3-05-patient-realtime-9b1e4c (from mobile/develop)   Commit(s): see report   Status set to: review
+
+### Plan (written first)
+1. `queue_visit_tokens` (entity + `schema/02_tables.sql` block + `changes/2026-11-15_queue_visit_tokens.sql`).
+2. `QueuePositionService` (queue module, exported): token / status / `peopleAhead` / `nowServingToken` / doctor name per entry, reusing `QueueQueryService.engineOrder` (no new orchestrator mutation).
+3. Public `GET /visit/:token/state` (`@Public`, 120/min/IP, one generic 404) + staff `POST /queue/entries/:entryId/visit-link` (`@Can('queue.checkin')`, active location only). Token = 32 random bytes base64url, only sha256 stored, 12 h TTL.
+4. `GET /patient-api/queue/active` (`PatientQueueService`, scoped with `linkedPatientWhere` + A-19 clinic visibility, "today" per location tz).
+5. `PatientRealtimeGateway` on `/patient-realtime`: patient secret + `aud` + live session on connect; joins `patient:<accountId>`; `subscribe entry:<id>` re-checks the link in SQL; relay fan-out through the existing publishers (in-process and Redis subscriber call both gateways).
+6. Specs: socket auth both directions, room isolation, fan-out, link-revoke room leave, visit state, position, active scoping; full backend unit suite.
+
+### Done
+- **Gateway** `patient-app/realtime/patient-realtime.gateway.ts`. A staff token fails signature (other secret) -> `auth_error` + disconnect; a patient token on `/realtime` already failed the same way (test added for both). `subscribe` only accepts `entry:<uuid>` (no `patient:`/`session:`/staff rooms), max 20 entry rooms per socket, ack `{ ok:false, error:'NOT_FOUND' }` otherwise. `unsubscribe` supported.
+- **Fan-out**: relay messages for `session:<id>` `queue.event` become `visit.event { entryId, seq }` (exactly these two keys) for every subscribed entry of that session on this instance (a call moves everybody's place, so all subscribers of the session are nudged, not only the entry in the event). `patient:<accountId>` topics (e.g. `feed.changed`, the M2-04 link events) go to that account only. Board / display / org / user topics are ignored. No new outbox rows, no orchestrator change.
+- **Revocation**: a `feed.changed` with `kinds` containing `links` re-checks every entry room of that account's sockets and leaves the ones no longer covered. Subscribe re-checks on every call.
+- **Availability** mirrors the staff gateway: Redis subscriber toggles both; while down new patient sockets are refused and open ones closed (clients poll).
+- **`GET /patient-api/queue/active`**: today's active-status entries (per location clock) of linked patients at approved clinics (suspended clinics stay visible, A-19), shape per 07 §6.2 with `location { id, name, timezone }`.
+- **Visit link**: `POST /queue/entries/:entryId/visit-link` -> `{ url: FRONTEND_URL/v/<token>, expiresAt }`; expired rows are purged on create. `GET /visit/:token/state` -> `{ clinicName, locationName, token, status, peopleAhead, nowServingToken, updatedAt }`; hash lookup, expiry and approved clinic checked in SQL. `maskTokens` now also masks `/visit/<token>`.
+
+### Files
+- Created: `queue/entities/queue-visit-token.entity.ts`, `queue/services/queue-position.service.ts`, `queue/visit/{visit-token.ts,visit.service.ts,visit.controller.ts}`, `patient-app/queue/{patient-queue.service.ts,patient-queue.controller.ts}`, `patient-app/realtime/patient-realtime.gateway.ts`, specs for each, `database/changes/2026-11-15_queue_visit_tokens.sql`.
+- Modified: `queue.module.ts`, `queue-runtime.module.ts`, `patient-app.module.ts`, in-process publisher, redis subscriber, `HttpExceptionHandler.ts` (+ mask spec), `database/schema/02_tables.sql`.
+
+### Install commands for the user
+none (apply `backend/database/changes/2026-11-15_queue_visit_tokens.sql` to existing databases)
+
+### Decisions to review
+- The staff link endpoint is new and not in 07; permission `queue.checkin`. If you want a different permission or a QR on the staff ticket, say so.
+- `visit.event` is session-wide, so one queue change nudges all subscribed patients of that doctor; payload stays `{ entryId, seq }` and the app refetches `/patient-api/queue/active`.
+- Socket access tokens are verified at connect only (15 min), like the staff gateway; the mobile client reconnects with a fresh token, and subscribe re-checks the live session through links, not the token age.
+- Visit page state keeps working after the entry finishes until the token expires (status shows the final state, `peopleAhead: null`).
+- Not run: DB-backed integration test (no local Postgres); SQL for the join in `subscribableSession` is checked by shape only.

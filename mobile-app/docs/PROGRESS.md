@@ -64,7 +64,8 @@
 | M2-07 | Claim flow P-01 | MOB | M | M2-04, M2-06 | done | Sonnet session | 2026-11-15 | rework-1 |
 | M2-15 | Staff "Link app" QR screen (S-09) | MOB | S | M2-04, M1-12 | done | Sonnet session (with M2-07) | 2026-11-15 | rework-1 |
 | M2-04 … M2-16 (rest) | Patient core | — | — | see 10 | spec | | | |
-| M3-01 … M3-09 | Patient hook | — | — | see 10 | spec | | | |
+| M3-05 | Patient realtime gateway, active queue, visit tokens + public state | BE | M | M2-03 | review | Sonnet session | 2026-11-16 | |
+| M3-01 … M3-09 (rest) | Patient hook | — | — | see 10 | spec | | | |
 | M4-01 … M4-06 | Release | — | — | see 10 | spec | | | |
 
 ## Gates

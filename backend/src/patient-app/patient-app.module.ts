@@ -7,6 +7,9 @@ import { PatientAccessLog } from './entities/patient-access-log.entity';
 import { PatientAccountConsent } from './entities/patient-account-consent.entity';
 import { PatientProfile } from './entities/patient-profile.entity';
 import { PatientRecordLink } from './entities/patient-record-link.entity';
+import { QueueModule } from 'src/queue/queue.module';
+import { PatientQueueController } from './queue/patient-queue.controller';
+import { PatientQueueService } from './queue/patient-queue.service';
 import { PatientLinksModule } from 'src/patient-links/patient-links.module';
 import { ClaimsController } from './claims.controller';
 import { PatientJwtGuard } from './guards/patient-jwt.guard';
@@ -25,6 +28,7 @@ import './patient-app.settings';
     FeatureFlagsModule,
     PrescriptionsModule,
     PatientLinksModule,
+    QueueModule,
     TypeOrmModule.forFeature([
       PatientAccount,
       PatientProfile,
@@ -33,7 +37,12 @@ import './patient-app.settings';
       PatientAccessLog,
     ]),
   ],
-  controllers: [PatientMeController, PatientReadsController, ClaimsController],
+  controllers: [
+    PatientMeController,
+    PatientReadsController,
+    ClaimsController,
+    PatientQueueController,
+  ],
   providers: [
     PatientMeService,
     PatientJwtGuard,
@@ -41,7 +50,13 @@ import './patient-app.settings';
     PatientClinicsService,
     PatientAccessLogService,
     PatientReadsService,
+    PatientQueueService,
   ],
-  exports: [TypeOrmModule, PatientJwtGuard, PatientLinkGuard],
+  exports: [
+    TypeOrmModule,
+    PatientJwtGuard,
+    PatientLinkGuard,
+    PatientQueueService,
+  ],
 })
 export class PatientAppModule {}
