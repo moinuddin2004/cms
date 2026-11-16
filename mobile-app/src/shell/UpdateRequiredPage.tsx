@@ -3,6 +3,7 @@ import { CircleArrowUp } from 'lucide-react-native';
 import { useEffect } from 'react';
 import { Linking, Platform, View } from 'react-native';
 
+import { useT } from '@/core/i18n';
 import { markReady } from '@/core/splash';
 import { Button } from '@/core/ui/button';
 import { Icon } from '@/core/ui/icon';
@@ -49,6 +50,7 @@ async function openStore(): Promise<void> {
  * build as well.
  */
 export function UpdateRequiredPage({ message }: UpdateRequiredPageProps) {
+  const { t } = useT();
   useEffect(() => {
     markReady();
   }, []);
@@ -59,13 +61,13 @@ export function UpdateRequiredPage({ message }: UpdateRequiredPageProps) {
         <Icon as={CircleArrowUp} className="text-primary size-8" />
       </View>
       <Text variant="h2" className="border-0 pb-0 text-center">
-        Update required
+        {t('shell.update.title')}
       </Text>
       <Text variant="muted" className="text-center">
-        {message ?? 'This version of the app is no longer supported. Please update to continue.'}
+        {message ?? t('shell.update.body')}
       </Text>
       <Button size="lg" className="mt-2 min-w-40" onPress={() => void openStore()}>
-        <Text>Update</Text>
+        <Text>{t('shell.update.button')}</Text>
       </Button>
     </View>
   );

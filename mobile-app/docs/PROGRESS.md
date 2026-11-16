@@ -79,7 +79,8 @@
 | M3-05 | Patient realtime gateway + queue/active + visit tokens | BE | M | M2-03 | done | Sonnet session | 2026-11-15 | rework-1 |
 | M3-06 … M3-09 | Patient hook | — | — | see 10 | spec | | | |
 | M4-01 | Urdu translation pass + Noto Nastaliq font | MOB | M | — | done | Sonnet session | 2026-11-21 | rework-1; native-speaker review before release |
-| M4-02 … M4-06 | Release (rest) | — | — | see 10 | spec | | | |
+| M4-05 | Release hardening (A-24 error-reporting seam, perf budgets, patient gate QA) | MOB | M | M4-01 | review | Sonnet session | 2026-11-16 | no provider added; device measurements pending |
+| M4-02 … M4-04, M4-06 | Release (rest) | — | — | see 10 | spec | | | |
 
 ## Gates
 

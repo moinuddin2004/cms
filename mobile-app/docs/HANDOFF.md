@@ -3278,3 +3278,19 @@ Verification: tsc clean · eslint 0 errors · lint:fences ok · core/i18n + core
 ---
 ## Rework M4-01 #2 - 2026-11-16
 mobile/develop merged (clean; package + expo-font plugin now present). `urdu-font.ts` doc updated (optional `require` kept as a safety fallback); bold maps to `NotoNastaliqUrdu_700Bold`. Tests now use the REAL package: `text.test.tsx` (virtual mock removed) and new `urdu-font-installed.test.ts`. tsc clean, eslint 0 errors, core/i18n + core/ui jest 13/13. The install command from the first entry is no longer needed.
+
+
+---
+## M4-05 - release hardening (error-reporting seam, perf budgets, patient gate QA) - 2026-11-16
+Branch: claude/m4-05-release-hardening-d6067b - Status: review
+
+### What was done
+- **A-24** (DECISIONS): recommendation = no provider for the pilot (Play Console vitals); Sentry requirements written down. `src/core/observability` (`reportError`, `setErrorReporter`, `scrub*`) + tests, wired into a new root `ErrorBoundary` (`shell/RootErrorBoundary.tsx`) and the QueryCache/MutationCache `onError`. Release = no-op, dev = PHI-safe `log.warn`.
+- docs/09 section 5 performance budgets, section 6 patient gate checklist. `memo` on ArrivalRow / ScheduleRow / NotificationRow / WaitingRow.
+- Patient gate walk: `WelcomePage` + `UpdateRequiredPage` moved to `useT` (en + ur `shell.*`), `common.crashTitle/crashBody` added. Everything else passed. Table in `docs/reviews/M4-05/report.md`.
+
+### Install commands for the user
+none (only if Sentry is later chosen: `npx expo install @sentry/react-native`)
+
+### Device check needed (M0-D)
+Report section 4: cold start, bundle size, fling, TalkBack, Urdu on the new screens, forced render-crash retry.

@@ -11,6 +11,23 @@ export const en = {
     signOut: 'Sign out',
     retry: 'Try again',
     loading: 'Loading…',
+    crashTitle: 'Something went wrong',
+    crashBody: 'The app hit a problem. Please try again.',
+  },
+  shell: {
+    welcome: {
+      title: 'Your health, your clinic',
+      patient: "I'm a patient",
+      patientHint: 'Records, medicines, token',
+      staff: 'I work at a clinic',
+      staffHint: 'Queue, patients, schedule',
+      legal: 'Privacy · Terms',
+    },
+    update: {
+      title: 'Update required',
+      body: 'This version of the app is no longer supported. Please update to continue.',
+      button: 'Update',
+    },
   },
   auth: {
     signIn: {

@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { MoreHorizontal } from 'lucide-react-native';
 
 import { IconButton, ListRow, StatusBadge, TokenBadge, URGENT_BADGE } from '@/core/components';
@@ -21,7 +22,7 @@ export interface WaitingRowProps {
 }
 
 /** One waiting patient (also used, without the menu, for on-hold / skipped rows). */
-export function WaitingRow({ entry, session, now, busy, locked = false, onMenu }: WaitingRowProps) {
+export const WaitingRow = memo(function WaitingRow({ entry, session, now, busy, locked = false, onMenu }: WaitingRowProps) {
   const actions = useEntryActions(entry, session, 'doctor');
   const canMutate = useCanMutate();
   const name = entry.patient?.fullName ?? 'Walk-in patient';
@@ -57,4 +58,4 @@ export function WaitingRow({ entry, session, now, busy, locked = false, onMenu }
       }
     />
   );
-}
+});

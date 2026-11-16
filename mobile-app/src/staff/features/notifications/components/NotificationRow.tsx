@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { Text } from '@/core/ui/text';
@@ -11,7 +12,7 @@ export interface NotificationRowProps {
 }
 
 /** One inbox row: unread = bold title + dot; other-clinic rows carry the clinic name. */
-export function NotificationRow({ model, onPress }: NotificationRowProps) {
+export const NotificationRow = memo(function NotificationRow({ model, onPress }: NotificationRowProps) {
   const { title, body, time, unread, otherClinic } = model;
   const label = [unread ? 'Unread' : null, otherClinic, title, body, time]
     .filter(Boolean)
@@ -46,4 +47,4 @@ export function NotificationRow({ model, onPress }: NotificationRowProps) {
       </View>
     </Pressable>
   );
-}
+});

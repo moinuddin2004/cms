@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { APPOINTMENT_STATUS_TONES, StatusBadge, TokenBadge } from '@/core/components';
@@ -11,7 +12,7 @@ export const doctorLabel = (row: Pick<AppointmentListItem, 'doctor'>) =>
   row.doctor.fullName || 'No doctor';
 
 /** One appointment: clinic-clock time, patient, doctor · type, status badge, queue token. */
-export function ScheduleRow({ row, onPress }: { row: AppointmentListItem; onPress: () => void }) {
+export const ScheduleRow = memo(function ScheduleRow({ row, onPress }: { row: AppointmentListItem; onPress: () => void }) {
   const status = APPOINTMENT_STATUS_TONES[row.status];
   const time = formatTime(row.startTime);
   const sub = `${doctorLabel(row)} · ${typeLabel(row.type)}`;
@@ -42,4 +43,4 @@ export function ScheduleRow({ row, onPress }: { row: AppointmentListItem; onPres
       </View>
     </Pressable>
   );
-}
+});
