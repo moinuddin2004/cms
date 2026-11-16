@@ -1,6 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-condition -- DOM typings say these always exist; jsdom doesn't implement them. */
 import { afterEach } from 'vitest'
-import { cleanup } from '@testing-library/react'
+import { cleanup, configure } from '@testing-library/react'
+
+// The full suite runs files in parallel; under that load heavy pages (role
+// detail, …) and jsdom's *ByRole queries can take past Testing Library's 1 s
+// default before content appears. Waits only — every assertion is unchanged.
+configure({ asyncUtilTimeout: 5_000 })
 
 // jsdom lacks these; Radix UI (Select, Dialog, Tooltip) touches them.
 class ResizeObserverStub {

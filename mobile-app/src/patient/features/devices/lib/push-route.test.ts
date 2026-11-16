@@ -33,7 +33,7 @@ describe('resolvePatientPushRoute', () => {
 
   it('ignores staff pushes and anything that is not one of our shapes', () => {
     expect(resolvePatientPushRoute(data({ space: 'staff' }))).toBeNull();
-    for (const route of ['/queue/doctor', '/visit/../../x', '/visit/a b', '//evil', '/visit/']) {
+    for (const route of ['/visit/abcdef12', '/visit/1234567-1234', '/queue/doctor', '/visit/../../x', '/visit/a b', '//evil', '/visit/']) {
       expect(resolvePatientPushRoute(data({ route, type: 'other', entityId: null }))).toBeNull();
     }
   });

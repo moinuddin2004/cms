@@ -10,7 +10,6 @@ import { Button } from '@/core/ui/button';
 import { Icon } from '@/core/ui/icon';
 import { Text } from '@/core/ui/text';
 import { useSignOutPatient } from '@/patient/features/auth';
-import { LiveTokenSection } from '@/patient/features/queue';
 import { usePatientAuthStore } from '@/patient/store/usePatientAuthStore';
 
 /**
@@ -28,10 +27,6 @@ export function PatientPlaceholderPage() {
 
   return (
     <View className="bg-background flex-1 items-center justify-center gap-4 px-5 py-safe">
-      {/* Live token (M3-06). The Today screen (M3-04) pins this same component at its top. */}
-      <View className="w-full">
-        <LiveTokenSection />
-      </View>
       <View className="bg-muted size-14 items-center justify-center rounded-full">
         <Icon as={HeartPulse} className="text-muted-foreground size-6" />
       </View>

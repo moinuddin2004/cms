@@ -1,5 +1,6 @@
 import { Redirect, Stack } from 'expo-router';
 
+import { ReminderSync } from '@/patient/features/medications';
 import { freshPendingToken, usePendingClaimStore } from '@/core/claim/usePendingClaimStore';
 import { PatientPushRegistration, PatientPushRoute } from '@/patient/features/devices';
 import { PatientRealtimeProvider } from '@/patient/lib/realtime-provider';
@@ -15,6 +16,7 @@ export function PatientMainLayout() {
 
   return (
     <PatientRealtimeProvider>
+      <ReminderSync />
       <Stack screenOptions={{ headerShown: false }} />
       <PatientPushRegistration />
       <PatientPushRoute />

@@ -108,6 +108,14 @@ export function AppointmentCard({
                   🚨
                 </Badge>
               )}
+              {appointment.patientConfirmedAt && (
+                <Badge
+                  variant="secondary"
+                  className="text-[9px] px-1 py-0 h-3.5"
+                >
+                  Confirmed by patient
+                </Badge>
+              )}
               {appointment.queueEntry && (
                 <Badge
                   variant="secondary"

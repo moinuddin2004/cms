@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { markReady } from '@/core/splash';
 import { applyTextScale } from '@/core/theme/apply-text-scale';
 import { useRestorePatientSession } from '@/patient/features/auth';
+import { PendingDeviceCleanup } from '@/patient/features/devices';
 import { PatientProviders } from '@/patient/providers/PatientProviders';
 import { usePatientAuthStore } from '@/patient/store/usePatientAuthStore';
 
@@ -47,6 +48,7 @@ export function PatientLayout() {
 
   return (
     <PatientProviders onCacheSettled={onCacheSettled}>
+      <PendingDeviceCleanup />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Protected guard={route === 'offline'}>
           <Stack.Screen name="offline" />

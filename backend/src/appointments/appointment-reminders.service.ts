@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { ClockService } from 'src/common/clock/clock.service';
@@ -21,21 +21,25 @@ export interface ReminderTarget {
   locationId: string;
   patientId: string;
   startTime: Date;
+  endTime: Date;
 }
 
 /**
  * "Appointment tomorrow" push for patients who use the app (M3-07).
  *
- * Booking (or moving) an appointment enqueues one outbox row whose
- * `scheduled_for` is 24 h before the start; the notification worker sends it
- * then. Nothing cancels that row when the appointment is cancelled or moved —
- * instead the send-time check below drops every reminder whose appointment is
- * no longer booked for exactly the time the row was made for, so a stale
- * reminder can never reach a phone. The text is the clinic's name and the
- * time only.
+ * Booking an appointment enqueues one outbox row whose `scheduled_for` is
+ * 24 h before the start; the notification worker sends it then. Any change of
+ * time, length or patient, a cancellation or a no-show first drops the pending
+ * rows of that appointment (`skipPending`) and, when still applicable,
+ * schedules a fresh one. As a second line of defence the send-time check
+ * requires the appointment to still be booked for the same patient (the row's
+ * recipient) and the exact start and end the row was made for, so a stale row
+ * can never reach a phone. The text is the clinic's name and the time only.
  */
 @Injectable()
 export class AppointmentReminderService {
+  private readonly logger = new Logger(AppointmentReminderService.name);
+
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly notifications: NotificationService,
@@ -44,19 +48,31 @@ export class AppointmentReminderService {
     finalizers: PayloadFinalizers,
   ) {
     finalizers.register(APPOINTMENT_REMINDER_EVENT, async (n) => {
-      const [row] = await sqlRows<{ status: string; start_time: Date }>(
+      // The row is only valid for the exact booking it was made for: same
+      // patient (the recipient), same start and end, still scheduled/confirmed.
+      // Pending rows are also skipped when any of that changes, so this is the
+      // second line of defence (a row already claimed by the worker).
+      const [row] = await sqlRows<{
+        status: string;
+        start_time: Date;
+        end_time: Date;
+        patient_id: string;
+      }>(
         this.dataSource.manager,
-        `SELECT status, start_time FROM appointments WHERE id = $1`,
+        `SELECT status, start_time, end_time, patient_id FROM appointments WHERE id = $1`,
         [n.entityId],
       );
-      const stillBooked =
+      const v = n.payload.variables;
+      const valid =
         !!row &&
         (row.status === 'scheduled' || row.status === 'confirmed') &&
-        new Date(row.start_time).toISOString() === n.payload.variables.start_at;
-      if (!stillBooked) {
+        row.patient_id === n.recipientId &&
+        new Date(row.start_time).toISOString() === v.start_at &&
+        new Date(row.end_time).toISOString() === v.end_at;
+      if (!valid) {
         throw new SkipSendError(
           OutboxStatus.SKIPPED_DISABLED,
-          'The appointment was cancelled or moved after this reminder was scheduled',
+          'The appointment was cancelled, moved or reassigned after this reminder was scheduled',
         );
       }
       return n.payload;
@@ -64,14 +80,40 @@ export class AppointmentReminderService {
   }
 
   /**
-   * After commit, fire-and-forget: never fails the booking. Nothing is queued
-   * when the appointment is less than a day away (or the patient is not an
-   * app user).
+   * Drops every reminder of this appointment that has not been sent yet
+   * (cancel, no-show, or before a fresh one is scheduled). Rows already sent
+   * are history and stay.
+   */
+  async skipPending(appointmentId: string): Promise<void> {
+    await this.dataSource.query(
+      `UPDATE notification_outbox
+          SET status = '${OutboxStatus.SKIPPED_DISABLED}', updated_at = now(),
+              last_error = 'Superseded: the appointment changed or was cancelled'
+        WHERE event_code = $1 AND entity_id = $2
+          AND status IN ('${OutboxStatus.QUEUED}', '${OutboxStatus.HELD_QUIET_HOURS}')`,
+      [APPOINTMENT_REMINDER_EVENT, appointmentId],
+    );
+  }
+
+  /** Cancelled / no-show: nothing is due any more. Fire-and-forget, never throws. */
+  cancel(appointmentId: string): void {
+    void this.skipPending(appointmentId).catch((err: Error) =>
+      this.logger.error(`Reminder cleanup failed: ${err.message}`),
+    );
+  }
+
+  /**
+   * (Re)schedule after commit, fire-and-forget: never fails the booking. Any
+   * pending reminder of the appointment is dropped first, so a change of time,
+   * length or patient never leaves a stale or duplicate row. Nothing new is
+   * queued when the appointment is less than a day away (or the patient is
+   * not an app user).
    */
   schedule(a: ReminderTarget): void {
     const dueAt = new Date(a.startTime.getTime() - REMINDER_LEAD_MS);
-    if (dueAt <= this.clock.now()) return;
     void this.notifications.notify(async () => {
+      await this.skipPending(a.id);
+      if (dueAt <= this.clock.now()) return null;
       const recipients = await patientPushRecipients(
         this.patientDevices,
         this.dataSource.manager,
@@ -93,6 +135,7 @@ export class AppointmentReminderService {
             a.locationId,
           ),
           start_at: a.startTime.toISOString(),
+          end_at: a.endTime.toISOString(),
         },
         link: `/appointments/${a.id}`,
         entity: { type: 'appointment', id: a.id },

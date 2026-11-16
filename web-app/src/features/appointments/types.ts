@@ -194,6 +194,8 @@ export interface Appointment {
   completedAt: string | null
   cancelledAt: string | null
   noShowAt: string | null
+  /** Set when the patient confirmed from the patient app. */
+  patientConfirmedAt?: string | null
   createdBy: string | null
   updatedBy: string | null
   createdAt: string

@@ -9,11 +9,12 @@ import { parsePushData } from './push-data';
  */
 export function foregroundBehavior(data: unknown): NotificationBehavior {
   const type = parsePushData(data)?.type ?? '';
-  const isQueue = type.startsWith('queue.');
+  // A dose reminder that fires while the app is open must still be seen and heard.
+  const loud = type.startsWith('queue.') || type.startsWith('medication.');
   return {
-    shouldShowBanner: isQueue,
+    shouldShowBanner: loud,
     shouldShowList: true,
-    shouldPlaySound: isQueue,
+    shouldPlaySound: loud,
     shouldSetBadge: false,
   };
 }

@@ -130,7 +130,10 @@ describe('ROLE — role detail screen', () => {
       fireEvent.click(radio('Billing', label))
       // Granting high-risk permissions (void, refund, price override…) asks for a reason first.
       if (
-        await screen.findByText('Grant high-risk access?').catch(() => null)
+        await screen
+          // opens synchronously on the click; keep this "maybe" probe short
+          .findByText('Grant high-risk access?', undefined, { timeout: 1_000 })
+          .catch(() => null)
       ) {
         fireEvent.change(screen.getByLabelText(/reason/i), {
           target: { value: 'Acceptance run' },

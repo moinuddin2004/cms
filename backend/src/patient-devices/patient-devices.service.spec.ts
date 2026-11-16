@@ -63,6 +63,7 @@ describe('PatientDevicesService', () => {
     const sql = String(query.mock.calls[0][0]);
     expect(sql).toContain("l.status = 'active'");
     expect(sql).toContain("o.approval_status = 'approved'");
+    expect(sql).toContain('o.is_active');
     expect(sql).toContain("a.status = 'active'");
     expect(sql).toContain('a.deleted_at IS NULL');
     expect(sql).toContain('p.deleted_at IS NULL');
@@ -80,6 +81,8 @@ describe('PatientDevicesService', () => {
       ),
     ).resolves.toEqual(['pat-1']);
     expect(query.mock.calls[0][1]).toEqual(['org-1', ['pat-1', 'pat-2'], true]);
+    // a suspended clinic never pushes
+    expect(String(query.mock.calls[0][0])).toContain('o.is_active');
 
     await service.patientsWithDevices({ query } as never, 'org-1', ['pat-1'], false);
     expect(query.mock.calls[1][1]).toEqual(['org-1', ['pat-1'], false]);

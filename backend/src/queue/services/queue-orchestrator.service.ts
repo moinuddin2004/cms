@@ -391,7 +391,9 @@ export class QueueOrchestrator {
         { calledAt: tx.now },
         { eventType: 'CALLED', reasonCode: decision.reason },
       );
-      await this.notifyCalled(tx, session, entry);
+      await this.patientPush(tx, 'queue.called', () =>
+        this.notifyCalled(tx, session, entry),
+      );
       return {
         entry: this.query.toEntryView(entry, session.tokenPrefix),
         reason: decision.reason,
@@ -446,7 +448,9 @@ export class QueueOrchestrator {
         },
         ifMatch,
       );
-      await this.notifyCalled(tx, session, entry);
+      await this.patientPush(tx, 'queue.called', () =>
+        this.notifyCalled(tx, session, entry),
+      );
       return {
         entry: this.query.toEntryView(entry, session.tokenPrefix),
         reason: 'MANUAL_SELECT' as SelectionReason,
@@ -1144,7 +1148,9 @@ export class QueueOrchestrator {
 
         const tx = new QueueTx(manager, new Date(now), ctx, actor);
         const result = await work(tx);
-        await this.notifyTurnNear(tx);
+        await this.patientPush(tx, 'queue.turn_near', () =>
+          this.notifyTurnNear(tx),
+        );
         // Plain JSON — exactly what a replay of this key will return later.
         const body = JSON.parse(JSON.stringify(result ?? null)) as T;
 
@@ -1302,6 +1308,28 @@ export class QueueOrchestrator {
   }
 
   /**
+   * Patient pushes are a side effect of a STAFF queue action: whatever they do
+   * (a failing query, a bad row) must never fail or abort it. Same contract as
+   * `NotificationService.enqueueSafely`: run behind a savepoint, roll back to it
+   * on any error (undoing the helper's partial writes, e.g. the turn-near marker),
+   * log and carry on.
+   */
+  private async patientPush(
+    tx: QueueTx,
+    what: string,
+    work: () => Promise<void>,
+  ): Promise<void> {
+    await tx.manager.query('SAVEPOINT patient_push');
+    try {
+      await work();
+      await tx.manager.query('RELEASE SAVEPOINT patient_push');
+    } catch (err) {
+      await tx.manager.query('ROLLBACK TO SAVEPOINT patient_push');
+      this.logger.error(`Patient push ${what} skipped: ${(err as Error).message}`);
+    }
+  }
+
+  /**
    * "It's your turn" push to the patient's phone (M3-07). Only the clinic name,
    * the doctor's name and the token — nothing clinical (docs/03 §5). Savepoint-safe.
    */
@@ -1338,14 +1366,15 @@ export class QueueOrchestrator {
 
   /**
    * "Your turn is near" push (M3-07), once per entry. Runs at the end of every
-   * mutation that moved the line (anything but a plain check-in): waiting
+   * mutation that wrote queue events (a check-in included: the new patient may
+   * already be within the threshold): waiting
    * patients with at most `patientTurnNearAhead` people ahead and no marker
    * yet get the push; the marker is set in the same transaction, so a retry
    * or a second mutation can never send it twice. Patients with no reachable
    * phone are left unmarked and checked again on the next change.
    */
   private async notifyTurnNear(tx: QueueTx): Promise<void> {
-    if (![...tx.eventTypes].some((t) => t !== 'CHECKED_IN')) return;
+    if (tx.touchedSessions.size === 0) return;
     for (const session of tx.touchedSessions.values()) {
       const policy = await this.policies.getEffective(
         session.organizationId,

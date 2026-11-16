@@ -6,9 +6,12 @@ import { isOnlineNow } from '@/core/network';
 import { getExpoPushToken } from '@/core/notifications/push-token';
 import { createSecureItem } from '@/core/storage/secure-store';
 
+import { getRefreshToken } from '@/patient/lib/session';
+
 import {
   registerDevice,
   unregisterDevice,
+  unregisterDeviceWithoutSession,
   type PatientDeviceRegistration,
 } from '../api/devices.api';
 
@@ -59,5 +62,23 @@ export async function unregisterThisDevice(): Promise<void> {
     await registeredToken.clear();
   } catch {
     // keep the token so a later sign-out can retry
+  }
+}
+
+/**
+ * An offline sign-out keeps the token (see above). On a later start with NO patient session the
+ * phone would keep receiving the old account's pushes, so finish the job through the session-less
+ * endpoint. Does nothing while a session exists (signing in again moves the token to that account).
+ * Best effort, never throws.
+ */
+export async function finishPendingUnregister(): Promise<void> {
+  try {
+    const token = await registeredToken.get();
+    if (!token || !isOnlineNow()) return;
+    if ((await getRefreshToken()) !== null) return;
+    await unregisterDeviceWithoutSession(token);
+    await registeredToken.clear();
+  } catch {
+    // try again next start
   }
 }

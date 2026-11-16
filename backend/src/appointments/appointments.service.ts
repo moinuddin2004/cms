@@ -2,6 +2,7 @@ import {
   NotificationAudience,
   RecipientType,
 } from 'src/notifications/notifications.enums';
+import { clearConfirmationOnReschedule } from './patient-confirmation';
 import { employeeUserId } from 'src/notifications/recipients/staff-recipients';
 import { NotificationService } from 'src/notifications/services/notification.service';
 import {
@@ -358,6 +359,8 @@ export class AppointmentsService {
       startTime.getTime() !== existing.startTime.getTime() ||
       duration !== existing.durationMinutes;
     const doctorChanged = !!dto.doctorId && dto.doctorId !== existing.doctorId;
+    const patientChanged =
+      !!dto.patientId && dto.patientId !== existing.patientId;
 
     // Re-validate patient if changed
     if (dto.patientId && dto.patientId !== existing.patientId) {
@@ -411,6 +414,7 @@ export class AppointmentsService {
       existing.endTime = endTime;
       existing.durationMinutes = duration;
     }
+    clearConfirmationOnReschedule(existing, timeChanged);
     existing.updatedBy = userId;
 
     await this.saveBooking(existing);
@@ -420,7 +424,7 @@ export class AppointmentsService {
         reason: 'It moved to another doctor.',
       });
     }
-    if (timeChanged) this.reminders.schedule(existing);
+    if (timeChanged || patientChanged) this.reminders.schedule(existing);
     if (timeChanged || doctorChanged) {
       this.notifyDoctor('appointment.rescheduled', existing, userId, {
         previous_date: await this.notifications.clinicTime(
@@ -461,6 +465,7 @@ export class AppointmentsService {
     appt.updatedBy = userId;
 
     await this.appointmentRepo.save(appt);
+    this.reminders.cancel(appt.id);
     this.notifyDoctor('appointment.cancelled', appt, userId, {
       reason: dto.reason ? `Reason: ${dto.reason}` : '',
     });
@@ -481,6 +486,7 @@ export class AppointmentsService {
     appt.updatedBy = userId;
 
     await this.appointmentRepo.save(appt);
+    this.reminders.cancel(appt.id);
     return this.findOne(id, ctx);
   }
 

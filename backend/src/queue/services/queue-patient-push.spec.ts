@@ -184,14 +184,13 @@ describe('QueueOrchestrator — patient turn-near push', () => {
     expect(marks.map(([, p]) => (p as string[])[0])).toEqual(['e2']);
   });
 
-  it('a plain check-in does not trigger it (no noise for who just arrived)', async () => {
-    const { run, enqueueSafely, tx } = setup({
+  it('a check-in is evaluated too: the new patient may already be near', async () => {
+    const { run, enqueueSafely } = setup({
       waiting: five,
       eventTypes: ['CHECKED_IN'],
     });
     await run();
-    expect(enqueueSafely).not.toHaveBeenCalled();
-    expect(tx.sessionEntries).not.toHaveBeenCalled();
+    expect(recipientIds(enqueueSafely.mock.calls)).toEqual(['p1', 'p2', 'p3']);
   });
 
   it('does nothing when nobody is waiting', async () => {
@@ -199,6 +198,41 @@ describe('QueueOrchestrator — patient turn-near push', () => {
     await run();
     expect(patientsWithDevices).not.toHaveBeenCalled();
     expect(enqueueSafely).not.toHaveBeenCalled();
+  });
+});
+
+describe('QueueOrchestrator — patient pushes never break the staff action', () => {
+  const run = (orch: Record<string, unknown>, work: () => Promise<void>) => {
+    const query = jest.fn().mockResolvedValue([]);
+    const logger = { error: jest.fn() };
+    orch.logger = logger;
+    const tx = { manager: { query } };
+    const p = (
+      orch as unknown as {
+        patientPush: (t: unknown, w: string, f: () => Promise<void>) => Promise<void>;
+      }
+    ).patientPush(tx, 'queue.called', work);
+    return { p, query, logger };
+  };
+  const orch = () => Object.create(QueueOrchestrator.prototype) as Record<string, unknown>;
+
+  it('a throwing helper is rolled back to its savepoint, logged, and swallowed', async () => {
+    const { p, query, logger } = run(orch(), () => Promise.reject(new Error('boom')));
+    await expect(p).resolves.toBeUndefined();
+    expect(query.mock.calls.map((c) => c[0])).toEqual([
+      'SAVEPOINT patient_push',
+      'ROLLBACK TO SAVEPOINT patient_push',
+    ]);
+    expect(logger.error).toHaveBeenCalled();
+  });
+
+  it('a clean helper releases the savepoint', async () => {
+    const { p, query } = run(orch(), () => Promise.resolve());
+    await p;
+    expect(query.mock.calls.map((c) => c[0])).toEqual([
+      'SAVEPOINT patient_push',
+      'RELEASE SAVEPOINT patient_push',
+    ]);
   });
 });
 

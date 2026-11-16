@@ -566,6 +566,7 @@ CREATE TABLE appointments (
   completed_at       timestamptz,
   cancelled_at       timestamptz,
   no_show_at         timestamptz,
+  patient_confirmed_at timestamptz,
   created_by         uuid,
   updated_by         uuid,
   created_at         timestamptz NOT NULL DEFAULT now(),

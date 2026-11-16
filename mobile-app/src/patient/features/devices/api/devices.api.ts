@@ -27,3 +27,11 @@ export async function unregisterDevice(expoPushToken: string): Promise<{ deleted
   });
   return res.data.data;
 }
+
+/**
+ * `POST /patient-auth/devices/unregister` — no session needed: finishes an unregister that a
+ * sign-out could not send (offline). The push token itself is the credential.
+ */
+export async function unregisterDeviceWithoutSession(expoPushToken: string): Promise<void> {
+  await patientApi.post('/patient-auth/devices/unregister', { expoPushToken }, { timeout: UNREGISTER_TIMEOUT_MS });
+}

@@ -1,3 +1,4 @@
+import { URDU_LEADING_CLASS, useUrduFont } from '@/core/i18n';
 import { cn } from '@/core/utils';
 import { Slot } from '@rn-primitives/slot';
 import { cva, type VariantProps } from 'class-variance-authority';
@@ -68,6 +69,7 @@ function Text({
   className,
   asChild = false,
   variant = 'default',
+  style,
   ...props
 }: React.ComponentProps<typeof RNText> &
   React.RefAttributes<typeof RNText> &
@@ -76,12 +78,18 @@ function Text({
   }) {
   const textClass = React.useContext(TextClassContext);
   const Component = asChild ? Slot : RNText;
+  const urdu = useUrduFont();
+  const heavy = /font-(semibold|bold|extrabold|black)/.test(
+    `${textVariants({ variant })} ${textClass ?? ''} ${className ?? ''}`
+  );
+  const urduStyle = urdu.active ? { fontFamily: heavy ? urdu.bold : urdu.regular } : undefined;
   return (
     <Component
-      className={cn(textVariants({ variant }), textClass, className)}
+      className={cn(textVariants({ variant }), textClass, className, urdu.active && URDU_LEADING_CLASS)}
       role={variant ? ROLE[variant] : undefined}
       aria-level={variant ? ARIA_LEVEL[variant] : undefined}
       {...props}
+      style={urduStyle ? [urduStyle, style] : style}
     />
   );
 }

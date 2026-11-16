@@ -5,7 +5,7 @@ export type PatientPushRoute =
   | { kind: 'visit'; entryId: string }
   | { kind: 'appointment'; id: string };
 
-const ID = /^[0-9a-fA-F-]{8,64}$/;
+const ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * Maps a tapped push to a patient screen. The payload is only a routing hint (docs/03 §2.4): the

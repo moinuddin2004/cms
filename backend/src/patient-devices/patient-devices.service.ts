@@ -63,11 +63,6 @@ export class PatientDevicesService {
     return { deleted: (result.affected ?? 0) > 0 };
   }
 
-  /** Every device of an account (account deletion removes them). */
-  async removeAllOfAccount(m: EntityManager, accountId: string): Promise<void> {
-    await m.getRepository(PatientDevice).delete({ accountId });
-  }
-
   /**
    * Push tokens that should hear about this clinic patient: the accounts of
    * the patient's ACTIVE link (at most one, `uq_patient_record_links_active_patient`).
@@ -108,7 +103,7 @@ export class PatientDevicesService {
          JOIN organizations o ON o.id = l.organization_id
         WHERE l.organization_id = $1 AND l.status = 'active'
           AND l.patient_id = ANY($2::uuid[])
-          AND o.approval_status = 'approved'
+          AND o.approval_status = 'approved' AND o.is_active
           AND ($3::boolean = false
                OR EXISTS (SELECT 1 FROM patient_devices d WHERE d.account_id = a.id))`,
       [organizationId, patientIds, requireDevice],
@@ -152,4 +147,4 @@ const TOKENS_FOR_PATIENTS_SQL = `SELECT d.expo_push_token
          JOIN patient_devices d ON d.account_id = a.id
         WHERE l.organization_id = $1 AND l.status = 'active'
           AND l.patient_id = ANY($2::uuid[])
-          AND o.approval_status = 'approved'`;
+          AND o.approval_status = 'approved' AND o.is_active`;

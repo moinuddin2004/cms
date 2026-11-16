@@ -22,6 +22,7 @@ import {
 import { PatientSessionService } from './patient-session.service';
 import { PatientSessionEvents } from './patient-session-events';
 import { PatientTokenService } from './patient-token.service';
+import { PatientDevicesModule } from 'src/patient-devices/patient-devices.module';
 import { PatientJwtStrategy } from './strategies/patient-jwt.strategy';
 
 /**
@@ -32,6 +33,7 @@ import { PatientJwtStrategy } from './strategies/patient-jwt.strategy';
 @Module({
   imports: [
     CommonModule,
+    PatientDevicesModule,
     PassportModule,
     JwtModule.register({}),
     TypeOrmModule.forFeature([

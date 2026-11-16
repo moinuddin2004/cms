@@ -4,6 +4,7 @@ import { View } from 'react-native';
 
 import { Screen, ScreenHeader, SearchBar, SegmentedControl } from '@/core/components';
 import { useT } from '@/core/i18n';
+import { ContactButton } from '@/patient/features/contact';
 import { trackPatient } from '@/patient/lib/analytics';
 
 import { AppointmentCard, BillCard, PrescriptionCard, VisitCard } from '../components/RecordCards';
@@ -92,7 +93,12 @@ export function RecordsPage() {
   );
 
   return (
-    <Screen header={<ScreenHeader title={t('records.title')} back={false} backLabel={t('common.back')} />}>
+    <Screen header={<ScreenHeader
+        title={t('records.title')}
+        back={false}
+        backLabel={t('common.back')}
+        actions={<ContactButton />}
+      />}>
       <View className="gap-3 px-4 pb-2">
         <SegmentedControl
           segments={segments}
