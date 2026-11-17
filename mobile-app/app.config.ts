@@ -50,7 +50,7 @@ const applicationId = `com.placeholder.clinicapp${variant.idSuffix}`;
  * (docs/RELEASE.md §2): paste the id it prints between the quotes below.
  * Leave it empty and updates stay disabled. M1-05 needs it for push tokens.
  */
-const EAS_PROJECT_ID = '';
+const EAS_PROJECT_ID = '3a538b69-93e2-4e4e-8ce7-d41d6f37c872';
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
