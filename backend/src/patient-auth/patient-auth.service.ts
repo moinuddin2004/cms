@@ -62,8 +62,8 @@ export class PatientAuthService {
     private readonly accounts: Repository<PatientAccount>,
   ) {}
 
-  startEmail(email: string): Promise<void> {
-    return this.codes.start(email);
+  startEmail(email: string, ip?: string | null): Promise<void> {
+    return this.codes.start(email, ip);
   }
 
   async verifyEmail(

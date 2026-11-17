@@ -50,7 +50,10 @@ export type ProductEventName = keyof typeof PRODUCT_EVENTS;
 
 export const MAX_EVENTS_PER_BATCH = 50;
 export const VERSION_RE = /^\d{1,3}(\.\d{1,3}){0,3}$/;
-/** Events older than this are stamped "now" (a long-offline phone). */
+/**
+ * Events older than this are DROPPED by the service (a long-offline phone loses its oldest events);
+ * only small clock skew is clamped to "now" (audit L24).
+ */
 export const MAX_EVENT_AGE_MS = 7 * 24 * 60 * 60 * 1000;
-/** Retention (days); see mobile-app/docs/analytics-events.md. */
+/** Default retention (days); the daily job reads `PRODUCT_EVENT_RETENTION_DAYS`. See mobile-app/docs/analytics-events.md. */
 export const PRODUCT_EVENTS_RETENTION_DAYS = 400;

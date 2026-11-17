@@ -190,6 +190,12 @@ export class PatientProfilesService {
           message: 'Unlink this family member from their clinics first',
         });
       }
+      // Reminders + dose history of this person are deleted too (cascade from the schedules);
+      // the profile is only soft-deleted so the FK cascade would never fire. Audit H2.
+      await m.query(
+        `DELETE FROM medication_schedules WHERE profile_id = ANY($1)`,
+        [[profileId]],
+      );
       // Soft delete (A-22): the revoked links of this profile stay as the
       // clinic's history; the person's data goes.
       await m.query(

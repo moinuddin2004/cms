@@ -100,7 +100,9 @@ export const PERMISSIONS = defineCatalog({
     implies: ['patients.clinical.view'],
   },
   'patients.app_link.manage': {
-    feature: 'patient_app',
+    // Not tied to `patient_app`: a clinic must always be able to cut a link, even with the app
+    // switched off (audit M3). Creating a claim token still requires the feature (controller).
+    feature: 'patients.core',
     label: 'Link patients to the app',
     group: 'Patients',
     risk: 'high',

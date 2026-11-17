@@ -156,6 +156,14 @@ It creates one approved clinic ("Demo Family Clinic") with one location, a docto
 DRAFT texts are in `mobile-app/docs/legal/` (privacy policy, terms, account deletion, Play Data safety inputs). A lawyer must review them and every `[PLACEHOLDER]` must be replaced. Public web pages: `<web>/privacy`, `<web>/terms`, `<web>/delete-account`. After editing the Markdown run `node mobile-app/docs/legal/build-web-content.mjs` and commit the regenerated file. Enter `<web>/privacy` and `<web>/delete-account` in Play Console.
 
 
+## 6d. Backend deploy checklist for the patient space
+
+Set on every backend process (`api`, `worker` and `all`) before deploying a build that includes the patient API:
+
+- `JWT_PATIENT_ACCESS_SECRET` — **required**: the API fails at boot without it. At least 32 characters (e.g. `openssl rand -base64 48`), different from `JWT_ACCESS_SECRET`. Deploys that predate the patient space will not start until it is set.
+- Optional tuning (defaults are safe): `PATIENT_LOGIN_CODES_PER_HOUR` / `PATIENT_LOGIN_CODES_PER_DAY` / `PATIENT_LOGIN_CODES_PER_IP_PER_DAY`, `PATIENT_FAILED_VERIFY_PER_24H`, `PATIENT_SESSION_MAX_DAYS`, `PATIENT_SESSION_RETENTION_MONTHS`, `PRODUCT_EVENT_RETENTION_DAYS`, `PATIENT_LOGIN_CODE_RETENTION_DAYS` — see the root `CLAUDE.md` env table. The retention job runs daily at 03:15 on the process that runs jobs (`worker` or `all`).
+- `TRUST_PROXY` must match the production proxy, otherwise every per-IP limit shares one bucket.
+
 ## 7. Pre-flight checks
 
 ```powershell

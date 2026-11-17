@@ -11,6 +11,7 @@ import { AuditService } from 'src/common/audit/audit.service';
 import { pgError, sqlRows } from 'src/common/database/sql';
 import type { PatientContext } from 'src/patient-app/context/patient-context';
 import { assertProfile } from 'src/patient-app/context/patient-context';
+import { MAX_PROFILES_PER_ACCOUNT } from 'src/patient-app/profiles/patient-profiles.service';
 import { AcceptClaimDto } from './dto/patient-links.dto';
 import {
   ageBand,
@@ -248,6 +249,19 @@ export class ClaimsService {
           throw new BadRequestException({
             code: 'NAME_REQUIRED',
             message: 'A name is required for a new profile',
+          });
+        }
+        // Same cap as `POST /profiles` (audit L3); the account row is locked above, so no race.
+        const [{ n }] = await sqlRows<{ n: number }>(
+          m,
+          `SELECT count(*)::int AS n FROM patient_profiles
+            WHERE account_id = $1 AND deleted_at IS NULL`,
+          [ctx.accountId],
+        );
+        if (n >= MAX_PROFILES_PER_ACCOUNT) {
+          throw new ConflictException({
+            code: 'TOO_MANY_PROFILES',
+            message: 'Too many family members on this account',
           });
         }
         const [created] = await sqlRows<{

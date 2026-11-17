@@ -74,6 +74,23 @@ export class PatientAccountService {
         );
       }
 
+      // Reminders + dose history go with the profiles (A-22, privacy policy §4). The profiles are
+      // only soft-deleted, so the ON DELETE CASCADE never fires: delete the schedules explicitly
+      // (their dose events cascade from the schedules). Audit H2.
+      const profileIds = (
+        await sqlRows<{ id: string }>(
+          m,
+          `SELECT id FROM patient_profiles WHERE account_id = $1`,
+          [ctx.accountId],
+        )
+      ).map((r) => r.id);
+      if (profileIds.length > 0) {
+        await m.query(
+          `DELETE FROM medication_schedules WHERE profile_id = ANY($1)`,
+          [profileIds],
+        );
+      }
+
       // Soft delete (A-22): the revoked link rows (who revoked, when, why) are
       // the clinic's history and stay; every personal field of the profiles goes.
       await m.query(

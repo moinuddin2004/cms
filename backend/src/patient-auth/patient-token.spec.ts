@@ -10,8 +10,8 @@ import {
 import { PatientTokenService } from './patient-token.service';
 import { PatientJwtStrategy } from './strategies/patient-jwt.strategy';
 
-const PATIENT_SECRET = 'patient-secret-for-tests';
-const STAFF_SECRET = 'staff-secret-for-tests';
+const PATIENT_SECRET = 'patient-secret-for-tests-0123456789ab';
+const STAFF_SECRET = 'staff-secret-for-tests-0123456789abcd';
 const ACCOUNT = '11111111-1111-4111-8111-111111111111';
 const SESSION = '22222222-2222-4222-8222-222222222222';
 
@@ -32,6 +32,17 @@ describe('patient secret boot check', () => {
         }),
       ),
     ).toThrow(/required/);
+  });
+
+  it('throws when it is shorter than 32 characters (audit L8)', () => {
+    expect(() =>
+      assertPatientSecret(
+        config({
+          JWT_ACCESS_SECRET: STAFF_SECRET,
+          JWT_PATIENT_ACCESS_SECRET: 'too-short',
+        }),
+      ),
+    ).toThrow(/at least 32 characters/);
   });
 
   it('throws when it equals the staff secret', () => {

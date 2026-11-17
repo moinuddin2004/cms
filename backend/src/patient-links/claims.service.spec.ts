@@ -108,3 +108,76 @@ describe('ClaimsService.accept with a deleted account', () => {
     expect(sqls.some((s) => s.includes('patient_profiles'))).toBe(false);
   });
 });
+
+describe('ClaimsService.accept profile cap (audit L3)', () => {
+  const token = 'T'.repeat(43);
+
+  function make(profileCount: number) {
+    const sqls: string[] = [];
+    const query = jest.fn((sql: string) => {
+      sqls.push(sql.replace(/\s+/g, ' '));
+      if (sql.includes('FROM patient_claim_tokens')) {
+        return Promise.resolve([
+          {
+            id: 't1',
+            organization_id: 'o1',
+            patient_id: 'p1',
+            created_by_user_id: 'u1',
+            patient_full_name: 'Ali Raza Khan',
+            patient_dob: null,
+            patient_gender: null,
+            patient_is_minor: false,
+            patient_is_active: true,
+            primary_location_id: null,
+          },
+        ]);
+      }
+      if (sql.includes('FROM patient_accounts')) {
+        return Promise.resolve([{ full_name: 'Me' }]);
+      }
+      if (sql.includes('count(*)'))
+        return Promise.resolve([{ n: profileCount }]);
+      return Promise.resolve([]); // no existing link, no existing self profile
+    });
+    const dataSource = {
+      transaction: (fn: (m: unknown) => unknown) => fn({ query }),
+    };
+    const service = new ClaimsService(
+      dataSource as never,
+      {} as never,
+      { check: jest.fn().mockResolvedValue('ok') } as never,
+    );
+    return { service, sqls };
+  }
+  const ctx = { accountId: 'a1', links: [], profiles: [] } as never;
+
+  it('refuses to create a 21st profile through a claim, before inserting', async () => {
+    const { service, sqls } = make(20);
+    await expect(
+      service.accept(
+        ctx,
+        token,
+        { relation: 'child', newProfileName: 'Zain', confirm: true },
+        null,
+      ),
+    ).rejects.toMatchObject({ status: 409 });
+    expect(sqls.some((s) => s.includes('INSERT INTO patient_profiles'))).toBe(
+      false,
+    );
+  });
+
+  it('under the cap the profile is created', async () => {
+    const { service, sqls } = make(3);
+    await service
+      .accept(
+        ctx,
+        token,
+        { relation: 'child', newProfileName: 'Zain', confirm: true },
+        null,
+      )
+      .catch(() => undefined); // later steps need more rows than this stub gives
+    expect(sqls.some((s) => s.includes('INSERT INTO patient_profiles'))).toBe(
+      true,
+    );
+  });
+});

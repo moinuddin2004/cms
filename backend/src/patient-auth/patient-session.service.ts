@@ -1,9 +1,19 @@
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'crypto';
-import { Injectable, Optional, UnauthorizedException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  Optional,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, MoreThan, Repository } from 'typeorm';
 import { PatientSession } from './entities/patient-session.entity';
 import { PatientSessionEvents } from './patient-session-events';
+import {
+  PATIENT_LIMITS,
+  readPatientLimits,
+  type PatientLimits,
+} from './patient-config';
 
 const REFRESH_DAYS = 60;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -34,7 +44,21 @@ export class PatientSessionService {
     @InjectRepository(PatientSession)
     private readonly sessions: Repository<PatientSession>,
     @Optional() private readonly events?: PatientSessionEvents,
+    @Optional()
+    @Inject(PATIENT_LIMITS)
+    private readonly limits: PatientLimits = readPatientLimits(),
   ) {}
+
+  /**
+   * Next expiry: 60 days from now, never past the absolute lifetime (`sessionMaxDays` from
+   * `created_at`, audit L6) — a stolen token cannot be kept alive forever by rotating it.
+   */
+  private nextExpiry(now: Date, createdAt: Date | undefined): Date {
+    const rolling = now.getTime() + REFRESH_DAYS * DAY_MS;
+    if (!createdAt) return new Date(rolling);
+    const cap = createdAt.getTime() + this.limits.sessionMaxDays * DAY_MS;
+    return new Date(Math.min(rolling, cap));
+  }
 
   async create(
     accountId: string,
@@ -77,14 +101,14 @@ export class PatientSessionService {
     const presented = sha256(part);
     if (sameHash(session.previousTokenHash, presented)) {
       // A rotated token came back: someone else holds a copy. Kill the session.
-      await this.sessions.update({ id }, { revokedAt: now });
-      this.events?.revoked({ accountId: session.accountId, sessionId: id });
+      await this.revokeSession(id, session.accountId);
       throw invalid();
     }
     if (!sameHash(session.refreshTokenHash, presented)) throw invalid();
 
     const nextPart = randomBytes(32).toString('base64url');
-    const expiresAt = new Date(now.getTime() + REFRESH_DAYS * DAY_MS);
+    const expiresAt = this.nextExpiry(now, session.createdAt);
+    if (expiresAt <= now) throw invalid();
     // Compare-and-swap on the current hash: two parallel refreshes cannot both win.
     const res = await this.sessions.update(
       { id, refreshTokenHash: session.refreshTokenHash, revokedAt: IsNull() },
@@ -95,7 +119,19 @@ export class PatientSessionService {
         expiresAt,
       },
     );
-    if (!res.affected) throw invalid();
+    if (!res.affected) {
+      // Lost the race: someone else rotated first. Re-read — if our token is now the PREVIOUS
+      // one, two holders used the same token, so treat it as theft and kill the session (L5).
+      const fresh = await this.sessions.findOne({ where: { id } });
+      if (
+        fresh &&
+        !fresh.revokedAt &&
+        sameHash(fresh.previousTokenHash, presented)
+      ) {
+        await this.revokeSession(id, session.accountId);
+      }
+      throw invalid();
+    }
 
     return {
       session: {
@@ -119,11 +155,21 @@ export class PatientSessionService {
     if (
       sameHash(session.refreshTokenHash, presented) ||
       sameHash(session.previousTokenHash, presented)
-    )
-    {
-      await this.sessions.update({ id }, { revokedAt: new Date() });
-      this.events?.revoked({ accountId: session.accountId, sessionId: id });
+    ) {
+      await this.revokeSession(id, session.accountId);
     }
+  }
+
+  /**
+   * Revoke one session and drop what the privacy policy says goes with it: the IP and the device
+   * label (audit M9). Ends the socket too.
+   */
+  private async revokeSession(id: string, accountId: string): Promise<void> {
+    await this.sessions.update(
+      { id },
+      { revokedAt: new Date(), ip: null, deviceLabel: null },
+    );
+    this.events?.revoked({ accountId, sessionId: id });
   }
 
   /** Is this session usable right now? (strategy check) */

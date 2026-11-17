@@ -23,13 +23,14 @@ import { PatientLinksService } from './patient-links.service';
 
 /** Staff endpoints of the patient app link (07 §4.1). */
 @Controller('patients/:patientId/app-link')
-@PatientInScope('patientId')
 export class PatientLinksController {
   constructor(private readonly links: PatientLinksService) {}
 
   @Post('claim-token')
+  @PatientInScope('patientId', 'param', 'patients.app_link.manage')
   @HttpCode(HttpStatus.CREATED)
   @Can('patients.app_link.manage')
+  @RequireFeature('patient_app')
   @RateLimit({ maxAttempts: 30, windowSeconds: 600 })
   async createClaimToken(
     @Param('patientId', ParseUUIDPipe) patientId: string,
@@ -45,6 +46,7 @@ export class PatientLinksController {
   }
 
   @Get()
+  @PatientInScope('patientId')
   @Can('patients.view')
   @RequireFeature('patient_app')
   async status(
@@ -56,7 +58,9 @@ export class PatientLinksController {
     );
   }
 
+  /** Always allowed with `patients.app_link.manage`, even when the clinic switched `patient_app` off (audit M3). */
   @Delete()
+  @PatientInScope('patientId', 'param', 'patients.app_link.manage')
   @Can('patients.app_link.manage')
   async revoke(
     @Param('patientId', ParseUUIDPipe) patientId: string,

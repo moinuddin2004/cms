@@ -124,7 +124,7 @@ export const PERMISSION_FEATURES: Record<Permission, string> = {
   'patients.price.view': 'patients.core',
   'patients.clinical.view': 'patients.core',
   'patients.clinical.edit': 'patients.core',
-  'patients.app_link.manage': 'patient_app',
+  'patients.app_link.manage': 'patients.core',
   'patients.documents.manage': 'patients.documents',
   'patients.chart.edit': 'patients.teeth_chart',
   'plans.manage': 'patients.treatment_plans',
@@ -240,7 +240,7 @@ export const PERMISSIONS: Record<Permission, PermissionDef> = {
     implies: ['patients.clinical.view'],
   },
   'patients.app_link.manage': {
-    feature: 'patient_app',
+    feature: 'patients.core',
     label: 'Link patients to the app',
     group: 'Patients',
     risk: 'high',

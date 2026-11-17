@@ -58,6 +58,34 @@ const runSql = (
 ): Promise<{ rows: any[] }> => withClient((c) => c.query(sql, params), SCHEMA);
 const runRaw = (sql: string) => withClient((c) => c.query(sql));
 
+/** A manual medicine schedule + one dose event for `profileId` (audit H2). */
+async function seedSchedule(profileId: string): Promise<string> {
+  const id = randomUUID();
+  await runSql(
+    `INSERT INTO medication_schedules (id, profile_id, source, name, dose_text, start_date)
+     VALUES ($1, $2, 'manual', 'Test medicine', '1 tablet', CURRENT_DATE)`,
+    [id, profileId],
+  );
+  await runSql(
+    `INSERT INTO medication_dose_events (schedule_id, due_at, action, acted_at)
+     VALUES ($1, now(), 'taken', now())`,
+    [id],
+  );
+  return id;
+}
+
+const scheduleCount = async (ids: string[]): Promise<number> =>
+  (await runSql(`SELECT 1 FROM medication_schedules WHERE id = ANY($1)`, [ids]))
+    .rows.length;
+
+const doseEventCount = async (ids: string[]): Promise<number> =>
+  (
+    await runSql(
+      `SELECT 1 FROM medication_dose_events WHERE schedule_id = ANY($1)`,
+      [ids],
+    )
+  ).rows.length;
+
 describe('patient profiles + links + account deletion (int)', () => {
   let app: INestApplication;
   let staff: PatientLinksController;
@@ -333,9 +361,17 @@ describe('patient profiles + links + account deletion (int)', () => {
       `/patient-api/links/${kid.links[0].id}`,
       me.token,
     ).expect(200);
+    // H2: removing a family member deletes their reminders + dose history (events cascade),
+    // and only theirs.
+    const kidSchedule = await seedSchedule(kid.id);
+    const selfSchedule = await seedSchedule(self.body.data.profile.id);
     await api('delete', `/patient-api/profiles/${kid.id}`, me.token).expect(
       200,
     );
+    expect(await scheduleCount([kidSchedule])).toBe(0);
+    expect(await doseEventCount([kidSchedule])).toBe(0);
+    expect(await scheduleCount([selfSchedule])).toBe(1);
+    expect(await doseEventCount([selfSchedule])).toBe(1);
   });
 
   it('profiles + links never cross accounts', async () => {
@@ -426,6 +462,10 @@ describe('patient profiles + links + account deletion (int)', () => {
       newProfileName: 'Zain',
     }).expect(200);
     const linkId = linked.body.data.link.id;
+    // H2: reminders + dose history of every profile must be gone after the delete
+    const schedules = [
+      await seedSchedule(linked.body.data.profile.id),
+    ];
 
     await api('delete', '/patient-api/me', me.token).send({}).expect(400);
     await api('delete', '/patient-api/me', me.token)
@@ -438,6 +478,8 @@ describe('patient profiles + links + account deletion (int)', () => {
     await api('get', '/patient-api/me', me.token).expect(401);
 
     const q = async (sql: string) => (await runSql(sql, [me.id])).rows;
+    expect(await scheduleCount(schedules)).toBe(0);
+    expect(await doseEventCount(schedules)).toBe(0);
     expect(
       await q(`SELECT 1 FROM patient_account_identities WHERE account_id = $1`),
     ).toHaveLength(0);
