@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 /**
  * M0-02 lint-fence check (docs/03 §7). Proves that the import fences actually
- * fail lint: it writes three temporary fixtures (one per forbidden direction),
+ * fail lint: it writes temporary fixtures (each forbidden direction, plus the
+ * `require()` / dynamic `import()` / relative deep-import loopholes, audit L15),
  * runs ESLint on them, deletes them, and exits non-zero unless all were
- * rejected by the `no-restricted-imports` rule. The fixtures never stay on disk.
+ * rejected by a fence rule (`no-restricted-imports` or the `no-restricted-syntax`
+ * fence selectors). The fixtures never stay on disk.
  */
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -27,6 +29,41 @@ const FIXTURES = [
     source: "import '@/staff';\n",
     label: 'root app route importing @/staff',
   },
+  {
+    file: 'src/staff/__fence_require_fixture__.ts',
+    source: "require('@/patient');\n",
+    label: 'staff require() of @/patient',
+  },
+  {
+    file: 'src/patient/__fence_dynamic_fixture__.ts',
+    source: "void import('@/staff/lib/api');\n",
+    label: 'patient dynamic import() of @/staff',
+  },
+  {
+    file: 'src/core/__fence_dynamic_fixture__.ts',
+    source: "void import('@/shell/RootShell');\n",
+    label: 'core dynamic import() of @/shell',
+  },
+  {
+    file: 'src/staff/__fence_relative_fixture__.ts',
+    source: "import '../patient/lib/api';\n",
+    label: 'staff relative deep import of patient code',
+  },
+  {
+    file: 'src/shell/__fence_relative_fixture__.ts',
+    source: "import '../staff/lib/api';\n",
+    label: 'shell relative deep import of staff code',
+  },
+  {
+    file: 'src/shell/__fence_deep_fixture__.ts',
+    source: "import '@/patient/lib/api';\n",
+    label: 'shell alias deep import of patient code',
+  },
+  {
+    file: 'src/shell/__fence_require_fixture__.ts',
+    source: "require('../staff/lib/api');\n",
+    label: 'shell require() of staff deep path',
+  },
 ];
 
 function out(line) {
@@ -49,12 +86,14 @@ try {
     const absolute = path.join(ROOT, fixture.file);
     const [result] = await eslint.lintFiles([absolute]);
     const fenceErrors = result.messages.filter(
-      (message) => message.ruleId === 'no-restricted-imports' && message.severity === 2
+      (message) =>
+        (message.ruleId === 'no-restricted-imports' || message.ruleId === 'no-restricted-syntax') &&
+        message.severity === 2
     );
 
     if (fenceErrors.length === 0) {
       failed = true;
-      out(`FAIL ${fixture.label}: expected a no-restricted-imports error, none was reported.`);
+      out(`FAIL ${fixture.label}: expected a fence error (no-restricted-imports / no-restricted-syntax), none was reported.`);
       for (const message of result.messages) {
         out(`  ${message.ruleId ?? 'fatal'}: ${message.message}`);
       }

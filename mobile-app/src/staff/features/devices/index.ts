@@ -1,3 +1,4 @@
+export { PendingDeviceCleanup } from './components/PendingDeviceCleanup';
 export { PushRegistration } from './components/PushRegistration';
 export { PushRoutePrompt } from './components/PushRoutePrompt';
 export { takePushRouteHandled } from './store/usePushRouteStore';

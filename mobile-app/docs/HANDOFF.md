@@ -3376,3 +3376,16 @@ Status stays: review. mobile/develop merged (HANDOFF conflict: kept both).
 | 6 | Dev noise | expected failures (code/status/offline) not warned |
 
 Verification: tsc only the known global.css message; eslint 0 errors (5 warnings, 1 new from merged develop code in patient devices test); lint:fences ok; jest foreground chunks green: core 37 suites, patient 31, staff queue 19 + others 15 + 31, shell/appointments/notifications 17.
+
+
+---
+## Audit fixes (staff mobile): M1, M4 (mobile), M5, L15, L16, L17 - 2026-11-17
+Branch: claude/audit-fix-staff-mobile
+
+- **M1** forced staff sign-out now runs `forced-sign-out.ts` cleanups (registered in `staff/lib/api.ts`, loaded by `StaffLayout`): `cancelQueries()` + `staffQueryClient.clear()`, `clearStaffEvents()` (L17), `clearThemeCache()` (L16). Notification keys and `access.me` carry the user id (last element, prefixes unchanged). Voluntary sign-out also clears the theme cache. Test: `staff/lib/forced-sign-out.test.ts`.
+- **M4 (mobile)** `finishPendingUnregister()` + `PendingDeviceCleanup` (staff layout): a signed-out start with a kept push token unregisters through a session-less call. **BACKEND NEEDED:** `POST /auth/devices/unregister` `{ expoPushToken }` (@Public, rate-limited, removes that token from the staff devices table, always `{ ok: true }`) does not exist yet; until it does the call fails quietly and the token is kept (one failed request per signed-out start). Forced sign-out cannot unregister (token dead), so it relies on this.
+- **M5** `StaffLayout` drops the secure-cache handle when the user becomes null after a wipe and reopens for the next user (copy of PatientProviders). Needs a device to confirm.
+- **L15** eslint: `no-restricted-syntax` selectors for `require()` / dynamic `import()` per space, relative deep-import patterns added to the shell and app fences; `check-fences.mjs` has 7 new fixtures (all PASS).
+- Patient side of L17 (patient forced sign-out analytics) is not touched here (src/patient is not mine).
+
+Verification: tsc only the known global.css message; eslint 0 errors; lint:fences ok (10 fixtures); jest foreground chunks green: staff queue 19, staff features 22 + 38 suites, core 37.

@@ -1,10 +1,14 @@
 import { getExpoPushToken } from '@/core/notifications/push-token';
 
-import { registerDevice, unregisterDevice } from '../api/devices.api';
-import { registerThisDevice, unregisterThisDevice } from './device-registration';
+import { registerDevice, unregisterDevice, unregisterDeviceWithoutSession } from '../api/devices.api';
+import { finishPendingUnregister, registerThisDevice, unregisterThisDevice } from './device-registration';
 
 jest.mock('@/core/notifications/push-token', () => ({ getExpoPushToken: jest.fn() }));
-jest.mock('../api/devices.api', () => ({ registerDevice: jest.fn(), unregisterDevice: jest.fn() }));
+jest.mock('../api/devices.api', () => ({
+  registerDevice: jest.fn(),
+  unregisterDevice: jest.fn(),
+  unregisterDeviceWithoutSession: jest.fn(),
+}));
 let mockOnline = true;
 jest.mock('@/core/network', () => ({ isOnlineNow: () => mockOnline }));
 jest.mock('expo-device', () => ({ isDevice: true, modelName: 'Pixel 9' }));
@@ -90,5 +94,43 @@ describe('unregisterThisDevice', () => {
     await expect(unregisterThisDevice()).resolves.toBeUndefined();
     await unregisterThisDevice();
     expect(unregisterDevice).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('finishPendingUnregister (audit M4)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockSecure.clear();
+    mockOnline = true;
+  });
+
+  it('unregisters without a session when signed out, then forgets the token', async () => {
+    token.mockResolvedValue('ExponentPushToken[abc]');
+    await registerThisDevice();
+    await finishPendingUnregister();
+    expect(unregisterDeviceWithoutSession).toHaveBeenCalledWith('ExponentPushToken[abc]');
+    await finishPendingUnregister();
+    expect(unregisterDeviceWithoutSession).toHaveBeenCalledTimes(1);
+  });
+
+  it('does nothing while a session exists, offline, or when nothing is pending', async () => {
+    await finishPendingUnregister();
+    token.mockResolvedValue('ExponentPushToken[abc]');
+    await registerThisDevice();
+    mockSecure.set('auth.refreshToken', 'session:token');
+    await finishPendingUnregister();
+    mockSecure.delete('auth.refreshToken');
+    mockOnline = false;
+    await finishPendingUnregister();
+    expect(unregisterDeviceWithoutSession).not.toHaveBeenCalled();
+  });
+
+  it('keeps the token and does not throw when the API fails', async () => {
+    token.mockResolvedValue('ExponentPushToken[abc]');
+    await registerThisDevice();
+    (unregisterDeviceWithoutSession as jest.Mock).mockRejectedValueOnce(new Error('404'));
+    await expect(finishPendingUnregister()).resolves.toBeUndefined();
+    await finishPendingUnregister();
+    expect(unregisterDeviceWithoutSession).toHaveBeenCalledTimes(2);
   });
 });

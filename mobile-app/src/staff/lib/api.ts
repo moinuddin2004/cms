@@ -65,6 +65,27 @@ export async function persistSession(payload: SessionPayload): Promise<void> {
   useStaffAuthStore.getState().setSession(payload);
 }
 
+/**
+ * Cleanups a FORCED sign-out must run on top of dropping the session (the voluntary path does them
+ * itself in `useSignOut`): query cache, queued analytics, theme cache. Registered by
+ * `forced-sign-out.ts` (which imports modules that import this one, so no direct import here).
+ */
+const forcedSignOutCleanups: (() => Promise<void> | void)[] = [];
+
+export function registerForcedSignOutCleanup(fn: () => Promise<void> | void): void {
+  if (!forcedSignOutCleanups.includes(fn)) forcedSignOutCleanups.push(fn);
+}
+
+async function runForcedSignOutCleanups(): Promise<void> {
+  for (const fn of forcedSignOutCleanups) {
+    try {
+      await fn();
+    } catch {
+      // keep cleaning: the session is gone either way
+    }
+  }
+}
+
 /** Forget the session on this device (does not call the API). */
 export async function dropSession(): Promise<void> {
   await clearRefreshToken();
@@ -134,6 +155,7 @@ async function doRefresh(guard: RefreshGuard): Promise<SessionPayload | null> {
         // still drop the session; the cache is keyed to this user and busts on next login
       }
       await dropSession();
+      await runForcedSignOutCleanups();
       return null;
     }
     throw err;
