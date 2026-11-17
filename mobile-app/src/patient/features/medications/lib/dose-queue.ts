@@ -124,6 +124,9 @@ export function flushDoseQueue(client: QueryClient): Promise<boolean> {
     if (!accountId) return false;
     // The server copy is patched BEFORE the local one is dropped (see `applySentToCache`).
     const accept = (sent: DoseEvent[]) => {
+      // A flush that finishes after sign-out / an account switch must touch nothing: it would
+      // re-create the old account's cache entries in the cleared client (audit L12).
+      if (useDoseQueueStore.getState().accountId !== accountId) return;
       applySentToCache(client, accountId, sent);
       remove(sent);
     };

@@ -6,3 +6,4 @@ export {
   handlePatientNotificationRoute,
   isPatientSignedIn,
 } from './lib/handle-patient-notification-route';
+export { usePatientPushRouteStore } from './store/usePatientPushRouteStore';

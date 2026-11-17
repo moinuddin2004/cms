@@ -62,6 +62,8 @@ export function RemindersSettingsPage() {
           />
         </View>
 
+        <Text variant="muted">{t('reminders.settings.timezoneNote')}</Text>
+
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t('reminders.settings.batteryTitle')}

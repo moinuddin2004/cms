@@ -443,6 +443,10 @@ export const en = {
       privateTitleFor: 'Medicine reminder for {name}',
       privateBody: 'Open the app to see the dose.',
     },
+    window: {
+      title: 'Open the app to keep your reminders',
+      body: 'Open the app every few days so your medicine reminders keep coming.',
+    },
     meal: {
       BEFORE_MEAL: 'Before meal',
       AFTER_MEAL: 'After meal',
@@ -459,6 +463,7 @@ export const en = {
       openSettings: 'Open phone settings',
       privateTitle: 'Private reminders',
       privateBody: 'Hide the medicine name on the lock screen. Reminders only say "Medicine reminder".',
+      timezoneNote: 'If you travel to another time zone, open the app once so reminders move to the new clock.',
       batteryTitle: 'Reminders not ringing?',
       batteryBody: 'Some phones stop apps in the background. Fix it in a minute.',
     },

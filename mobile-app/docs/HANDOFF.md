@@ -3376,3 +3376,15 @@ Status stays: review. mobile/develop merged (HANDOFF conflict: kept both).
 | 6 | Dev noise | expected failures (code/status/offline) not warned |
 
 Verification: tsc only the known global.css message; eslint 0 errors (5 warnings, 1 new from merged develop code in patient devices test); lint:fences ok; jest foreground chunks green: core 37 suites, patient 31, staff queue 19 + others 15 + 31, shell/appointments/notifications 17.
+
+---
+## Audit fixes — patient mobile (H1, H3, L12, L13, L14, L17-patient) — 2026-11-17
+Branch: claude/audit-fix-patient-mobile (from mobile/develop) · Status: review
+
+- **H1 / L17** — `patient/lib/wipe-local-state.ts` `wipePatientLocalState(queryClient)`: analytics queue → encrypted cache + persister (sealed first) → `clearMedicationLocalState` (cancels reminders, resets dose queue + settings) → pending claim → push-route store → in-memory query client; each step best effort. `signOutPatient` uses it. The forced sign-out (`forceSignOut` in `patient/lib/api.ts`: refresh 401/403 and `ACCOUNT_DISABLED`) runs the SAME wipe through `registerForcedSignOutWipe` (registered when `patient/index.ts` loads; `api.ts` cannot import the wipe — it reaches features that import the client). Tests: wipe order + failure isolation, and a rejected refresh through the real client clears reminders / claim / analytics / cache and drops the session.
+- **H3** — `medications/lib/background-replan.ts` `replanRemindersFromCache()` (exported as `replanPatientReminders` from `@/patient`): reads only the encrypted cache (persisted `medications` / `dose-events` queries, unsent dose queue, private choice) and re-syncs the OS reminders; needs a refresh token in SecureStore + notification permission, never throws. `RootShell` runs it on start and every foreground while the active space is NOT patient (the patient space's own `ReminderSync` does it there). Window-end nudge: `lib/reminder-window.ts` adds "Open the app to keep your reminders" (en + ur) at the end of the planned window (rounded to the hour, or right after the last dose when the cap cut it short; none when nothing is planned); used by both `ReminderSync` and the background re-plan.
+- **L12** — `flushDoseQueue` drops a result (no cache patch, no queue removal) when the queue's account changed during the request. **L13** — `useEffectiveDoseEvents().settled` is false only while the first dose-event load is in flight with nothing cached; `ReminderSync` waits for it (offline / failed / cached count as settled). **L14** — `reminders.settings.timezoneNote` (en + ur) on the reminder settings screen.
+- Not done here: the schedule-stopped-by-clinic case is only picked up when the app opens with network (the nudge covers it); no device check.
+
+### Verification
+typecheck clean (`CI=1 npx expo start --offline` first) · eslint 0 errors · `lint:fences` ok · jest `src/patient src/shell src/core` 76 suites / 427 tests green (foreground, `--runInBand`); `src/staff` untouched.

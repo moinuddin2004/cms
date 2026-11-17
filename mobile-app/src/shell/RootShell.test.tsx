@@ -27,6 +27,7 @@ jest.mock('expo-router', () => {
   }
   return { Stack: Object.assign(Passthrough, { Screen: Empty, Protected: Passthrough }) };
 });
+jest.mock('@/patient', () => ({ replanPatientReminders: jest.fn().mockResolvedValue(undefined) }));
 jest.mock('@/core/app-version', () => ({ isBelow: (v: string) => v === '9.9.9' }));
 jest.mock('@/core/notifications/channels', () => ({
   createNotificationChannels: jest.fn().mockResolvedValue(undefined),

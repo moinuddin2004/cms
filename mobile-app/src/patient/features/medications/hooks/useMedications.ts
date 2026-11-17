@@ -46,13 +46,21 @@ export function useDoseEvents() {
 }
 
 /** Server events plus the not-yet-sent local ones (a local decision wins: it is newer by construction). */
-export function useEffectiveDoseEvents(): { events: DoseEvent[]; isLoading: boolean; isError: boolean; refetch: () => void } {
+export function useEffectiveDoseEvents(): {
+  events: DoseEvent[];
+  isLoading: boolean;
+  /** False only while the FIRST load is really in flight with nothing cached: planning then would ring doses already taken elsewhere (audit L13). Offline / failed / cached all count as settled. */
+  settled: boolean;
+  isError: boolean;
+  refetch: () => void;
+} {
   const server = useDoseEvents();
   const queued = useDoseQueueStore((s) => s.items);
   const events = useMemo(() => [...(server.data ?? []), ...queued], [server.data, queued]);
   return {
     events,
     isLoading: server.isPending && queued.length === 0,
+    settled: !(server.isPending && server.fetchStatus === 'fetching'),
     /** The server's dose status could not be loaded and none is cached: every dose would look pending. */
     isError: server.isError && !server.data,
     refetch: () => void server.refetch(),
