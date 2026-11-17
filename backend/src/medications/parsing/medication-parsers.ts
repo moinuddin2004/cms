@@ -144,17 +144,11 @@ const TOD_WORDS: Array<[RegExp, string]> = [
     '14:00',
   ],
   [
-    new RegExp(
-      `${NOT_LETTER}(?:shaam|sham|evening|شام)${NOT_FOLLOWED}`,
-      'u',
-    ),
+    new RegExp(`${NOT_LETTER}(?:shaam|sham|evening|شام)${NOT_FOLLOWED}`, 'u'),
     '20:00',
   ],
   [
-    new RegExp(
-      `${NOT_LETTER}(?:raat|night|bedtime|رات)${NOT_FOLLOWED}`,
-      'u',
-    ),
+    new RegExp(`${NOT_LETTER}(?:raat|night|bedtime|رات)${NOT_FOLLOWED}`, 'u'),
     '22:00',
   ],
 ];
@@ -211,7 +205,12 @@ function intervalHours(text: string): number | null {
  * daily default times (safety): the patient sets the times themselves.
  */
 const NOT_DAILY_RE =
-  /(?<![\p{L}\p{N}])(?:weekly|biweekly|fortnightly|monthly|alternate|alternately)(?![\p{L}\p{N}])|(?:once|twice|thrice|\d+\s*(?:x|times?)?)\s*(?:a|per|\/|in a|in the)\s*(?:week|wk|month)(?![\p{L}\p{N}])|every\s*(?:other|second|2nd|third|3rd|\d+)\s*(?:day|days|week|weeks|wk|month|months)(?![\p{L}\p{N}])|every\s*(?:week|month)(?![\p{L}\p{N}])|\/\s*(?:week|wk|month)|(?<![\p{L}\p{N}])har\s+(?:doosre|dusre|dosre|teesre)\s+din|(?<![\p{L}\p{N}])(?:hafte|hafta|haftay|haftey|mahine|mahina)\s+(?:mein|me|main)\s|ہفتے میں|ہفتہ وار|مہینے میں|دن چھوڑ کر|ایک دن چھوڑ/u;
+  /(?<![\p{L}\p{N}])(?:weekly|biweekly|fortnightly|monthly|alternate|alternately)(?![\p{L}\p{N}])|(?:once|twice|thrice|\d+\s*(?:x|times?)?)\s*(?:a|per|\/|in a|in the)\s*(?:week|wk|month)(?![\p{L}\p{N}])|every\s*(?:other|second|2nd|third|3rd|\d+)\s*(?:day|days|week|weeks|wk|month|months)(?![\p{L}\p{N}])|every\s*(?:week|month)(?![\p{L}\p{N}])|(?<![\p{L}\p{N}])(?:once|twice|thrice|\d+\s*(?:x|times?)?)\s*(?:in|every|after)\s*(?:an?\s+)?(?:\d+|one|two|three|four|five|six|seven|ten|teen|char|paanch|saat)?\s*(?:days?|din|dino|fortnight|weeks?|months?)(?![\p{L}\p{N}])|(?<![\p{L}\p{N}])(?:a|per|\/)\s*fortnight|(?<![\p{L}\p{N}])fortnight|(?<![\p{L}\p{N}])har\s+(?:\d+|ek|do|teen|char)\s*(?:din|hafte|haftay)|(?<![\p{L}\p{N}])(?:din|dino)\s+(?:chor|chhor|chorr)\s*kar|\/\s*(?:week|wk|month)|(?<![\p{L}\p{N}])har\s+(?:doosre|dusre|dosre|teesre|tesre|chauthe|paanchwe)\s+din|(?<![\p{L}\p{N}])(?:hafte|hafta|haftay|haftey|mahine|mahina)\s+(?:mein|me|main)\s|ہفتے میں|ہفتہ وار|مہینے میں|دن چھوڑ کر|ایک دن چھوڑ/u;
+
+const SINGLE_DOSE_RE =
+  /(?<![\p{L}\p{N}])(?:stat|single dose|one[ -]?time|once only|immediately)(?![\p{L}\p{N}])/u;
+const DAY_MARKER_RE =
+  /(?:(?<![\p{L}\p{N}])(?:a|per|each|every)\s*day(?![\p{L}\p{N}])|daily|everyday|(?<![\p{L}\p{N}])roz(?![\p{L}\p{N}])|rozana|\/\s*day|روز)/u;
 
 function fromFrequencyText(raw: string): string[] | 'none' | null {
   const original = normalize(raw);
@@ -233,8 +232,21 @@ function fromFrequencyText(raw: string): string[] | 'none' | null {
   const hours = intervalHours(text);
   if (hours !== null) return INTERVAL_TIMES[hours] ?? 'none';
 
+  // One-off doses ("stat", "single dose", a bare "once") have no daily rhythm:
+  // never a daily guess — the patient sets the times themselves (audit H4).
+  if (SINGLE_DOSE_RE.test(text)) return 'none';
+
   const tod = timeOfDayWords(text);
   const hs = has(text, ['hs']);
+  if (
+    has(text, ['once']) &&
+    !has(text, ['od', 'qd']) &&
+    !DAY_MARKER_RE.test(text) &&
+    tod.length === 0 &&
+    !hs
+  ) {
+    return 'none';
+  }
   const count = dosesPerDay(text);
 
   if (hs && count === null) return ['22:00'];
@@ -245,7 +257,8 @@ function fromFrequencyText(raw: string): string[] | 'none' | null {
     return COUNT_TIMES[count];
   }
   if (tod.length > 0) return tod;
-  return null;
+  // Present but not understood: never guess a daily schedule.
+  return 'none';
 }
 
 /**

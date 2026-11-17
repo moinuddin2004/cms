@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
-import { DataSource, In, MoreThanOrEqual } from 'typeorm';
+import { DataSource, In } from 'typeorm';
 import { addDays } from 'src/common/clock/tz.util';
 import { MedicationDoseEvent } from 'src/medications/entities/medication-dose-event.entity';
 import { MedicationSchedule } from 'src/medications/entities/medication-schedule.entity';
@@ -35,6 +35,24 @@ const notFound = () =>
 
 const badRequest = (code: string, message: string) =>
   new BadRequestException({ code, message });
+
+interface Cursor {
+  at: Date;
+  id: string | null;
+}
+
+/** `<instant>` or `<instant>|<id>` (the composite cursor of `list`). */
+function parseCursor(raw?: string): Cursor | null {
+  if (!raw) return null;
+  const [instant, id] = raw.split('|');
+  const at = new Date(instant);
+  if (Number.isNaN(at.getTime())) {
+    throw badRequest('INVALID_CURSOR', 'updatedSince is not a valid cursor');
+  }
+  return { at, id: id ?? null };
+}
+
+const msIso = (d: Date) => new Date(Math.floor(d.getTime())).toISOString();
 
 function isRealYmd(value: string): boolean {
   try {
@@ -77,21 +95,40 @@ export class PatientMedicationsService {
   ): Promise<MedicationListDto> {
     const ids = this.profileIds(ctx, q.profileId);
     if (ids.length === 0) return { items: [], nextUpdatedSince: null };
-    const rows = await this.dataSource.getRepository(MedicationSchedule).find({
-      where: {
-        profileId: In(ids),
-        ...(q.updatedSince
-          ? { updatedAt: MoreThanOrEqual(new Date(q.updatedSince)) }
-          : { hidden: false }),
-      },
-      order: { updatedAt: 'ASC', id: 'ASC' },
-      take: MAX_SCHEDULES + 1,
-    });
+    const cursor = parseCursor(q.updatedSince);
+    const ms = "date_trunc('milliseconds', s.updated_at)";
+    // Ordered and compared on the millisecond the cursor can carry, so the
+    // (updated_at, id) pair is a total order the client can resume from.
+    const qb = this.dataSource
+      .getRepository(MedicationSchedule)
+      .createQueryBuilder('s')
+      .where('s.profile_id IN (:...ids)', { ids });
+    if (!cursor) {
+      qb.andWhere('s.hidden = false');
+    } else if (cursor.id) {
+      qb.andWhere(
+        `(${ms}, s.id) > (CAST(:at AS timestamptz), CAST(:cid AS uuid))`,
+        {
+          at: cursor.at.toISOString(),
+          cid: cursor.id,
+        },
+      );
+    } else {
+      qb.andWhere(`${ms} >= CAST(:at AS timestamptz)`, {
+        at: cursor.at.toISOString(),
+      });
+    }
+    const rows = await qb
+      .orderBy(ms, 'ASC')
+      .addOrderBy('s.id', 'ASC')
+      .limit(MAX_SCHEDULES + 1)
+      .getMany();
     const more = rows.length > MAX_SCHEDULES;
     const page = more ? rows.slice(0, MAX_SCHEDULES) : rows;
+    const last = page[page.length - 1];
     return {
       items: await this.toDtos(ctx, page),
-      nextUpdatedSince: more ? page[page.length - 1].updatedAt.toISOString() : null,
+      nextUpdatedSince: more ? `${msIso(last.updatedAt)}|${last.id}` : null,
     };
   }
 
@@ -156,7 +193,9 @@ export class PatientMedicationsService {
   private assertEditable(ctx: PatientContext, row: MedicationSchedule): void {
     if (row.source !== 'prescription') return;
     const link = ctx.links.find(
-      (l) => l.profileId === row.profileId && l.organizationId === row.organizationId,
+      (l) =>
+        l.profileId === row.profileId &&
+        l.organizationId === row.organizationId,
     );
     if (!link || link.status !== 'active' || !link.patientAppEnabled) {
       throw new ForbiddenException({
@@ -218,13 +257,16 @@ export class PatientMedicationsService {
     if (ids.length === 0) throw notFound();
 
     const owned = await this.dataSource.getRepository(MedicationSchedule).find({
-      where: { id: In(scheduleIds), profileId: In(ids) },
+      where: { id: In(scheduleIds), profileId: In(ids), hidden: false },
       select: { id: true },
     });
     if (owned.length !== scheduleIds.length) throw notFound();
 
     const latestAllowed = Date.now() + MAX_FUTURE_MS;
-    const merged = new Map<string, DoseEventInputDto & { due: Date; acted: Date }>();
+    const merged = new Map<
+      string,
+      DoseEventInputDto & { due: Date; acted: Date }
+    >();
     for (const e of events) {
       const due = new Date(e.dueAt);
       const acted = new Date(e.actedAt);
@@ -263,25 +305,57 @@ export class PatientMedicationsService {
   ): Promise<MedicationScheduleDto[]> {
     if (rows.length === 0) return [];
     const { clinics } = await this.clinics.visibleScope(ctx);
-    return rows.map((r) => ({
-      id: r.id,
-      profileId: r.profileId,
-      source: r.source,
-      clinic: (r.organizationId && clinics.get(r.organizationId)?.ref) || null,
-      prescriptionId: r.prescriptionId,
-      prescriptionMedicineId: r.prescriptionMedicineId,
-      name: r.name,
-      nameUrdu: r.nameUrdu,
-      doseText: r.doseText,
-      mealRelation: r.mealRelation,
-      times: r.times,
-      startDate: r.startDate,
-      endDate: r.endDate,
-      endDateSource: r.endDateSource,
-      status: r.status,
-      instructions: r.instructions,
-      instructionsUrdu: r.instructionsUrdu,
-      updatedAt: r.updatedAt.toISOString(),
-    }));
+    return rows.map((r) =>
+      r.hidden
+        ? tombstone(r)
+        : {
+            id: r.id,
+            profileId: r.profileId,
+            source: r.source,
+            clinic:
+              (r.organizationId && clinics.get(r.organizationId)?.ref) || null,
+            prescriptionId: r.prescriptionId,
+            prescriptionMedicineId: r.prescriptionMedicineId,
+            name: r.name,
+            nameUrdu: r.nameUrdu,
+            doseText: r.doseText,
+            mealRelation: r.mealRelation,
+            times: r.times,
+            startDate: r.startDate,
+            endDate: r.endDate,
+            endDateSource: r.endDateSource,
+            status: r.status,
+            instructions: r.instructions,
+            instructionsUrdu: r.instructionsUrdu,
+            updatedAt: r.updatedAt.toISOString(),
+          },
+    );
   }
+}
+
+/**
+ * A schedule the clinic cut off (A-23): only enough for an incremental client
+ * to cancel its reminders. No name, dose or instructions.
+ */
+function tombstone(r: MedicationSchedule): MedicationScheduleDto {
+  return {
+    id: r.id,
+    profileId: r.profileId,
+    source: r.source,
+    clinic: null,
+    prescriptionId: null,
+    prescriptionMedicineId: null,
+    name: '',
+    nameUrdu: null,
+    doseText: '',
+    mealRelation: 'NONE',
+    times: [],
+    startDate: r.startDate,
+    endDate: r.endDate,
+    endDateSource: r.endDateSource,
+    status: 'stopped',
+    instructions: null,
+    instructionsUrdu: null,
+    updatedAt: r.updatedAt.toISOString(),
+  };
 }

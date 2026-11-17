@@ -77,7 +77,46 @@ function build(opts: {
     eventWheres: [] as { sql: string; params: Record<string, unknown> }[],
   };
   const schedules = opts.schedules ?? [];
+  const list = {
+    wheres: [] as { sql: string; params: Record<string, unknown> }[],
+    orders: [] as string[],
+    limit: 0,
+  };
+  const listQb: any = {
+    where: (sql: string, params: Record<string, unknown>) => {
+      list.wheres = [{ sql, params }];
+      return listQb;
+    },
+    andWhere: (sql: string, params: Record<string, unknown>) => {
+      list.wheres.push({ sql, params });
+      return listQb;
+    },
+    orderBy: (e: string) => {
+      list.orders = [e];
+      return listQb;
+    },
+    addOrderBy: (e: string) => {
+      list.orders.push(e);
+      return listQb;
+    },
+    limit: (n: number) => {
+      list.limit = n;
+      return listQb;
+    },
+    getMany: async () => {
+      const ids = list.wheres[0].params.ids as string[];
+      const visibleOnly = list.wheres.some((w) => w.sql.includes('hidden = false'));
+      return schedules
+        .filter((x) => ids.includes(x.profileId) && (!visibleOnly || !x.hidden))
+        .sort(
+          (a, b) =>
+            a.updatedAt.getTime() - b.updatedAt.getTime() || a.id.localeCompare(b.id),
+        )
+        .slice(0, list.limit);
+    },
+  };
   const scheduleRepo = {
+    createQueryBuilder: () => listQb,
     find: async (arg: any) => {
       calls.find.push(arg);
       const ids = idsOf(arg.where.profileId);
@@ -154,15 +193,15 @@ function build(opts: {
       ]),
     }),
   } as unknown as PatientClinicsService;
-  return { svc: new PatientMedicationsService(dataSource, clinics), calls };
+  return { svc: new PatientMedicationsService(dataSource, clinics), calls, list };
 }
 
 describe('PatientMedicationsService.list', () => {
   it('scopes to the account profiles and maps an explicit DTO', async () => {
-    const { svc, calls } = build({ schedules: [schedule(), schedule({ id: SCHED_B, profileId: OTHER_PROFILE })] });
+    const { svc, list } = build({ schedules: [schedule(), schedule({ id: SCHED_B, profileId: OTHER_PROFILE })] });
     const { items: out, nextUpdatedSince } = await svc.list(ctx, {});
     expect(nextUpdatedSince).toBeNull();
-    expect(idsOf(calls.find[0].where.profileId).sort()).toEqual([PROFILE_1, PROFILE_2].sort());
+    expect((list.wheres[0].params.ids as string[]).slice().sort()).toEqual([PROFILE_1, PROFILE_2].sort());
     expect(out).toHaveLength(1);
     expect(Object.keys(out[0]).sort()).toEqual(
       [
@@ -184,21 +223,22 @@ describe('PatientMedicationsService.list', () => {
   });
 
   it('narrows to one profile when asked', async () => {
-    const { svc, calls } = build({ schedules: [schedule()] });
+    const { svc, list } = build({ schedules: [schedule()] });
     await svc.list(ctx, { profileId: PROFILE_1 });
-    expect(idsOf(calls.find[0].where.profileId)).toEqual([PROFILE_1]);
+    expect(list.wheres[0].params.ids).toEqual([PROFILE_1]);
   });
 
   it('applies updatedSince', async () => {
-    const { svc, calls } = build({ schedules: [] });
+    const { svc, list } = build({ schedules: [] });
     await svc.list(ctx, { updatedSince: '2026-11-15T00:00:00Z' });
-    expect(calls.find[0].where.updatedAt).toBeDefined();
+    expect(list.wheres.some((w) => w.sql.includes('>= CAST(:at'))).toBe(true);
+    expect(list.wheres.some((w) => w.sql.includes('hidden = false'))).toBe(false);
   });
 
   it('returns nothing without profiles and never queries', async () => {
-    const { svc, calls } = build({ schedules: [schedule()] });
+    const { svc, list } = build({ schedules: [schedule()] });
     expect(await svc.list(emptyCtx, {})).toEqual({ items: [], nextUpdatedSince: null });
-    expect(calls.find).toHaveLength(0);
+    expect(list.wheres).toHaveLength(0);
   });
 
   it('clinic is null when the clinic is not visible', async () => {
@@ -208,19 +248,35 @@ describe('PatientMedicationsService.list', () => {
 });
 
 describe('PatientMedicationsService.list paging and hidden rows', () => {
-  it('orders oldest change first and returns a cursor when the cap is hit', async () => {
+  it('orders oldest change first and returns a composite cursor when the cap is hit', async () => {
     const many = Array.from({ length: 501 }, (_, i) =>
       schedule({
         id: `00000000-0000-4000-8000-${String(i).padStart(12, '0')}`,
         updatedAt: new Date(Date.UTC(2026, 10, 15, 0, 0, i)),
       }),
     );
-    const { svc, calls } = build({ schedules: many });
+    const { svc, list } = build({ schedules: many });
     const out = await svc.list(ctx, {});
-    expect(calls.find[0].order).toEqual({ updatedAt: 'ASC', id: 'ASC' });
-    expect(calls.find[0].take).toBe(501);
+    expect(list.orders[0]).toContain('updated_at');
+    expect(list.orders[1]).toBe('s.id');
+    expect(list.limit).toBe(501);
     expect(out.items).toHaveLength(500);
-    expect(out.nextUpdatedSince).toBe(out.items[499].updatedAt);
+    expect(out.nextUpdatedSince).toBe(`${out.items[499].updatedAt}|${out.items[499].id}`);
+  });
+
+  it('resumes strictly after an (updated_at, id) cursor, even when many rows share one instant (L2)', async () => {
+    const { svc, list } = build({ schedules: [] });
+    const id = '00000000-0000-4000-8000-000000000007';
+    await svc.list(ctx, { updatedSince: `2026-11-15T00:00:00.000Z|${id}` });
+    const w = list.wheres.find((x) => x.sql.includes('s.id) >'));
+    expect(w?.params).toEqual({ at: '2026-11-15T00:00:00.000Z', cid: id });
+  });
+
+  it('rejects an unparseable cursor', async () => {
+    const { svc } = build({ schedules: [] });
+    await expect(svc.list(ctx, { updatedSince: '2026-99-99T99:99:99Z' })).rejects.toMatchObject({
+      response: { code: 'INVALID_CURSOR' },
+    });
   });
 
   it('hides clinic-revoked rows from the full list but sends them as tombstones with updatedSince', async () => {
@@ -229,6 +285,9 @@ describe('PatientMedicationsService.list paging and hidden rows', () => {
     expect((await svc.list(ctx, {})).items.map((i) => i.id)).toEqual([SCHED_A]);
     const incremental = await svc.list(ctx, { updatedSince: '2026-11-01T00:00:00Z' });
     expect(incremental.items.map((i) => i.id).sort()).toEqual([SCHED_A, SCHED_B].sort());
+    // L1: the cut-off schedule is only an id + stopped tombstone, no content.
+    const tomb = incremental.items.find((i) => i.id === SCHED_B)!;
+    expect(tomb).toMatchObject({ status: 'stopped', name: '', doseText: '', times: [], clinic: null, instructions: null });
   });
 });
 
@@ -346,6 +405,12 @@ describe('PatientMedicationsService dose events', () => {
     await expect(
       svc.recordDoseEvents(ctx, [ev(), ev({ scheduleId: FOREIGN })]),
     ).rejects.toBeInstanceOf(NotFoundException);
+    expect(calls.queries).toHaveLength(0);
+  });
+
+  it('a clinic-hidden (revoked) schedule takes no dose events (404, nothing written) (L1)', async () => {
+    const { svc, calls } = build({ schedules: [schedule({ hidden: true })] });
+    await expect(svc.recordDoseEvents(ctx, [ev()])).rejects.toBeInstanceOf(NotFoundException);
     expect(calls.queries).toHaveLength(0);
   });
 
