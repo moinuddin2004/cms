@@ -3,6 +3,7 @@
 - **Date:** 2026-11-17
 - **Auditor:** Opus (independent; did not build or review any card)
 - **Commit audited:** `da26f9b8` (`mobile/develop`, includes M4-03 demo seed + M4-04 legal pages), diffed against `master` (`git diff master...mobile/develop`: ~1,000 files, +79.8k / −5.8k)
+- **Addendum:** M4-02 (`3a0a8ee9`, brand name MedTrackr, icons/splash, A-25) merged afterwards and reviewed: app.config names/colours/assets only, no code or security impact; mobile `tsc --noEmit` re-run after the merge: pass. Legal drafts still use `[APP_NAME]` (fill in with the other placeholders before publishing).
 - **Method:** read the spec set (root `CLAUDE.md`, `mobile-app/CLAUDE.md`, docs 02/03/04/07/08/09, DECISIONS, legal drafts); traced code paths controller → service → SQL and screen → hook → api; four parallel read-only review passes (auth/tokens/realtime, patient isolation/IDOR, backend correctness/schema, mobile app); every High/Medium finding below was re-checked by the auditor in code. No product code was changed. No database was contacted.
 
 ## Executive summary
