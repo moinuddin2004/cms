@@ -154,6 +154,8 @@ describe('Lab access (API)', () => {
     const finalized = await fx.app.get(PayloadFinalizers).apply({
       id: row.id,
       organizationId: A.organizationId,
+      locationId: null,
+      entityId: null,
       eventCode: row.event_code,
       audience: row.audience as NotificationAudience,
       recipientType: row.recipient_type as RecipientType,

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserSession } from './entities/user-session.entity';
@@ -7,6 +7,7 @@ import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import * as useragent from 'useragent';
 import { sessionExpiryFrom } from './session-lifetime';
+import { StaffSessionEvents } from './session-events';
 
 const BCRYPT_SALT_ROUNDS = 12;
 const MAX_SESSIONS_PER_USER = 5;
@@ -25,6 +26,7 @@ export class SessionService {
   constructor(
     @InjectRepository(UserSession)
     private readonly sessionRepository: Repository<UserSession>,
+    @Optional() private readonly events?: StaffSessionEvents,
   ) {}
 
   /**
@@ -134,6 +136,7 @@ export class SessionService {
       { uuid: sessionId },
       { isRevoked: true },
     );
+    this.events?.revoked({ sessionId });
     this.logger.log(`Revoked session ${sessionId}`);
   }
 
@@ -157,6 +160,7 @@ export class SessionService {
 
     const result = await queryBuilder.execute();
     const count = result.affected || 0;
+    this.events?.revoked({ userId, exceptSessionId });
 
     this.logger.log(`Revoked ${count} sessions for user ${userId}`);
     return count;

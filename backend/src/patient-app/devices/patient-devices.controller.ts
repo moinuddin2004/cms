@@ -37,7 +37,7 @@ export class PatientDevicesController {
     @Body() dto: RegisterDeviceDto,
   ) {
     return ResponseWrapper.success(
-      await this.devices.register(ctx.accountId, dto),
+      await this.devices.register(ctx.accountId, ctx.sessionId, dto),
       'Device registered',
     );
   }

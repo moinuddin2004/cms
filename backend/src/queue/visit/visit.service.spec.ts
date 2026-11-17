@@ -65,6 +65,17 @@ describe('VisitService', () => {
       expect(JSON.stringify(insert[1])).not.toContain(token);
     });
 
+    it('replaces the earlier link of the same entry (one live link per entry)', async () => {
+      findEntry.mockResolvedValue({ id: ENTRY, queueSessionId: 's1' });
+      findSession.mockResolvedValue({ id: 's1', locationId: LOC });
+      await service.createLink(ORG, LOC, ENTRY);
+      const sqls = query.mock.calls.map((c) => String(c[0]));
+      const del = sqls.findIndex((q) => q.includes('DELETE FROM queue_visit_tokens WHERE entry_id'));
+      const ins = sqls.findIndex((q) => q.includes('INSERT INTO queue_visit_tokens'));
+      expect(del).toBeGreaterThanOrEqual(0);
+      expect(del).toBeLessThan(ins);
+    });
+
     it('404s an entry of another location or organization', async () => {
       findEntry.mockResolvedValue({ id: ENTRY, queueSessionId: 's1' });
       findSession.mockResolvedValue({ id: 's1', locationId: 'other-loc' });
@@ -116,8 +127,11 @@ describe('VisitService', () => {
       expect(JSON.stringify(state)).not.toMatch(/Dr Secret|patient-1/);
       // looked up by hash, expiry and approved clinic enforced in SQL
       const [sql, params] = query.mock.calls[0];
-      expect(params).toEqual([hashVisitToken(token)]);
+      expect(params).toEqual([hashVisitToken(token), 30]);
       expect(sql).toContain('expires_at > now()');
+      // the link ends 30 min after the entry does (audit L10)
+      expect(sql).toContain("e.status IN ('waiting', 'called', 'in_consultation', 'on_hold', 'skipped')");
+      expect(sql).toContain('e.finished_at > now() - make_interval(mins => $2)');
       expect(sql).toContain("approval_status = 'approved'");
     });
 

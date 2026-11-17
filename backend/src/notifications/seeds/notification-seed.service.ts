@@ -12,7 +12,8 @@ import {
 /**
  * On boot: the event catalog and platform default templates,
  * insert-if-missing — except each event's code-owned channel defaults
- * (`email_default`, `channels`), which are kept in step with the seed. One advisory
+ * (`email_default`, `channels`) and placeholder list (`variables`), which are kept in
+ * step with the seed. One advisory
  * lock so an API and a worker booting together don't both insert.
  */
 @Injectable()
@@ -63,10 +64,11 @@ export class NotificationSeedService implements OnApplicationBootstrap {
         if (!existing.has(e.code)) continue;
         await m.query(
           `UPDATE notification_events
-              SET email_default = $2, channels = $3
+              SET email_default = $2, channels = $3, variables = $4
             WHERE code = $1
-              AND (email_default IS DISTINCT FROM $2 OR channels IS DISTINCT FROM $3)`,
-          [e.code, e.emailDefault ?? false, e.channels ?? null],
+              AND (email_default IS DISTINCT FROM $2 OR channels IS DISTINCT FROM $3
+                   OR variables IS DISTINCT FROM $4)`,
+          [e.code, e.emailDefault ?? false, e.channels ?? null, e.variables],
         );
       }
 

@@ -7,6 +7,7 @@ import type {
   ExpoPushTicket,
 } from 'expo-server-sdk';
 import { DevicesService } from 'src/devices/devices.service';
+import { FeatureFlagsService } from 'src/feature-flags/feature-flags.service';
 import { PatientDevicesService } from 'src/patient-devices/patient-devices.service';
 import {
   NotificationChannel,
@@ -23,6 +24,15 @@ import {
 
 /** Expo asks for push receipts no sooner than ~15 minutes after the tickets. */
 export const RECEIPT_CHECK_DELAY_MS = 15 * 60_000;
+
+/** Waits before re-sending messages Expo answered with `MessageRateExceeded`. */
+export const RATE_RETRY_DELAYS_MS = [1_000, 2_000, 4_000];
+
+/**
+ * Seconds Expo keeps a queue push before dropping it: "It's your turn" five
+ * minutes late (a backoff, a phone offline) is worse than none.
+ */
+export const QUEUE_PUSH_TTL_S = 300;
 
 /** The part of `expo-server-sdk` this provider uses (faked in unit tests). */
 export type ExpoClient = Pick<
@@ -78,6 +88,7 @@ export class ExpoPushProvider implements ChannelProvider, OnModuleDestroy {
   constructor(
     private readonly devices: DevicesService,
     private readonly patientDevices: PatientDevicesService,
+    private readonly featureFlags: FeatureFlagsService,
     private readonly clients: ExpoPushClientFactory,
   ) {}
 
@@ -100,14 +111,24 @@ export class ExpoPushProvider implements ChannelProvider, OnModuleDestroy {
     const receiptIds: ExpoPushReceiptId[] = [];
     const unregistered: string[] = [];
     const failures: string[] = [];
-    let offset = 0;
     for (const chunk of client.chunkPushNotifications(messages)) {
-      const tickets = await client.sendPushNotificationsAsync(chunk);
-      tickets.forEach((ticket, index) => {
-        const token = tokens[offset + index];
-        this.collect(ticket, token, receiptIds, unregistered, failures);
-      });
-      offset += chunk.length;
+      try {
+        await this.sendChunk(
+          client,
+          chunk,
+          receiptIds,
+          unregistered,
+          failures,
+        );
+      } catch (err) {
+        // Earlier chunks already went out: failing the row would make the
+        // dispatcher send them again. Keep what was sent, drop the rest.
+        if (!receiptIds.length) throw err;
+        this.logger.warn(
+          `Push ${n.id} stopped after a partial send: ${(err as Error).message}`,
+        );
+        break;
+      }
     }
 
     if (unregistered.length) await this.removeTokens(unregistered);
@@ -132,13 +153,22 @@ export class ExpoPushProvider implements ChannelProvider, OnModuleDestroy {
 
   /**
    * Staff (a user) → that user's devices. Patient (a clinic patient) → the
-   * phones of the app account behind its ACTIVE link (M3-07).
+   * phones of the app account behind its ACTIVE link (M3-07), only while the
+   * clinic has the `patient_app` feature on.
    */
-  private tokensFor(n: OutgoingNotification): Promise<string[]> {
+  private async tokensFor(n: OutgoingNotification): Promise<string[]> {
     if (n.recipientType === RecipientType.USER) {
       return this.devices.pushTokensOf(n.recipientId);
     }
     if (n.recipientType === RecipientType.PATIENT) {
+      // A clinic that switched the patient app off (org flag or this location's
+      // override) sends no patient pushes (audit M13, intended behaviour).
+      const appOn = await this.featureFlags.isFeatureEnabled(
+        n.organizationId,
+        'patient_app',
+        n.locationId,
+      );
+      if (!appOn) return [];
       return this.patientDevices.pushTokensForPatient(
         n.organizationId,
         n.recipientId,
@@ -154,6 +184,47 @@ export class ExpoPushProvider implements ChannelProvider, OnModuleDestroy {
     await this.devices.removeTokens(tokens);
     await this.patientDevices.removeTokens(tokens);
   }
+
+  /**
+   * One Expo request. A `MessageRateExceeded` ticket is NOT a failure (Expo:
+   * retry with backoff): only those messages are re-sent, 1 s, 2 s, 4 s apart;
+   * messages that were accepted are never sent twice.
+   */
+  private async sendChunk(
+    client: ExpoClient,
+    chunk: ExpoPushMessage[],
+    receiptIds: ExpoPushReceiptId[],
+    unregistered: string[],
+    failures: string[],
+  ): Promise<void> {
+    let todo = chunk;
+    for (let attempt = 0; todo.length; attempt++) {
+      const tickets = await client.sendPushNotificationsAsync(todo);
+      const again: ExpoPushMessage[] = [];
+      tickets.forEach((ticket, i) => {
+        const msg = todo[i];
+        if (
+          ticket.status === 'error' &&
+          ticket.details?.error === 'MessageRateExceeded'
+        ) {
+          again.push(msg);
+          return;
+        }
+        this.collect(ticket, msg.to as string, receiptIds, unregistered, failures);
+      });
+      if (!again.length) return;
+      if (attempt >= RATE_RETRY_DELAYS_MS.length) {
+        failures.push('MessageRateExceeded: still rate limited after retries');
+        return;
+      }
+      await this.sleep(RATE_RETRY_DELAYS_MS[attempt]);
+      todo = again;
+    }
+  }
+
+  /** Replaced in tests. */
+  sleep: (ms: number) => Promise<void> = (ms) =>
+    new Promise((resolve) => setTimeout(resolve, ms));
 
   private collect(
     ticket: ExpoPushTicket,
@@ -227,6 +298,7 @@ export class ExpoPushProvider implements ChannelProvider, OnModuleDestroy {
       title: n.payload.title ?? '',
       body: n.payload.body,
       channelId: channelIdFor(n.eventCode),
+      ...(n.eventCode.startsWith('queue.') ? { ttl: QUEUE_PUSH_TTL_S } : {}),
       data: {
         space: n.recipientType === RecipientType.PATIENT ? 'patient' : 'staff',
         type: n.eventCode,

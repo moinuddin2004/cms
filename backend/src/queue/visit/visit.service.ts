@@ -24,6 +24,9 @@ export interface VisitState {
   updatedAt: string;
 }
 
+/** After the entry ends (completed, cancelled, …) its link keeps showing the final state this long. */
+export const VISIT_LINK_GRACE_MINUTES = 30;
+
 const NOT_FOUND = () =>
   new NotFoundException({ code: 'NOT_FOUND', message: 'Not found' });
 
@@ -63,6 +66,11 @@ export class VisitService {
     await this.dataSource.query(
       `DELETE FROM queue_visit_tokens WHERE expires_at < now()`,
     );
+    // One live link per entry: a new one replaces the old (audit L10).
+    await this.dataSource.query(
+      `DELETE FROM queue_visit_tokens WHERE entry_id = $1`,
+      [entryId],
+    );
     await this.dataSource.query(
       `INSERT INTO queue_visit_tokens (organization_id, entry_id, token_hash, expires_at)
        VALUES ($1, $2, $3, $4)`,
@@ -82,9 +90,12 @@ export class VisitService {
       `SELECT t.entry_id
          FROM queue_visit_tokens t
          JOIN organizations o ON o.id = t.organization_id
+         JOIN queue_entries e ON e.id = t.entry_id
         WHERE t.token_hash = $1 AND t.expires_at > now()
-          AND o.approval_status = 'approved'`,
-      [hashVisitToken(token)],
+          AND o.approval_status = 'approved'
+          AND (e.status IN ('waiting', 'called', 'in_consultation', 'on_hold', 'skipped')
+               OR e.finished_at > now() - make_interval(mins => $2))`,
+      [hashVisitToken(token), VISIT_LINK_GRACE_MINUTES],
     );
     if (!rows[0]) throw NOT_FOUND();
     const [pos] = await this.positions.positions([rows[0].entry_id]);

@@ -11,6 +11,7 @@ import { Employee } from 'src/employees/entities/employee.entity';
 import { EmployeeOrgLocationAssignment } from 'src/employees/entities/employee-org-location-assignment.entity';
 import { PatientAppModule } from 'src/patient-app/patient-app.module';
 import { PatientAuthModule } from 'src/patient-auth/patient-auth.module';
+import { SessionModule } from 'src/session/session.module';
 import { PatientRealtimeGateway } from 'src/patient-app/realtime/patient-realtime.gateway';
 import { QueueModule } from './queue.module';
 import { QueueSession } from './entities/queue-session.entity';
@@ -50,6 +51,7 @@ export class QueueRuntimeModule {
         QueueModule,
         PatientAppModule,
         PatientAuthModule,
+        SessionModule,
         TypeOrmModule.forFeature([
           QueueSession,
           // for AuthorizationService (socket room access checks)

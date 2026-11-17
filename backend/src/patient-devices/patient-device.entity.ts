@@ -27,6 +27,14 @@ export class PatientDevice {
   @Column({ name: 'account_id', type: 'uuid' })
   accountId: string;
 
+  /**
+   * The patient session that registered this phone (`patient_sessions.id`, no
+   * FK). Logout / revoke / reuse-revoke of that session deletes the row, so a
+   * signed-out phone stops getting pushes (audit M4).
+   */
+  @Column({ name: 'session_id', type: 'uuid', nullable: true })
+  sessionId: string | null;
+
   @Column({ name: 'expo_push_token', type: 'varchar', length: 200 })
   expoPushToken: string;
 

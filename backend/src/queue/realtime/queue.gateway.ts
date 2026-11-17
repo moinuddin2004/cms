@@ -11,6 +11,7 @@ import {
   ConnectedSocket,
   MessageBody,
   OnGatewayConnection,
+  OnGatewayDisconnect,
   SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
@@ -27,12 +28,17 @@ import {
 } from 'src/access/version/access-change-bus';
 import { userRoom } from 'src/notifications/notification-realtime';
 import { allowedOrigins } from 'src/common/cors';
+import {
+  StaffSessionEvents,
+  type StaffSessionRevoked,
+} from 'src/session/session-events';
 
 const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
 const SESSION_ROOM = new RegExp(`^session:(${UUID})$`, 'i');
 const BOARD_ROOM = new RegExp(`^location:(${UUID}):board$`, 'i');
 const DISPLAY_ROOM = new RegExp(`^location:(${UUID}):display$`, 'i');
 const ORG_ROOM = new RegExp(`^org:(${UUID})$`, 'i');
+const MAX_TIMER_MS = 2_147_000_000;
 
 /** Org-wide room name: every signed-in member of the org may join. */
 export const orgRoom = (organizationId: string) => `org:${organizationId}`;
@@ -72,10 +78,15 @@ const availability = { open: true };
     callback(availability.open ? null : 'Realtime temporarily unavailable', availability.open),
 })
 export class QueueGateway
-  implements OnGatewayConnection, OnModuleInit, OnModuleDestroy
+  implements
+    OnGatewayConnection,
+    OnGatewayDisconnect,
+    OnModuleInit,
+    OnModuleDestroy
 {
   private readonly logger = new Logger(QueueGateway.name);
   private stopAccessListener: (() => void) | null = null;
+  private stopSessionListener: (() => void) | null = null;
 
   @WebSocketServer() server: Namespace;
 
@@ -85,22 +96,131 @@ export class QueueGateway
     private readonly authorization: AuthorizationService,
     @InjectDataSource() private readonly dataSource: DataSource,
     @Optional() private readonly accessBus?: AccessChangeBus,
+    @Optional() private readonly sessionEvents?: StaffSessionEvents,
   ) {}
 
   onModuleInit() {
     // Every instance hears every change (bus over Redis) and tells its own sockets.
     this.stopAccessListener =
       this.accessBus?.onChange((c) => this.emitAccessChanged(c)) ?? null;
+    this.stopSessionListener =
+      this.sessionEvents?.onRevoked((e) => void this.onSessionRevoked(e)) ??
+      null;
   }
 
   onModuleDestroy() {
     this.stopAccessListener?.();
+    this.stopSessionListener?.();
   }
 
   /** `access.changed` to this instance's sockets in the org room. */
   private emitAccessChanged(c: AccessChange) {
     const payload = { organizationId: c.organizationId, version: c.version };
     this.server?.to(orgRoom(c.organizationId)).emit('access.changed', payload);
+    void this.revalidateOrg(c.organizationId);
+  }
+
+  handleDisconnect(socket: Socket) {
+    clearTimeout(socket.data?.expiryTimer as NodeJS.Timeout | undefined);
+  }
+
+  /** Is this staff session (and its user) still usable right now? */
+  private async isAlive(userId: string, sessionId?: string): Promise<boolean> {
+    const rows: unknown[] = sessionId
+      ? await this.dataSource.query(
+          `SELECT 1 FROM user_sessions s JOIN users u ON u.uuid = s.user_id
+            WHERE s.uuid = $1 AND s.user_id = $2 AND s.is_revoked = false
+              AND s.expires_at > now() AND u.status = 'active'`,
+          [sessionId, userId],
+        )
+      : await this.dataSource.query(
+          `SELECT 1 FROM users WHERE uuid = $1 AND status = 'active'`,
+          [userId],
+        );
+    return rows.length > 0;
+  }
+
+  private kick(
+    s: {
+      emit: (e: string, p: unknown) => unknown;
+      disconnect: (c?: boolean) => unknown;
+    },
+    message: string,
+  ) {
+    s.emit('auth_error', { message });
+    s.disconnect(true);
+  }
+
+  /** Logout / revoke / reuse: drop this instance's sockets of those sessions. */
+  private async onSessionRevoked(e: StaffSessionRevoked) {
+    try {
+      const sockets = e.userId
+        ? await this.server.in(userRoom(e.userId)).fetchSockets()
+        : [...(this.server?.sockets.values() ?? [])];
+      for (const s of sockets) {
+        const sid = s.data?.sessionId as string | undefined;
+        if (e.sessionId ? sid !== e.sessionId : !e.userId) continue;
+        if (e.exceptSessionId && sid === e.exceptSessionId) continue;
+        this.kick(s, 'Session ended');
+      }
+    } catch (err) {
+      this.logger.warn(`Dropping sockets failed: ${(err as Error).message}`);
+    }
+  }
+
+  /**
+   * An org's access changed: sockets whose user or session is gone, or who lost
+   * the org, are dropped; the others leave the session / board rooms they may
+   * no longer see (they stay connected and re-subscribe as needed).
+   */
+  private async revalidateOrg(organizationId: string) {
+    try {
+      const sockets = await this.server
+        ?.in(orgRoom(organizationId))
+        .fetchSockets();
+      for (const s of sockets ?? []) {
+        const userId = s.data?.userId as string | undefined;
+        if (!userId) continue;
+        if (
+          !(await this.isAlive(
+            userId,
+            s.data?.sessionId as string | undefined,
+          )) ||
+          !(await this.authorization.canAccessOrganization(
+            userId,
+            organizationId,
+          ))
+        ) {
+          this.kick(s, 'Access ended');
+          continue;
+        }
+        for (const room of s.rooms) {
+          const sessionMatch = room.match(SESSION_ROOM);
+          const boardMatch = room.match(BOARD_ROOM);
+          if (!sessionMatch && !boardMatch) continue;
+          const locationId = sessionMatch
+            ? (
+                await this.dataSource.getRepository(QueueSession).findOne({
+                  where: { id: sessionMatch[1] },
+                  select: { id: true, locationId: true },
+                })
+              )?.locationId
+            : boardMatch![1];
+          if (
+            !locationId ||
+            !(await this.authorization.validateAccess(
+              userId,
+              organizationId,
+              locationId,
+            ))
+          ) {
+            s.leave(room);
+          }
+        }
+      }
+    } catch (err) {
+      this.logger.warn(`Re-checking sockets failed: ${(err as Error).message}`);
+    }
   }
 
   async handleConnection(socket: Socket) {
@@ -117,12 +237,28 @@ export class QueueGateway
       // `/realtime` is the staff socket. A patient token (or any other
       // audience) must never get a room here.
       assertStaffAudience(payload);
+      // A revoked / expired session or a deactivated user gets no socket.
+      const sessionId = (payload as { sessionId?: string }).sessionId;
+      if (!(await this.isAlive(payload.sub, sessionId))) {
+        throw new Error('session ended');
+      }
       socket.data.userId = payload.sub;
+      socket.data.sessionId = sessionId;
+      const exp = (payload as { exp?: number }).exp;
+      if (exp) {
+        // The socket must not outlive its access token; the client reconnects with a fresh one.
+        const timer = setTimeout(
+          () => this.kick(socket, 'Token expired'),
+          Math.min(Math.max(exp * 1000 - Date.now(), 0), MAX_TIMER_MS),
+        );
+        timer.unref?.();
+        socket.data.expiryTimer = timer;
+      }
       // Personal room for in-app notifications (`notification.new`). Joined
       // here only — `subscribe` refuses `user:*`, so nobody joins another's.
       await socket.join(userRoom(payload.sub));
     } catch {
-      socket.emit('auth_error', { message: 'Invalid or expired token' });
+      this.kick(socket, 'Invalid or expired token');
     }
   }
 
@@ -137,6 +273,12 @@ export class QueueGateway
 
     const userId: string | null = socket.data.userId;
     if (!userId) return { ok: false, room, error: 'Sign in required for this room' };
+    if (
+      !(await this.isAlive(userId, socket.data.sessionId as string | undefined))
+    ) {
+      this.kick(socket, 'Session ended');
+      return { ok: false, room, error: 'Session ended' };
+    }
 
     const orgMatch = room.match(ORG_ROOM);
     if (orgMatch) {

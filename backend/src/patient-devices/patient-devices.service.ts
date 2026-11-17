@@ -26,16 +26,20 @@ export class PatientDevicesService {
   /** `POST /patient-api/devices` → `{ id }`. */
   async register(
     accountId: string,
+    sessionId: string | null,
     dto: RegisterDeviceDto,
   ): Promise<{ id: string }> {
     const existing = await this.devices.findOneBy({
       expoPushToken: dto.expoPushToken,
     });
-    if (existing) return { id: await this.touch(existing, accountId, dto) };
+    if (existing) {
+      return { id: await this.touch(existing, accountId, sessionId, dto) };
+    }
     try {
       const row = await this.devices.save(
         this.devices.create({
           accountId,
+          sessionId,
           expoPushToken: dto.expoPushToken,
           platform: dto.platform,
           deviceLabel: dto.deviceLabel ?? null,
@@ -50,7 +54,7 @@ export class PatientDevicesService {
         expoPushToken: dto.expoPushToken,
       });
       if (!raced) throw err;
-      return { id: await this.touch(raced, accountId, dto) };
+      return { id: await this.touch(raced, accountId, sessionId, dto) };
     }
   }
 
@@ -126,9 +130,11 @@ export class PatientDevicesService {
   private async touch(
     row: PatientDevice,
     accountId: string,
+    sessionId: string | null,
     dto: RegisterDeviceDto,
   ): Promise<string> {
     row.accountId = accountId;
+    row.sessionId = sessionId;
     row.platform = dto.platform;
     row.deviceLabel = dto.deviceLabel ?? null;
     row.appVersion = dto.appVersion;

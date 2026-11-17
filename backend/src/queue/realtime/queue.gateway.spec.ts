@@ -10,6 +10,7 @@ function fakeSocket(token?: string) {
     data: {} as { userId: string | null },
     join: jest.fn().mockResolvedValue(undefined),
     emit: jest.fn(),
+    disconnect: jest.fn(),
   };
 }
 
@@ -23,7 +24,7 @@ describe('QueueGateway — staff audience on connect', () => {
       { verifyAsync } as unknown as JwtService,
       { get: () => 'test-access-secret' } as unknown as ConfigService,
       {} as AuthorizationService,
-      {} as DataSource,
+      { query: () => Promise.resolve([{}]) } as unknown as DataSource,
     );
   });
 

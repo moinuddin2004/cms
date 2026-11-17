@@ -26,6 +26,7 @@ import type { PlatformOverrideMode } from '../entities/notification-platform-ove
 import { NotificationTemplate } from '../entities/notification-template.entity';
 import { PatientCommPref } from '../entities/patient-comm-pref.entity';
 import { notificationError } from '../notification-errors';
+import { PUSH_SAFE_VARIABLES } from '../privacy';
 import {
   ALL_AUDIENCES,
   ALL_LANGUAGES,
@@ -565,6 +566,16 @@ export class NotificationSettingsService {
         ...event.variables,
       ]);
       const used = placeholdersOf(dto.subject, dto.body);
+      if (dto.channel === NotificationChannel.PUSH) {
+        const unsafe = used.filter((v) => !PUSH_SAFE_VARIABLES.includes(v));
+        if (unsafe.length) {
+          throw notificationError(
+            'NOTIFICATION_TEMPLATE_INVALID',
+            `A push shows on the lock screen and may only use ${PUSH_SAFE_VARIABLES.map((v) => `{${v}}`).join(', ')}; not allowed: ${unsafe.map((u) => `{${u}}`).join(', ')}`,
+            { unsafe, allowed: [...PUSH_SAFE_VARIABLES] },
+          );
+        }
+      }
       const unknown = used.filter((v) => !allowed.has(v));
       if (unknown.length) {
         throw notificationError(

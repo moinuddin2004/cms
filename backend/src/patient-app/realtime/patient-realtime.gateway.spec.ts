@@ -41,7 +41,7 @@ describe('socket auth — both directions', () => {
     jwt,
     { get: () => STAFF_SECRET } as unknown as ConfigService,
     {} as AuthorizationService,
-    {} as DataSource,
+    { query: () => Promise.resolve([{}]) } as unknown as DataSource,
   );
   const staffToken = () =>
     jwt.signAsync(
