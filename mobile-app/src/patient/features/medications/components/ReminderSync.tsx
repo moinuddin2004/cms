@@ -13,8 +13,8 @@ import { useReminderProfiles } from '../hooks/useReminderProfiles';
 import { flushDoseQueue, useDoseQueueStore } from '../lib/dose-queue';
 import { expoReminderPort } from '../lib/expo-reminder-port';
 import { planReminders } from '../lib/plan-reminders';
-import { buildReminderContent } from '../lib/reminder-content';
-import { runSerialised, syncReminders, toScheduled } from '../lib/reminder-scheduler';
+import { buildScheduledReminders } from '../lib/reminder-window';
+import { runSerialised, syncReminders } from '../lib/reminder-scheduler';
 import { useReminderSettings } from '../lib/reminder-settings';
 
 /**
@@ -31,7 +31,7 @@ export function ReminderSync() {
   const accountId = usePatientAuthStore((s) => s.account?.id ?? null);
   const online = useOnline();
   const schedules = useMedications();
-  const { events } = useEffectiveDoseEvents();
+  const { events, settled: eventsSettled } = useEffectiveDoseEvents();
   const profiles = useReminderProfiles();
   const permission = useNotificationPermission();
   const settingsReady = useReminderSettings((s) => s.hydrated);
@@ -68,7 +68,7 @@ export function ReminderSync() {
 
   useEffect(() => {
     // Not known yet (schedules, or the private-reminders choice): leave what is scheduled alone.
-    if (!accountId || !scheduleData || !settingsReady) return;
+    if (!accountId || !scheduleData || !settingsReady || !eventsSettled) return;
     // "now" is read here, not during render; `foregroundTick` re-runs this with a fresh one.
     const plan = planReminders(scheduleData, events, Date.now(), undefined, undefined, {
       isPrivate: () => privateReminders,
@@ -81,14 +81,14 @@ export function ReminderSync() {
       if (cancelled || usePatientAuthStore.getState().account?.id !== accountId) return;
       if ((await getPermissionState()) !== 'granted') return;
       if (cancelled || usePatientAuthStore.getState().account?.id !== accountId) return;
-      await syncReminders(expoReminderPort, toScheduled(plan, (r) => buildReminderContent(r)));
+      await syncReminders(expoReminderPort, buildScheduledReminders(plan, Date.now()));
     });
     return () => {
       cancelled = true;
     };
     // `locale` is a dependency on purpose (the text is in the app language); `permission.state`
     // re-plans right after the user grants notifications.
-  }, [accountId, scheduleData, events, settingsReady, privateReminders, profiles, foregroundTick, locale, permission.state]);
+  }, [accountId, scheduleData, events, eventsSettled, settingsReady, privateReminders, profiles, foregroundTick, locale, permission.state]);
 
   return null;
 }

@@ -1,11 +1,12 @@
 import { Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
 
 import { isBelow } from '@/core/app-version';
 import { createNotificationChannels } from '@/core/notifications/channels';
 import { installForegroundHandler } from '@/core/notifications/foreground';
 import { useSpaceStore } from '@/core/space/useSpaceStore';
+import { replanPatientReminders } from '@/patient';
 
 import { fetchMinVersion } from './min-version';
 import { useNotificationTaps } from './notification-router';
@@ -43,6 +44,18 @@ export function RootShell() {
     installForegroundHandler();
     void createNotificationChannels();
   }, []);
+
+  // Keep the patient's 72 h reminder window topped up while the patient space is NOT mounted (a
+  // clinician who is also a patient, or the welcome screen). It reads only the encrypted cache and
+  // does nothing without a patient session; the patient space's own `ReminderSync` takes over there.
+  useEffect(() => {
+    if (activeSpace === 'patient') return;
+    void replanPatientReminders();
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void replanPatientReminders();
+    });
+    return () => sub.remove();
+  }, [activeSpace]);
 
   useEffect(() => {
     let cancelled = false;

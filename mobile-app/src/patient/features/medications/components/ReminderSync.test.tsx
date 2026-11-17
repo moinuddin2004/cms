@@ -95,7 +95,7 @@ describe('ReminderSync', () => {
 
     fireEvent.press(screen.getByLabelText('grant'));
     await waitFor(() => expect(schedulePending().length).toBeGreaterThan(0));
-    for (const [request] of schedulePending()) expect(request.identifier).toMatch(/^dose\.s1\./);
+    for (const [request] of schedulePending()) expect(request.identifier).toMatch(/^dose\./);
     expect(JSON.stringify(schedulePending()[0])).toContain('Amoxicillin');
 
     // Switching private on replaces every pending reminder with one that has no medicine in it.

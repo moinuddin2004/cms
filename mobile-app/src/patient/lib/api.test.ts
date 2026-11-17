@@ -2,11 +2,9 @@ import axios, { type AxiosResponse, type InternalAxiosRequestConfig } from 'axio
 
 import { usePatientAuthStore, type PatientSessionPayload } from '@/patient/store/usePatientAuthStore';
 
-import { patientApi, refreshSession } from './api';
-import { wipePatientPersistedCache } from './persist-cache';
+import { patientApi, refreshSession, registerForcedSignOutWipe } from './api';
 import { getRefreshToken, setRefreshToken } from './session';
 
-jest.mock('./persist-cache', () => ({ wipePatientPersistedCache: jest.fn() }));
 
 /**
  * The backend rotates the patient refresh token on every call and revokes the
@@ -39,11 +37,14 @@ function axiosResponse(data: unknown): AxiosResponse {
   return { data: { data }, status: 200, statusText: 'OK', headers: {}, config: {} as InternalAxiosRequestConfig };
 }
 
+const wipePatientLocalState = jest.fn(async () => undefined);
+
 describe('patient api', () => {
   const defaultAdapter = patientApi.defaults.adapter;
 
   beforeEach(async () => {
-    (wipePatientPersistedCache as jest.Mock).mockClear();
+    wipePatientLocalState.mockClear();
+    registerForcedSignOutWipe(wipePatientLocalState); // what wipe-local-state.ts registers in the app (tested there)
     usePatientAuthStore.getState().clearAuth();
     await setRefreshToken('session:token-1');
   });
@@ -153,7 +154,7 @@ describe('patient api', () => {
       throw failure(config, 401);
     };
     await expect(patientApi.get('/patient-api/me')).rejects.toBeDefined();
-    expect(wipePatientPersistedCache).toHaveBeenCalledTimes(1);
+    expect(wipePatientLocalState).toHaveBeenCalledTimes(1);
     expect(await getRefreshToken()).toBeNull();
     expect(usePatientAuthStore.getState().status).toBe('signedOut');
   });
@@ -162,7 +163,7 @@ describe('patient api', () => {
     const post = jest.spyOn(axios, 'post').mockRejectedValue(new Error('Network Error'));
     await expect(refreshSession()).rejects.toThrow('Network Error');
     expect(post).toHaveBeenCalledTimes(1);
-    expect(wipePatientPersistedCache).not.toHaveBeenCalled();
+    expect(wipePatientLocalState).not.toHaveBeenCalled();
     expect(await getRefreshToken()).toBe('session:token-1');
   });
 

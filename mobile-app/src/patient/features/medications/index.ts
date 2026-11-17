@@ -16,3 +16,4 @@ export type {
   MealRelation,
   MedicationSchedule,
 } from './types/medications.types';
+export { replanRemindersFromCache } from './lib/background-replan';

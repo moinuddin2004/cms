@@ -8,7 +8,6 @@ import {
   createRefreshCoordinator,
   type RefreshGuard,
 } from '@/core/http/create-api-client';
-import { wipePatientPersistedCache } from '@/patient/lib/persist-cache';
 import { patientQueryClient } from '@/patient/lib/query-client';
 import { clearRefreshToken, getRefreshToken, setRefreshToken } from '@/patient/lib/session';
 import {
@@ -52,12 +51,21 @@ export async function dropSession(): Promise<void> {
 /** The session is gone (server said so): the encrypted patient cache goes with it. */
 async function forceSignOut(): Promise<void> {
   try {
-    await wipePatientPersistedCache();
+    if (forcedSignOutWipe) await forcedSignOutWipe();
+    else patientQueryClient.clear(); // never in the app: `wipe-local-state` registers at start (patient/index.ts)
   } catch {
-    // still drop the session; the cache is keyed to this account and busts on next sign-in
+    // still drop the session
   }
-  patientQueryClient.clear();
   await dropSession();
+}
+
+/**
+ * The wipe both sign-outs share (`wipePatientLocalState`) reaches into features that import this
+ * client, so it registers itself here instead of being imported (audit H1).
+ */
+let forcedSignOutWipe: (() => Promise<void>) | null = null;
+export function registerForcedSignOutWipe(wipe: (() => Promise<void>) | null): void {
+  forcedSignOutWipe = wipe;
 }
 
 /**

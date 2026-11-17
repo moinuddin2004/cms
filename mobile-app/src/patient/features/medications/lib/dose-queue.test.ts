@@ -104,6 +104,22 @@ describe('flushDoseQueue', () => {
     expect(client.getQueryData(key)).toEqual(expect.arrayContaining([other, taken]));
   });
 
+  it('a flush that finishes after the account changed touches neither the cache nor the new queue (audit L12)', async () => {
+    useDoseQueueStore.getState().enqueue(event('s', D1));
+    let release: (n: number) => void = () => undefined;
+    post.mockImplementation(() => new Promise<number>((r) => (release = r)));
+    const flushing = flushDoseQueue(client);
+    // sign-out, another account signs in and queues its own dose while the request is in flight
+    useDoseQueueStore.getState().reset();
+    await useDoseQueueStore.getState().hydrate('acc-2');
+    useDoseQueueStore.getState().enqueue(event('mine', D2));
+    release(1);
+    await flushing;
+    expect(client.getQueriesData({ queryKey: ['dose-events'] })).toHaveLength(0);
+    expect(useDoseQueueStore.getState().items.map((i) => i.scheduleId)).toEqual(['mine']);
+    useDoseQueueStore.getState().remove(useDoseQueueStore.getState().items);
+  });
+
   it('creates the current window query when none is cached', async () => {
     useDoseQueueStore.getState().enqueue(event('s', D1));
     post.mockResolvedValue(1);

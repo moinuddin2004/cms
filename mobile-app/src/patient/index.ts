@@ -9,3 +9,6 @@ export {
   handlePatientNotificationRoute,
   isPatientSignedIn,
 } from '@/patient/features/devices/lib/handle-patient-notification-route';
+export { replanRemindersFromCache as replanPatientReminders } from '@/patient/features/medications';
+// Registers the forced sign-out wipe at app start (audit H1).
+import '@/patient/lib/wipe-local-state';

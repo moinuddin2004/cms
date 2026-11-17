@@ -1,13 +1,10 @@
 import type { QueryClient } from '@tanstack/react-query';
 
-import { usePendingClaimStore } from '@/core/claim/usePendingClaimStore';
 import { leaveSpaceAfterSignOut } from '@/core/space/switch-space';
 import { clearPatientEvents } from '@/patient/lib/analytics';
 import { beginPatientSignOut, dropSession, endPatientSignOut } from '@/patient/lib/api';
-import { wipePatientPersistedCache } from '@/patient/lib/persist-cache';
+import { wipePatientLocalState } from '@/patient/lib/wipe-local-state';
 import { unregisterThisDevice } from '@/patient/features/devices/lib/device-registration';
-
-import { clearMedicationLocalState } from '@/patient/features/medications';
 
 import { logout } from '../api/auth.api';
 
@@ -23,7 +20,7 @@ import { logout } from '../api/auth.api';
 export async function signOutPatient(queryClient: QueryClient): Promise<void> {
   // Stops a refresh in flight from writing the session back, and waits for it so
   // the stored token is the newest one when we revoke it.
-  clearPatientEvents(); // nothing queued for this account may be sent under the next one
+  clearPatientEvents(); // nothing queued for this account may be sent while we sign out
   await beginPatientSignOut();
   // Stop pushes to this phone while the token still works (short timeout, best effort).
   await unregisterThisDevice();
@@ -34,15 +31,6 @@ export async function signOutPatient(queryClient: QueryClient): Promise<void> {
   }
   await dropSession();
   endPatientSignOut();
-  // The wipe seals the persister, so it must run BEFORE the in-memory clear.
-  try {
-    await wipePatientPersistedCache();
-  } catch {
-    // still sign out; the cache is keyed to this account and busts on next sign-in
-  }
-  await clearMedicationLocalState(); // reminders of this account must not keep ringing
-  usePendingClaimStore.getState().clear(); // a claim token never outlives the account it was opened for
-  await queryClient.cancelQueries();
-  queryClient.clear();
+  await wipePatientLocalState(queryClient);
   await leaveSpaceAfterSignOut('patient');
 }
