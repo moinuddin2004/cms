@@ -4,6 +4,7 @@
  * imports this feature's internals.
  */
 export { BrandTheme } from './components/BrandTheme';
+export { clearThemeCache } from './lib/theme-cache';
 export { applyCachedBrand } from './lib/apply-cached-brand';
 export { useClinicTheme, themeKeys } from './hooks/useClinicTheme';
 export type { ClinicTheme, ThemeDefaultMode } from './types/theme.types';

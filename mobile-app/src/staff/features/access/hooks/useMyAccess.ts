@@ -6,9 +6,9 @@ import { fetchMyAccess } from '../api/access.api';
 
 export const accessKeys = {
   all: ['access'] as const,
-  /** Org AND location are part of the key: switching either refetches. */
-  me: (orgId: string | null, locationId: string | null) =>
-    ['access', 'me', orgId, locationId] as const,
+  /** Org AND location are part of the key: switching either refetches. The user id is last (audit M1). */
+  me: (orgId: string | null, locationId: string | null, userId: string | null = null) =>
+    ['access', 'me', orgId, locationId, userId] as const,
 };
 
 /**
@@ -19,9 +19,10 @@ export const accessKeys = {
 export function useMyAccess(enabled = true) {
   const orgId = useStaffAuthStore((s) => s.activeOrganizationId);
   const locationId = useStaffAuthStore((s) => s.activeLocationId);
+  const userId = useStaffAuthStore((s) => s.user?.uuid ?? null);
 
   return useQuery({
-    queryKey: accessKeys.me(orgId, locationId),
+    queryKey: accessKeys.me(orgId, locationId, userId),
     queryFn: fetchMyAccess,
     enabled: enabled && !!orgId,
     staleTime: 30_000,

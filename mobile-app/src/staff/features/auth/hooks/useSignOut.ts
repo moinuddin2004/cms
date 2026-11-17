@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { leaveSpaceAfterSignOut } from '@/core/space/switch-space';
 import { unregisterThisDevice } from '@/staff/features/devices';
+import { clearThemeCache } from '@/staff/features/theme';
 import { clearStaffEvents } from '@/staff/lib/analytics';
 import { beginStaffSignOut, dropSession, endStaffSignOut } from '@/staff/lib/api';
 import { wipeStaffPersistedCache } from '@/staff/lib/persist-cache';
@@ -34,6 +35,7 @@ export function useSignOut() {
         // still sign out; the cache is keyed to this user and busts on next login
       }
       queryClient.clear();
+      clearThemeCache(); // the next user may belong to another clinic
       // Back to the patient space if it still has a session, else the welcome
       // picker (docs/02 4). The patient session and cache are never touched.
       await leaveSpaceAfterSignOut('staff');

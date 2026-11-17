@@ -1,6 +1,6 @@
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { Stack } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { MMKV } from 'react-native-mmkv';
 
 import { currentVersion } from '@/core/app-version';
@@ -10,7 +10,9 @@ import { applyBrand } from '@/core/theme/apply-brand';
 import { applyThemeMode } from '@/core/theme/apply-theme-mode';
 import { applyTextScale } from '@/core/theme/apply-text-scale';
 import { useRestoreStaffSession } from '@/staff/features/auth';
+import { PendingDeviceCleanup } from '@/staff/features/devices';
 import { applyCachedBrand } from '@/staff/features/theme';
+import '@/staff/lib/forced-sign-out'; // registers the forced sign-out cleanups
 import { createStaffPersister, idlePersister } from '@/staff/lib/persist-cache';
 import {
   PERSIST_MAX_AGE,
@@ -53,7 +55,15 @@ export function StaffLayout() {
   // saved cache by mistake).
   const [cache, setCache] = useState<MMKV | null>(null);
   const [cacheSettled, setCacheSettled] = useState(false);
+  const hadUser = useRef(false);
   useEffect(() => {
+    // After a sign-out wipe the old handle points at a deleted instance: drop it and open a fresh
+    // one only when the next user arrives (never re-create the cache key while signed out; audit M5).
+    if (userId) hadUser.current = true;
+    else if (hadUser.current) {
+      setCache(null);
+      return;
+    }
     let live = true;
     openSecureCache('staff')
       .then((opened) => {
@@ -66,7 +76,7 @@ export function StaffLayout() {
     return () => {
       live = false;
     };
-  }, []);
+  }, [userId]);
 
   const buster = staffPersistBuster({ appVersion: currentVersion, userId, orgId, locationId });
   const persistKey = cache && buster ? buster : 'idle';
@@ -111,6 +121,7 @@ export function StaffLayout() {
       key={persistKey}
       client={staffQueryClient}
       persistOptions={persistOptions}>
+      <PendingDeviceCleanup />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Protected guard={route === 'offline'}>
           <Stack.Screen name="offline" />

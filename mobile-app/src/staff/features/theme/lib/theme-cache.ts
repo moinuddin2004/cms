@@ -1,4 +1,4 @@
-import { getPref, setPref } from '@/core/storage/prefs';
+import { getPref, removePref, setPref } from '@/core/storage/prefs';
 import { isHexColor } from '@/core/theme/brand';
 
 import type { ClinicTheme, ThemeDefaultMode } from '../types/theme.types';
@@ -57,4 +57,9 @@ export function cacheClinicTheme(orgId: string, theme: ClinicTheme): CachedClini
   };
   setPref(CACHE_KEY, JSON.stringify(cached));
   return cached;
+}
+
+/** Sign-out forgets the clinic's brand: the next user (maybe another clinic) starts from the platform palette. */
+export function clearThemeCache(): void {
+  removePref(CACHE_KEY);
 }
