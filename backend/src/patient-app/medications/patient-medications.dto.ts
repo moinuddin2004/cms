@@ -14,15 +14,21 @@ import {
 
 const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
 const YMD = /^\d{4}-\d{2}-\d{2}$/;
+const UPDATED_SINCE =
+  /^\d{4}-\d{2}-\d{2}(?:T[\d:.]+(?:Z|[+-]\d{2}:?\d{2})?)?(?:\|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})?$/;
 
 export class MedicationsQueryDto {
   @IsOptional()
   @IsUUID()
   profileId?: string;
 
-  /** Only schedules changed at/after this UTC instant (includes stopped ones). */
+  /**
+   * Change cursor: a UTC instant (changed at/after it) or the composite
+   * `<instant>|<id>` the server returns as `nextUpdatedSince` (strictly after
+   * that (updated_at, id) pair). Includes stopped ones.
+   */
   @IsOptional()
-  @IsISO8601()
+  @Matches(UPDATED_SINCE)
   updatedSince?: string;
 }
 
