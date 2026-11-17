@@ -9,24 +9,42 @@ import {
 
 const NOW = new Date('2026-11-16T10:00:00Z');
 const START = new Date(NOW.getTime() + 3 * 24 * 60 * 60_000);
+const END = new Date(START.getTime() + 30 * 60_000);
 
-const target = (startTime = START, patientId = 'pat-1', minutes = 30) => ({
+const booked = (over: Record<string, unknown> = {}) => ({
+  organization_id: 'org-1',
+  location_id: 'loc-1',
+  patient_id: 'pat-1',
+  start_time: START,
+  end_time: END,
+  status: 'confirmed',
+  ...over,
+});
+
+const target = () => ({
   id: 'appt-1',
   organizationId: 'org-1',
   locationId: 'loc-1',
-  patientId,
-  startTime,
-  endTime: new Date(startTime.getTime() + minutes * 60_000),
+  patientId: 'stale-patient', // the service must trust the database, not this
+  startTime: new Date(0),
+  endTime: new Date(0),
 });
 
 function setup(opts: { reachable?: string[]; row?: Record<string, unknown> | null } = {}) {
   let finalizer: (n: OutgoingNotification) => Promise<unknown> = () =>
     Promise.reject(new Error('no finalizer'));
-  const notify = jest.fn(async (input: unknown) => {
-    if (typeof input === 'function') await (input as () => Promise<unknown>)();
+  const row = opts.row === undefined ? booked() : opts.row;
+  const sqlLog: { sql: string; params: unknown[] }[] = [];
+  const query = jest.fn((sql: string, params: unknown[] = []) => {
+    sqlLog.push({ sql, params });
+    if (sql.includes('FROM appointments')) return Promise.resolve(row ? [row] : []);
+    return Promise.resolve([]);
   });
+  const manager = { query };
+  const transaction = jest.fn((fn: (m: unknown) => Promise<void>) => fn(manager));
+  const enqueueSafely = jest.fn().mockResolvedValue(undefined);
   const notifications = {
-    notify,
+    enqueueSafely,
     clinicTime: jest.fn().mockResolvedValue('19 Nov 2026, 15:00'),
   };
   const patientDevices = {
@@ -34,11 +52,8 @@ function setup(opts: { reachable?: string[]; row?: Record<string, unknown> | nul
       Promise.resolve(opts.reachable ?? ids),
     ),
   };
-  const query = jest
-    .fn()
-    .mockResolvedValue(opts.row === undefined ? [] : opts.row ? [opts.row] : []);
   const service = new AppointmentReminderService(
-    { manager: { query }, query } as never,
+    { manager, transaction } as never,
     notifications as never,
     patientDevices as never,
     { now: () => NOW } as never,
@@ -49,24 +64,26 @@ function setup(opts: { reachable?: string[]; row?: Record<string, unknown> | nul
       },
     } as never,
   );
-  return { service, query, notify, notifications, patientDevices, finalize: (n: OutgoingNotification) => finalizer(n) };
-}
-
-/** What `notify` was asked to enqueue (the factory is run by the fake). */
-async function enqueued(s: ReturnType<typeof setup>, startTime = START, patientId = 'pat-1') {
-  let captured: unknown;
-  s.notify.mockImplementation(async (input: unknown) => {
-    captured = typeof input === 'function' ? await (input as () => Promise<unknown>)() : input;
-  });
-  s.service.schedule(target(startTime, patientId));
-  await new Promise((r) => setImmediate(r));
-  return captured as Record<string, unknown> | null;
+  const flush = () => new Promise((r) => setImmediate(r));
+  return {
+    service,
+    query,
+    sqlLog,
+    transaction,
+    enqueueSafely,
+    patientDevices,
+    flush,
+    finalize: (n: OutgoingNotification) => finalizer(n),
+  };
 }
 
 describe('AppointmentReminderService.schedule', () => {
-  it('schedules the push 24 h before the start, clinic name + time only', async () => {
+  it('schedules the push 24 h before the start from the CURRENT booking, clinic + time only', async () => {
     const s = setup();
-    const input = await enqueued(s);
+    s.service.schedule(target());
+    await s.flush();
+    expect(s.enqueueSafely).toHaveBeenCalledTimes(1);
+    const input = s.enqueueSafely.mock.calls[0][1] as Record<string, unknown>;
     expect(input).toMatchObject({
       eventCode: 'appointment.reminder',
       organizationId: 'org-1',
@@ -76,82 +93,111 @@ describe('AppointmentReminderService.schedule', () => {
       variables: {
         appointment_time: '19 Nov 2026, 15:00',
         start_at: START.toISOString(),
-        end_at: new Date(START.getTime() + 30 * 60_000).toISOString(),
+        end_at: END.toISOString(),
       },
       recipients: [{ id: 'pat-1', type: 'patient', audience: 'patient' }],
     });
-    expect((input!.scheduledFor as Date).getTime()).toBe(
-      START.getTime() - REMINDER_LEAD_MS,
-    );
+    expect((input.scheduledFor as Date).getTime()).toBe(START.getTime() - REMINDER_LEAD_MS);
     // A phone registered between booking and the reminder still gets it.
     expect(s.patientDevices.patientsWithDevices.mock.calls[0][3]).toBe(false);
   });
 
-  it('drops the pending reminders first, then queues a fresh one', async () => {
+  it('skip + insert run in ONE transaction under a per-appointment advisory lock', async () => {
     const s = setup();
-    await enqueued(s);
-    const [sql, params] = s.query.mock.calls[0];
-    expect(String(sql)).toContain('UPDATE notification_outbox');
-    expect(String(sql)).toContain("status IN ('queued', 'held_quiet_hours')");
+    s.service.schedule(target());
+    await s.flush();
+    expect(s.transaction).toHaveBeenCalledTimes(1);
+    const sqls = s.sqlLog.map((l) => l.sql);
+    expect(sqls[0]).toContain('pg_advisory_xact_lock(hashtext($1))');
+    expect(s.sqlLog[0].params).toEqual(['appointment-reminder:appt-1']);
+    expect(sqls[1]).toContain('UPDATE notification_outbox');
+    expect(sqls[2]).toContain('FROM appointments');
+    // the insert goes through the SAME manager
+    expect(s.enqueueSafely.mock.calls[0][0]).toEqual({ query: s.query });
+  });
+
+  it('the skip filters on entity_type first (index-friendly) and only unsent rows', async () => {
+    const s = setup();
+    s.service.schedule(target());
+    await s.flush();
+    const { sql, params } = s.sqlLog[1];
+    expect(sql).toContain("entity_type = 'appointment'");
+    expect(sql).toContain("status IN ('queued', 'held_quiet_hours')");
     expect(params).toEqual(['appointment.reminder', 'appt-1']);
   });
 
-  it('a move to under a day away drops the old reminder and queues no new one', async () => {
-    const s = setup();
-    const input = await enqueued(s, new Date(NOW.getTime() + 60 * 60_000));
-    expect(input).toBeNull();
-    expect(s.query).toHaveBeenCalledTimes(1); // the skip still ran
+  it('a booking that is no longer scheduled/confirmed only drops the old reminder', async () => {
+    const s = setup({ row: booked({ status: 'cancelled' }) });
+    s.service.schedule(target());
+    await s.flush();
+    expect(s.sqlLog[1].sql).toContain('UPDATE notification_outbox');
+    expect(s.enqueueSafely).not.toHaveBeenCalled();
   });
 
-  it('a change of patient re-targets: new recipient, old row dropped', async () => {
-    const s = setup();
-    const input = await enqueued(s, START, 'pat-2');
-    expect(input).toMatchObject({ recipients: [{ id: 'pat-2' }] });
-    expect(s.query).toHaveBeenCalledTimes(1);
+  it('queues nothing when the appointment is less than a day away (the skip still ran)', async () => {
+    const s = setup({ row: booked({ start_time: new Date(NOW.getTime() + 3_600_000) }) });
+    s.service.schedule(target());
+    await s.flush();
+    expect(s.enqueueSafely).not.toHaveBeenCalled();
+    expect(s.sqlLog[1].sql).toContain('UPDATE notification_outbox');
   });
 
-  it('a duration-only change gets a new end_at', async () => {
-    const s = setup();
-    let captured: unknown;
-    s.notify.mockImplementation(async (i: unknown) => {
-      captured = await (i as () => Promise<unknown>)();
-    });
-    s.service.schedule(target(START, 'pat-1', 60));
-    await new Promise((r) => setImmediate(r));
-    expect((captured as { variables: { end_at: string } }).variables.end_at).toBe(
-      new Date(START.getTime() + 60 * 60_000).toISOString(),
-    );
+  it('a patient change re-targets: the recipient is the CURRENT patient', async () => {
+    const s = setup({ row: booked({ patient_id: 'pat-2' }) });
+    s.service.schedule(target());
+    await s.flush();
+    expect(s.enqueueSafely.mock.calls[0][1]).toMatchObject({ recipients: [{ id: 'pat-2' }] });
   });
 
-  it('cancel drops every pending reminder and never throws', async () => {
-    const s = setup();
-    s.query.mockRejectedValueOnce(new Error('db down'));
-    s.service.cancel('appt-1');
-    await new Promise((r) => setImmediate(r));
-    expect(s.query.mock.calls[0][1]).toEqual(['appointment.reminder', 'appt-1']);
+  it('a duration-only change gets the new end_at', async () => {
+    const longer = new Date(START.getTime() + 60 * 60_000);
+    const s = setup({ row: booked({ end_time: longer }) });
+    s.service.schedule(target());
+    await s.flush();
+    expect(
+      (s.enqueueSafely.mock.calls[0][1] as { variables: { end_at: string } }).variables.end_at,
+    ).toBe(longer.toISOString());
   });
 
   it('queues nothing for a patient who does not use the app', async () => {
     const s = setup({ reachable: [] });
-    expect(await enqueued(s)).toBeNull();
+    s.service.schedule(target());
+    await s.flush();
+    expect(s.enqueueSafely).not.toHaveBeenCalled();
+  });
+
+  it('never throws into the booking when the transaction fails', async () => {
+    const s = setup();
+    s.transaction.mockRejectedValueOnce(new Error('db down'));
+    expect(() => s.service.schedule(target())).not.toThrow();
+    await s.flush();
+  });
+});
+
+describe('AppointmentReminderService.cancel', () => {
+  it('drops every pending reminder under the same lock', async () => {
+    const s = setup();
+    s.service.cancel('appt-1');
+    await s.flush();
+    expect(s.sqlLog[0].sql).toContain('pg_advisory_xact_lock');
+    expect(s.sqlLog[1].params).toEqual(['appointment.reminder', 'appt-1']);
+  });
+
+  it('never throws', async () => {
+    const s = setup();
+    s.transaction.mockRejectedValueOnce(new Error('db down'));
+    expect(() => s.service.cancel('appt-1')).not.toThrow();
+    await s.flush();
   });
 });
 
 describe('AppointmentReminderService send-time check', () => {
-  const END = new Date(START.getTime() + 30 * 60_000);
   const reminder = (startAt = START.toISOString(), endAt = END.toISOString()): OutgoingNotification =>
     ({
       entityId: 'appt-1',
       recipientId: 'pat-1',
       payload: { variables: { start_at: startAt, end_at: endAt } },
     }) as never;
-  const booked = (over: Record<string, unknown> = {}) => ({
-    status: 'confirmed',
-    start_time: START,
-    end_time: END,
-    patient_id: 'pat-1',
-    ...over,
-  });
 
   it('lets a still-booked reminder through unchanged', async () => {
     const s = setup({ row: booked() });
@@ -171,13 +217,5 @@ describe('AppointmentReminderService send-time check', () => {
     const err = await s.finalize(reminder()).catch((e: unknown) => e);
     expect(err).toBeInstanceOf(SkipSendError);
     expect((err as SkipSendError).status).toBe(OutboxStatus.SKIPPED_DISABLED);
-  });
-});
-
-describe('move back to the original time', () => {
-  it('cannot revive the old row: a reminder made for a time the booking left is dropped even if the time returned with another patient', async () => {
-    const s = setup({ row: { status: 'scheduled', start_time: START, end_time: new Date(START.getTime() + 30 * 60_000), patient_id: 'pat-2' } });
-    const n = { entityId: 'appt-1', recipientId: 'pat-1', payload: { variables: { start_at: START.toISOString(), end_at: new Date(START.getTime() + 30 * 60_000).toISOString() } } } as never;
-    await expect(s.finalize(n)).rejects.toBeInstanceOf(SkipSendError);
   });
 });

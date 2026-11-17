@@ -53,6 +53,7 @@ function setup(
   opts: {
     tokens?: string[];
     patientTokens?: string[];
+    patientApp?: boolean;
     tickets?: unknown[];
     receipts?: Record<string, unknown>;
   } = {},
@@ -73,6 +74,9 @@ function setup(
     ),
     // A dead token is removed from both tables; `removed` tracks the staff one.
     removeTokens: jest.fn(() => Promise.resolve(0)),
+  };
+  const featureFlags = {
+    isFeatureEnabled: jest.fn(() => Promise.resolve(opts.patientApp ?? true)),
   };
   const client: ExpoClient = {
     chunkPushNotifications: (messages) => [messages],
@@ -97,9 +101,10 @@ function setup(
   const provider = new ExpoPushProvider(
     devices as never,
     patientDevices as never,
+    featureFlags as never,
     factory,
   );
-  return { provider, devices, patientDevices, client, sent, removed };
+  return { provider, devices, patientDevices, featureFlags, client, sent, removed };
 }
 
 describe('ExpoPushProvider', () => {
@@ -177,6 +182,68 @@ describe('ExpoPushProvider', () => {
       providerMessageId: 'receipt-ok',
     });
     expect(removed).toEqual([['ExponentPushToken[device-2]']]);
+  });
+
+  it('queue pushes expire after a few minutes; others do not', async () => {
+    const { provider, sent } = setup();
+    await provider.send(message());
+    await provider.send(message({ eventCode: 'appointment.reminder' }));
+    expect(sent[0][0]).toMatchObject({ ttl: 300 });
+    expect(sent[1][0]).not.toHaveProperty('ttl');
+  });
+
+  it('MessageRateExceeded is retried with backoff for those messages only', async () => {
+    const T2 = 'ExponentPushToken[device-2]';
+    const { provider, client, sent } = setup({ tokens: [TOKEN, T2] });
+    const waits: number[] = [];
+    provider.sleep = (ms) => {
+      waits.push(ms);
+      return Promise.resolve();
+    };
+    (client.sendPushNotificationsAsync as jest.Mock)
+      .mockReset()
+      .mockImplementationOnce((chunk: ExpoPushMessage[]) => {
+        sent.push(chunk);
+        return Promise.resolve([
+          { status: 'ok', id: 'r1' },
+          { status: 'error', message: 'slow down', details: { error: 'MessageRateExceeded' } },
+        ]);
+      })
+      .mockImplementationOnce((chunk: ExpoPushMessage[]) => {
+        sent.push(chunk);
+        return Promise.resolve([{ status: 'ok', id: 'r2' }]);
+      });
+
+    await expect(provider.send(message())).resolves.toEqual({ providerMessageId: 'r1,r2' });
+    expect(waits).toEqual([1000]);
+    expect(sent[1].map((m) => m.to)).toEqual([T2]); // the accepted one is not re-sent
+  });
+
+  it('gives up after the retries without failing the whole row permanently when one ticket was ok', async () => {
+    const { provider, client } = setup({ tokens: [TOKEN] });
+    provider.sleep = () => Promise.resolve();
+    (client.sendPushNotificationsAsync as jest.Mock).mockReset().mockResolvedValue([
+      { status: 'error', message: 'slow', details: { error: 'MessageRateExceeded' } },
+    ]);
+    await expect(provider.send(message())).rejects.toBeInstanceOf(PermanentSendError);
+    expect(client.sendPushNotificationsAsync).toHaveBeenCalledTimes(4);
+  });
+
+  it('a network error after the first chunk keeps what was sent instead of re-sending it', async () => {
+    const T2 = 'ExponentPushToken[device-2]';
+    const { provider, client } = setup({ tokens: [TOKEN, T2] });
+    (client as { chunkPushNotifications: unknown }).chunkPushNotifications = (m: ExpoPushMessage[]) => [[m[0]], [m[1]]];
+    (client.sendPushNotificationsAsync as jest.Mock)
+      .mockReset()
+      .mockResolvedValueOnce([{ status: 'ok', id: 'r1' }])
+      .mockRejectedValueOnce(new Error('ECONNRESET'));
+    await expect(provider.send(message())).resolves.toEqual({ providerMessageId: 'r1' });
+  });
+
+  it('a network error on the very first chunk is retried by the dispatcher', async () => {
+    const { provider, client } = setup();
+    (client.sendPushNotificationsAsync as jest.Mock).mockReset().mockRejectedValue(new Error('ECONNRESET'));
+    await expect(provider.send(message())).rejects.toThrow('ECONNRESET');
   });
 
   it('a non-DeviceNotRegistered ticket is permanent', async () => {
@@ -275,6 +342,17 @@ describe('ExpoPushProvider', () => {
         .send(patientMessage())
         .catch((e: unknown) => e);
       expect((err as SkipSendError).status).toBe(OutboxStatus.SKIPPED_NO_DEVICE);
+      expect(client.sendPushNotificationsAsync).not.toHaveBeenCalled();
+    });
+
+    it('a clinic with the patient app off (org or location) sends no patient push', async () => {
+      const { provider, client, featureFlags } = setup({
+        patientTokens: [TOKEN],
+        patientApp: false,
+      });
+      const err = await provider.send(patientMessage()).catch((e: unknown) => e);
+      expect((err as SkipSendError).status).toBe(OutboxStatus.SKIPPED_NO_DEVICE);
+      expect(featureFlags.isFeatureEnabled).toHaveBeenCalledWith('org-1', 'patient_app', 'loc-1');
       expect(client.sendPushNotificationsAsync).not.toHaveBeenCalled();
     });
 

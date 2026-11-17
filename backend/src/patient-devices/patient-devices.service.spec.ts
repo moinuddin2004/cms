@@ -26,20 +26,20 @@ function setup(existing: PatientDevice | null = null) {
 describe('PatientDevicesService', () => {
   it('registers a new token for the account', async () => {
     const { service, repo } = setup();
-    await expect(service.register('acc-1', DTO)).resolves.toEqual({
+    await expect(service.register('acc-1', 'sess-1', DTO)).resolves.toEqual({
       id: 'dev-1',
     });
     expect(repo.save).toHaveBeenCalledWith(
-      expect.objectContaining({ accountId: 'acc-1', expoPushToken: DTO.expoPushToken }),
+      expect.objectContaining({ accountId: 'acc-1', sessionId: 'sess-1', expoPushToken: DTO.expoPushToken }),
     );
   });
 
   it('moves an existing token to the calling account (shared phone)', async () => {
     const row = { id: 'dev-9', accountId: 'acc-old' } as PatientDevice;
     const { service, repo } = setup(row);
-    await expect(service.register('acc-2', DTO)).resolves.toEqual({ id: 'dev-9' });
+    await expect(service.register('acc-2', 'sess-2', DTO)).resolves.toEqual({ id: 'dev-9' });
     expect(repo.save).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'dev-9', accountId: 'acc-2' }),
+      expect.objectContaining({ id: 'dev-9', accountId: 'acc-2', sessionId: 'sess-2' }),
     );
   });
 

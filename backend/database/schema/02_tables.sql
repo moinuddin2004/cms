@@ -1876,6 +1876,7 @@ CREATE INDEX idx_patient_accounts_phone ON patient_accounts (phone);
 CREATE TABLE patient_devices (
   id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   account_id      uuid NOT NULL,
+  session_id      uuid,                       -- patient_sessions.id that registered it (no FK)
   expo_push_token varchar(200) NOT NULL,
   platform        varchar(10) NOT NULL,
   device_label    varchar(80),
@@ -1887,6 +1888,7 @@ CREATE TABLE patient_devices (
 );
 CREATE UNIQUE INDEX uq_patient_devices_token ON patient_devices (expo_push_token);
 CREATE INDEX idx_patient_devices_account_id ON patient_devices (account_id);
+CREATE INDEX idx_patient_devices_session_id ON patient_devices (session_id);
 
 -- ------------------------------------------------------------------------
 -- patient_account_identities   (src/patient-auth/entities/patient-account-identity.entity.ts)

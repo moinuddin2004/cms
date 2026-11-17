@@ -3376,3 +3376,15 @@ Status stays: review. mobile/develop merged (HANDOFF conflict: kept both).
 | 6 | Dev noise | expected failures (code/status/offline) not warned |
 
 Verification: tsc only the known global.css message; eslint 0 errors (5 warnings, 1 new from merged develop code in patient devices test); lint:fences ok; jest foreground chunks green: core 37 suites, patient 31, staff queue 19 + others 15 + 31, shell/appointments/notifications 17.
+
+---
+## Audit fixes — notifications, devices, realtime  ·  2026-11-17  ·  Claude Sonnet 5.5
+Branch: claude/audit-fix-notify-realtime (from mobile/develop)
+- **M2** PUSH templates may only use `PUSH_SAFE_VARIABLES` (patient_first_name, token, clinic_name, doctor_name, appointment_time, ahead_text) -> `NOTIFICATION_TEMPLATE_INVALID` (spec).
+- **M4** `patient_devices.session_id` (entity + schema + `changes/2026-11-17_patient_devices_session.sql`); logout and reuse-revoke delete the session's devices (best effort, spec). Staff-side offline unregister (the other half of M4) is mobile and not part of this task.
+- **M12** reminders: skip filters `entity_type = 'appointment'`; skip + re-read booking + insert run in one transaction under `pg_advisory_xact_lock(hashtext(...))`; the fresh reminder is built from the DB row, not the caller's (possibly stale) copy. Not confirmed with `EXPLAIN` (no Postgres here).
+- **M13** `patient_app` feature (org + location override) checked in `ExpoPushProvider` for patient recipients; recorded as A-26.
+- **L21** seed syncs `variables`. **L22** `MessageRateExceeded` retried 1/2/4 s for those messages only, a network error after the first chunk keeps what was sent, `queue.*` pushes get `ttl: 300`. **L18** int-spec compiles.
+- **M6** staff `/realtime`: session + user checked at handshake and every non-display subscribe, exp timer, refused/expired sockets are DISCONNECTED (an invalid token used to stay connected anonymously), `StaffSessionEvents` (logout / revoke / revoke-all) drops sockets on this instance, `access.changed` drops sockets that lost the org and removes them from session/board rooms they lost. Note for clients: after a server-side disconnect socket.io does not reconnect by itself (web re-creates the socket on the next token refresh, mobile staff reconnects on `auth_error` + foreground); a manual reconnect in the staff mobile client would be a follow-up.
+- **L7** patient `isAlive` also requires an active account. **L10** visit links: one per entry, valid until the entry ends + 30 min.
+Checks: backend build; every jest chunk green (notifications/patient-*/appointments 36 suites, queue/session/auth/access/common/user 32, rest 64). New specs: push-template-safety, provider retry/ttl/partial/feature-off, reminders (lock, entity_type, current row), session device delete, isAlive account, staff gateway lifetime, visit link.

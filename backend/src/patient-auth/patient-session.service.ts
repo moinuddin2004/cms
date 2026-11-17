@@ -162,14 +162,31 @@ export class PatientSessionService {
 
   /**
    * Revoke one session and drop what the privacy policy says goes with it: the IP and the device
-   * label (audit M9). Ends the socket too.
+   * label (audit M9). Ends the socket and removes the phones registered under it (audit M4).
    */
   private async revokeSession(id: string, accountId: string): Promise<void> {
     await this.sessions.update(
       { id },
       { revokedAt: new Date(), ip: null, deviceLabel: null },
     );
+    await this.dropDevices(id);
     this.events?.revoked({ accountId, sessionId: id });
+  }
+
+  /**
+   * A revoked session must stop receiving pushes (audit M4): delete the phones
+   * that were registered under it. Best effort — a failure must not undo a
+   * logout; the push provider also re-checks the link/account at send time.
+   */
+  private async dropDevices(sessionId: string): Promise<void> {
+    try {
+      await this.sessions.manager?.query(
+        `DELETE FROM patient_devices WHERE session_id = $1`,
+        [sessionId],
+      );
+    } catch {
+      /* never break a logout */
+    }
   }
 
   /** Is this session usable right now? (strategy check) */
@@ -182,6 +199,14 @@ export class PatientSessionService {
         expiresAt: MoreThan(new Date()),
       },
     });
-    return n > 0;
+    if (n === 0) return false;
+    // The account must still be active (a disabled / deleted account loses its
+    // sockets and subscriptions too, audit L7).
+    const rows = (await this.sessions.manager?.query(
+      `SELECT 1 FROM patient_accounts
+        WHERE id = $1 AND status = 'active' AND deleted_at IS NULL`,
+      [accountId],
+    )) as unknown[] | undefined;
+    return rows === undefined || rows.length > 0;
   }
 }

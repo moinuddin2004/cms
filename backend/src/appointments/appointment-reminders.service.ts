@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
-import { DataSource } from 'typeorm';
+import { DataSource, EntityManager } from 'typeorm';
 import { ClockService } from 'src/common/clock/clock.service';
 import { sqlRows } from 'src/common/database/sql';
 import { SkipSendError } from 'src/notifications/delivery/channel-provider';
@@ -82,65 +82,104 @@ export class AppointmentReminderService {
   /**
    * Drops every reminder of this appointment that has not been sent yet
    * (cancel, no-show, or before a fresh one is scheduled). Rows already sent
-   * are history and stay.
+   * are history and stay. `entity_type` leads the filter so the
+   * `(entity_type, entity_id)` index serves it (no scan of the outbox).
    */
-  async skipPending(appointmentId: string): Promise<void> {
-    await this.dataSource.query(
+  async skipPending(m: EntityManager, appointmentId: string): Promise<void> {
+    await m.query(
       `UPDATE notification_outbox
           SET status = '${OutboxStatus.SKIPPED_DISABLED}', updated_at = now(),
               last_error = 'Superseded: the appointment changed or was cancelled'
-        WHERE event_code = $1 AND entity_id = $2
+        WHERE entity_type = 'appointment' AND entity_id = $2 AND event_code = $1
           AND status IN ('${OutboxStatus.QUEUED}', '${OutboxStatus.HELD_QUIET_HOURS}')`,
       [APPOINTMENT_REMINDER_EVENT, appointmentId],
     );
   }
 
+  /**
+   * One transaction per appointment under an advisory lock: two quick saves
+   * serialise, so the second one sees (and skips) what the first inserted and
+   * never leaves two pending reminders.
+   */
+  private async locked(
+    appointmentId: string,
+    work: (m: EntityManager) => Promise<void>,
+  ): Promise<void> {
+    await this.dataSource.transaction(async (m) => {
+      await m.query(`SELECT pg_advisory_xact_lock(hashtext($1))`, [
+        `appointment-reminder:${appointmentId}`,
+      ]);
+      await work(m);
+    });
+  }
+
   /** Cancelled / no-show: nothing is due any more. Fire-and-forget, never throws. */
   cancel(appointmentId: string): void {
-    void this.skipPending(appointmentId).catch((err: Error) =>
+    void this.locked(appointmentId, (m) =>
+      this.skipPending(m, appointmentId),
+    ).catch((err: Error) =>
       this.logger.error(`Reminder cleanup failed: ${err.message}`),
     );
   }
 
   /**
-   * (Re)schedule after commit, fire-and-forget: never fails the booking. Any
-   * pending reminder of the appointment is dropped first, so a change of time,
-   * length or patient never leaves a stale or duplicate row. Nothing new is
-   * queued when the appointment is less than a day away (or the patient is
-   * not an app user).
+   * (Re)schedule after commit, fire-and-forget: never fails the booking. Under
+   * the appointment's lock: drop the pending reminders, re-read the booking
+   * (so a slower, older call can never schedule stale data) and queue a fresh
+   * one when it is still booked and more than a day away for an app user.
    */
   schedule(a: ReminderTarget): void {
-    const dueAt = new Date(a.startTime.getTime() - REMINDER_LEAD_MS);
-    void this.notifications.notify(async () => {
-      await this.skipPending(a.id);
-      if (dueAt <= this.clock.now()) return null;
+    void this.locked(a.id, async (m) => {
+      await this.skipPending(m, a.id);
+      const [cur] = await sqlRows<{
+        organization_id: string;
+        location_id: string;
+        patient_id: string;
+        start_time: Date;
+        end_time: Date;
+        status: string;
+      }>(
+        m,
+        `SELECT organization_id, location_id, patient_id, start_time, end_time, status
+           FROM appointments WHERE id = $1`,
+        [a.id],
+      );
+      if (!cur || (cur.status !== 'scheduled' && cur.status !== 'confirmed')) {
+        return;
+      }
+      const startTime = new Date(cur.start_time);
+      const endTime = new Date(cur.end_time);
+      const dueAt = new Date(startTime.getTime() - REMINDER_LEAD_MS);
+      if (dueAt <= this.clock.now()) return;
       const recipients = await patientPushRecipients(
         this.patientDevices,
-        this.dataSource.manager,
-        a.organizationId,
-        [a.patientId],
+        m,
+        cur.organization_id,
+        [cur.patient_id],
         // The phone may be registered between booking and the reminder; the
         // provider looks the devices up again when it sends.
         false,
       );
-      if (!recipients.length) return null;
-      return {
-        organizationId: a.organizationId,
-        locationId: a.locationId,
+      if (!recipients.length) return;
+      await this.notifications.enqueueSafely(m, {
+        organizationId: cur.organization_id,
+        locationId: cur.location_id,
         eventCode: APPOINTMENT_REMINDER_EVENT,
         recipients,
         variables: {
           appointment_time: await this.notifications.clinicTime(
-            a.startTime,
-            a.locationId,
+            startTime,
+            cur.location_id,
           ),
-          start_at: a.startTime.toISOString(),
-          end_at: a.endTime.toISOString(),
+          start_at: startTime.toISOString(),
+          end_at: endTime.toISOString(),
         },
         link: `/appointments/${a.id}`,
         entity: { type: 'appointment', id: a.id },
         scheduledFor: dueAt,
-      };
-    });
+      });
+    }).catch((err: Error) =>
+      this.logger.error(`Reminder not scheduled: ${err.message}`),
+    );
   }
 }

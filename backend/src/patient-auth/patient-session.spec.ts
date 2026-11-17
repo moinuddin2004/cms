@@ -6,6 +6,13 @@ import type { PatientSession } from './entities/patient-session.entity';
 /** Minimal in-memory stand-in for the repository calls the service makes. */
 class FakeRepo {
   rows = new Map<string, PatientSession>();
+  queries: { sql: string; params: unknown[] }[] = [];
+  manager = {
+    query: async (sql: string, params: unknown[]): Promise<unknown[]> => {
+      this.queries.push({ sql, params });
+      return [];
+    },
+  };
   create(v: Partial<PatientSession>) {
     return { ...v } as PatientSession;
   }
@@ -84,6 +91,38 @@ describe('PatientSessionService', () => {
     await expectInvalid(svc.rotate(first.refreshToken)); // theft signal
     expect(repo.rows.get(first.session.id)!.revokedAt).toBeInstanceOf(Date);
     await expectInvalid(svc.rotate(second.refreshToken)); // even the newest is dead
+  });
+
+  it('reuse revoke and logout delete the session push devices (audit M4)', async () => {
+    const a = await svc.create(ACCOUNT);
+    const a2 = await svc.rotate(a.refreshToken);
+    await expectInvalid(svc.rotate(a.refreshToken));
+    expect(repo.queries).toHaveLength(1);
+    expect(repo.queries[0].sql).toContain('DELETE FROM patient_devices WHERE session_id');
+    expect(repo.queries[0].params).toEqual([a.session.id]);
+
+    const b = await svc.create(ACCOUNT);
+    await svc.revokeByToken(b.refreshToken);
+    expect(repo.queries[1].params).toEqual([b.session.id]);
+    void a2;
+  });
+
+  it('isAlive also requires an active account (audit L7)', async () => {
+    const a = await svc.create(ACCOUNT);
+    repo.count = async () => 1;
+    repo.manager.query = async () => [{ '?column?': 1 }];
+    await expect(svc.isAlive(a.session.id, ACCOUNT)).resolves.toBe(true);
+    repo.manager.query = async () => [];
+    await expect(svc.isAlive(a.session.id, ACCOUNT)).resolves.toBe(false);
+  });
+
+  it('a failing device delete never breaks a logout', async () => {
+    const b = await svc.create(ACCOUNT);
+    repo.manager.query = async () => {
+      throw new Error('db');
+    };
+    await expect(svc.revokeByToken(b.refreshToken)).resolves.toBeUndefined();
+    expect(repo.rows.get(b.session.id)!.revokedAt).toBeInstanceOf(Date);
   });
 
   it('rejects garbage, unknown ids, wrong secrets, expired and revoked sessions', async () => {
