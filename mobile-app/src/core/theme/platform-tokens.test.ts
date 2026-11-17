@@ -48,7 +48,7 @@ describe('platform brand tokens', () => {
     ['light', lightBlock],
     ['dark', darkBlock],
   ])('keeps every semantic tone readable in %s mode', (_mode, block) => {
-    for (const tone of ['success', 'warning', 'info']) {
+    for (const tone of ['success', 'warning', 'info', 'destructive']) {
       const background = valueIn(block, `--color-${tone}`);
       const foreground = valueIn(block, `--color-${tone}-foreground`);
 

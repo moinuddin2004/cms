@@ -5,10 +5,11 @@
  * test (`platform-tokens.test.ts`) keeps this file and the stylesheet in sync —
  * they cannot import each other.
  *
- * The primary is the OKLCH-derived teal-blue of `#0e7490` (docs/10 M0-05 step 1):
- * light = the seed itself (5.36:1 on white); dark = the seed lifted to OKLCH
- * lightness 0.62 like the web's dark brand, which reads better on the dark
- * background with a black foreground (5.91:1).
+ * The primary is the MedTrackr blue `#2563eb` (A-25, the web app's `--brand`;
+ * UI-01 replaced the earlier teal `#0e7490`): light = the colour itself
+ * (5.17:1 on white); dark = `deriveBrandPalette('#2563eb').dark.brand`, i.e.
+ * exactly what the staff space shows for a clinic on the default web brand
+ * (5.9:1 with a black foreground). The ring follows the primary, like the web.
  */
 
 /** The three brand-owned CSS variables, per theme. */
@@ -22,14 +23,13 @@ export interface BrandCSSVariables {
 
 export const PLATFORM_BRAND_TOKENS: { light: BrandCSSVariables; dark: BrandCSSVariables } = {
   light: {
-    '--color-primary': '#0e7490',
+    '--color-primary': '#2563eb',
     '--color-primary-foreground': '#ffffff',
-    // Matches the neutral `--color-ring` in global.css.
-    '--color-ring': 'hsl(0 0% 63%)',
+    '--color-ring': '#2563eb',
   },
   dark: {
-    '--color-primary': '#3a92af',
+    '--color-primary': '#3f7dff',
     '--color-primary-foreground': '#000000',
-    '--color-ring': 'hsl(300 0% 45%)',
+    '--color-ring': '#3f7dff',
   },
 };

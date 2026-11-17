@@ -7,6 +7,8 @@ export { SectionHeader, type SectionHeaderProps } from './layout/SectionHeader';
 export { FAB, type FABProps } from './layout/FAB';
 export { Spinner, type SpinnerProps } from './layout/Spinner';
 
+export { BrandMark, PRODUCT_NAME, type BrandMarkProps } from './brand/BrandMark';
+
 export { StatusBadge, type StatusBadgeProps } from './data-display/StatusBadge';
 export { TokenBadge, type TokenBadgeProps } from './data-display/TokenBadge';
 export { Avatar, type AvatarProps } from './data-display/Avatar';

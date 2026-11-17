@@ -28,6 +28,7 @@ export type TextScale = 'staff' | 'patient';
  * | `large`       | `text-lg`   | 17    | 18      |
  * | default / `p` | `text-base` | 15    | 17      |
  * | `small`/`muted` | `text-sm` | 13    | 15      |
+ * | captions (badges, meta) | `text-xs` | 12 | 14 (UI-01: never 12 pt for patients) |
  */
 export type TextSizeVariable =
   | '--text-4xl'
@@ -35,7 +36,8 @@ export type TextSizeVariable =
   | '--text-2xl'
   | '--text-lg'
   | '--text-base'
-  | '--text-sm';
+  | '--text-sm'
+  | '--text-xs';
 
 /** Font sizes in px, keyed by the CSS variable the variant uses. */
 export const TEXT_SCALE_SIZES: Record<TextScale, Record<TextSizeVariable, number>> = {
@@ -46,6 +48,7 @@ export const TEXT_SCALE_SIZES: Record<TextScale, Record<TextSizeVariable, number
     '--text-lg': 17,
     '--text-base': 15,
     '--text-sm': 13,
+    '--text-xs': 12,
   },
   patient: {
     '--text-4xl': 30,
@@ -54,6 +57,7 @@ export const TEXT_SCALE_SIZES: Record<TextScale, Record<TextSizeVariable, number
     '--text-lg': 18,
     '--text-base': 17,
     '--text-sm': 15,
+    '--text-xs': 14,
   },
 };
 

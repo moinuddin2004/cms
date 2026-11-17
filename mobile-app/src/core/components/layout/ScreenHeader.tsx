@@ -43,7 +43,7 @@ export function ScreenHeader({
         />
       ) : null}
       <View className="flex-1 gap-0.5">
-        <Text variant="h2" className="border-0 pb-0 text-start">
+        <Text variant="h2" className="text-start">
           {title}
         </Text>
         {subtitle ? <Text variant="muted">{subtitle}</Text> : null}

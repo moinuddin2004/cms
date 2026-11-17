@@ -34,21 +34,21 @@ What makes it look less finished than the web app is concentrated in a few place
 
 | Web (`web-app`) | Mobile equivalent | Status |
 | --- | --- | --- |
-| `--brand` `#2563eb` / dark `#3b82f6` (primary) | `--color-primary` platform default | **Plan (UI-01):** `#2563eb` light, `#3f7dff` dark (= `deriveBrandPalette('#2563eb')`, the exact value a clinic with the default web brand gets in the staff space; black foreground keeps ≥ 4.5:1) |
-| Slate text `#0f172a`, muted text `#64748b`, border `#e2e8f0`, muted/panel `#f8fafc`, secondary/accent `#f1f5f9` | `--color-foreground`, `-muted-foreground`, `-border`/`-input`, `-muted`, `-secondary`/`-accent` | **Plan (UI-01):** same values |
-| Dark: background `#0e1219`, card/surface `#181c23`, secondary `#272b34`, accent `#20242c`, border `#2a2e36`, muted text `#a0a3a9`, text `#f0f4fa` | dark `@variant` | **Plan (UI-01):** same values — cards now lift off the background in dark mode |
-| `--destructive` `#ef4444` (3.8:1 with white — web fails AA) | `--color-destructive` | **Plan (UI-01):** `#dc2626` light (4.8:1), `#f87171` + black text dark (7.6:1) |
-| `--emerald` `#059669` (success) | `--color-success` | **Plan (UI-01):** `#047857` (emerald-700, same family as the brand gradient, 5.5:1 with white) |
+| `--brand` `#2563eb` / dark `#3b82f6` (primary) | `--color-primary` platform default | **Done (UI-01):** `#2563eb` light, `#3f7dff` dark (= `deriveBrandPalette('#2563eb')`, the exact value a clinic with the default web brand gets in the staff space; black foreground keeps ≥ 4.5:1) |
+| Slate text `#0f172a`, muted text `#64748b`, border `#e2e8f0`, muted/panel `#f8fafc`, secondary/accent `#f1f5f9` | `--color-foreground`, `-muted-foreground`, `-border`/`-input`, `-muted`, `-secondary`/`-accent` | **Done (UI-01):** same values |
+| Dark: background `#0e1219`, card/surface `#181c23`, secondary `#272b34`, accent `#20242c`, border `#2a2e36`, muted text `#a0a3a9`, text `#f0f4fa` | dark `@variant` | **Done (UI-01):** same values — cards now lift off the background in dark mode |
+| `--destructive` `#ef4444` (3.8:1 with white — web fails AA) | `--color-destructive` | **Done (UI-01):** `#dc2626` light (4.8:1), `#f87171` + black text dark (7.6:1) |
+| `--emerald` `#059669` (success) | `--color-success` | **Done (UI-01):** `#047857` (emerald-700, same family as the brand gradient, 5.5:1 with white) |
 | `--amber` `#d97706`, `--status-info` `#2563eb` | `--color-warning`, `--color-info` | Already equal |
-| `--ring` = brand | `--color-ring` | **Plan (UI-01):** ring = primary (was a grey) |
+| `--ring` = brand | `--color-ring` | **Done (UI-01):** ring = primary (was a grey) |
 | `--radius` 0.7rem; cards `rounded-xl` | `--radius-xl` 0.875rem; cards `rounded-xl` per docs/05 §4 | Equal in intent; drift to `rounded-lg`/`rounded-md` on 6 screens (see below) |
 | `StatusBadge` soft chips (`bg-*-soft` + coloured text) | `StatusBadge` soft = `bg-<tone>/15` + dot + foreground text | Kept: the dot + foreground text is the accessible version of the same look |
 | `StatCard` (label, big value, icon tile) | `StatTile` (label + tone dot, `h3` value) | Equivalent; mobile is denser on purpose (docs/05 §1) |
-| `EmptyState` / `ErrorState` (tinted `rounded-2xl` tile, bold title, muted text) | same components in `core/components/feedback` | **Plan (UI-01):** tinted `rounded-2xl` tile (primary / destructive), `h3`-weight title |
-| Page title `text-2xl font-semibold tracking-tight` | `ScreenHeader` → `Text variant="h2"` (22/24 pt) | Equal; **Plan (UI-01):** the RNR border on `h2` removed at the source |
+| `EmptyState` / `ErrorState` (tinted `rounded-2xl` tile, bold title, muted text) | same components in `core/components/feedback` | **Done (UI-01):** tinted `rounded-2xl` tile (primary / destructive), `h3`-weight title |
+| Page title `text-2xl font-semibold tracking-tight` | `ScreenHeader` → `Text variant="h2"` (22/24 pt) | Equal; **Done (UI-01):** the RNR border on `h2` removed at the source |
 | Section title `text-lg font-medium` | `SectionHeader` → `h3` | Equal |
-| `Button` (shadcn) | `core/ui/button` (RNR) | **Plan (UI-01):** default/lg/icon sizes are now 44 pt |
-| Brand mark (`favicon.svg`, white M on `#2563eb → #059669`) | `core/components/brand/BrandMark.tsx` (react-native-svg, same geometry) | **Planned (UI-01)** — used on the welcome page only (A-25) |
+| `Button` (shadcn) | `core/ui/button` (RNR) | **Done (UI-01):** default/lg/icon sizes are now 44 pt |
+| Brand mark (`favicon.svg`, white M on `#2563eb → #059669`) | `core/components/brand/BrandMark.tsx` (react-native-svg, same geometry) | **Done (UI-01)** — used on the welcome page only (A-25) |
 | `InitialsAvatar` | `Avatar` + `avatar-tint` | Equivalent |
 | Toaster (sonner) | sonner-native | Equivalent |
 
@@ -59,16 +59,16 @@ badges), text scales per space (`apply-text-scale.ts`).
 
 | # | Where | Problem | Fix | Status |
 | --- | --- | --- | --- | --- |
-| P1-1 | `src/global.css`, `core/theme/platform-tokens.ts` | Neutral grey + teal ≠ web slate + MedTrackr blue; dark cards = background; destructive fails AA; ring is grey | Token values in the table above | planned UI-01 |
-| P1-2 | `src/shell/WelcomePage.tsx` | Bare picker: generic heart icon, English forced, "Privacy · Terms" not tappable, no brand | New welcome page: M mark + wordmark, value line, two choice cards, English/اردو toggle, real privacy/terms links, safe areas, 44 pt | planned UI-01 |
-| P1-3 | `core/ui/text.tsx` `h2` | RNR default `border-b pb-2`; every caller adds `border-0 pb-0` | Patch removed it (`core/ui/PATCHES.md`) | planned UI-01 |
-| P1-4 | `core/ui/button.tsx` sizes | 40 pt default (Login "Sign in" / "Continue with Google", Select-location "Sign out", many more) | Patch: `default`/`lg`/`icon` → `h-11` (44 pt) | planned UI-01 |
-| P1-5 | `core/theme/apply-text-scale.ts` | `text-xs` (12 pt) not scaled: StatusBadge, DoseRow "Course ends"/"waiting to sync", LinkHistory, ProfileDetail helper, sign-in legal | `--text-xs` added: staff 12, patient 14 | planned UI-01 |
-| P1-6 | `core/components/feedback/{EmptyState,ErrorState}.tsx` | Grey circle; differs from web's tinted tile | Tinted `rounded-2xl` tile, primary / destructive | planned UI-01 |
-| P1-7 | `src/staff/features/today/pages/TodayPage.tsx:82` + `TodayBlocks.tsx`, `BlockShell.tsx` | Double gutter (32 pt) on the first tab staff see | `contentClassName` gets `px-0` (blocks own their `px-4`) | planned UI-01 |
-| P1-8 | `src/patient/features/today/pages/TodayPage.tsx:107` | Inner `px-4` on top of Screen's `px-4` (content 32 pt, section titles 48 pt) | Drop the inner padding | planned UI-01 |
-| P1-9 | `src/staff/features/patients/components/AlertStrip.tsx:26` | Literal "⚠" glyph (renders as emoji on some Androids) | `Icon as={TriangleAlert}` | planned UI-01 |
-| P1-10 | `src/patient/navigation/PatientTabs.tsx` | `family` route has no `Tabs.Screen` → tab shows the raw route name and a fallback icon; icons 26 instead of 24 | Declare Family (`Users`, `t('family.title')`), icons 24 | planned UI-01 |
+| P1-1 | `src/global.css`, `core/theme/platform-tokens.ts` | Neutral grey + teal ≠ web slate + MedTrackr blue; dark cards = background; destructive fails AA; ring is grey | Token values in the table above | **done UI-01** |
+| P1-2 | `src/shell/WelcomePage.tsx` | Bare picker: generic heart icon, English forced, "Privacy · Terms" not tappable, no brand | New welcome page: M mark + wordmark, value line, two choice cards, English/اردو toggle (page is English until Urdu is picked — never the phone language, per M4-05 rework #1; the staff choice always stays English), real privacy/terms links (`env.webUrl`), safe areas, 44 pt | **done UI-01** |
+| P1-3 | `core/ui/text.tsx` `h2` | RNR default `border-b pb-2`; every caller adds `border-0 pb-0` | Patch removed it (`core/ui/PATCHES.md`) | **done UI-01** |
+| P1-4 | `core/ui/button.tsx` sizes | 40 pt default (Login "Sign in" / "Continue with Google", Select-location "Sign out", many more) | Patch: `default`/`lg`/`icon` → `h-11` (44 pt) | **done UI-01** |
+| P1-5 | `core/theme/apply-text-scale.ts` | `text-xs` (12 pt) not scaled: StatusBadge, DoseRow "Course ends"/"waiting to sync", LinkHistory, ProfileDetail helper, sign-in legal | `--text-xs` added: staff 12, patient 14 | **done UI-01** |
+| P1-6 | `core/components/feedback/{EmptyState,ErrorState}.tsx` | Grey circle; differs from web's tinted tile | Tinted `rounded-2xl` tile, primary / destructive | **done UI-01** |
+| P1-7 | `src/staff/features/today/pages/TodayPage.tsx:82` + `TodayBlocks.tsx`, `BlockShell.tsx` | Double gutter (32 pt) on the first tab staff see | `contentClassName` gets `px-0` (blocks own their `px-4`) | **done UI-01** |
+| P1-8 | `src/patient/features/today/pages/TodayPage.tsx:107` | Inner `px-4` on top of Screen's `px-4` (content 32 pt, section titles 48 pt) | Drop the inner padding | **done UI-01** |
+| P1-9 | `src/staff/features/patients/components/AlertStrip.tsx:26` | Literal "⚠" glyph (renders as emoji on some Androids) | `Icon as={TriangleAlert}` | **done UI-01** |
+| P1-10 | `src/patient/navigation/PatientTabs.tsx` | `family` route has no `Tabs.Screen` → tab shows the raw route name and a fallback icon; icons 26 instead of 24 | Declare Family (`Users`, `t('family.title')`), icons 24 | **done UI-01** |
 | P1-11 | `src/patient/navigation/PatientTabs.tsx` + `PatientPlaceholderPage.tsx` | First tab is a placeholder "Home" (copy "… will live here", 5 centred buttons, red Sign out / Delete account on the home screen); docs/05 §7 says Today · Records · Family · More | Make Today the first tab; turn the placeholder into a **More** screen of `ListRow`s (Family, Clinics, Reminders, Switch to staff; destructive actions grouped last, Sign out behind `ConfirmDialog`) | **open** — needs a small card (touches routing: where sign-in lands, `index` route); proposed as **UI-02** |
 | P1-12 | `core/components/layout/Screen.tsx:57` | Offline banner text is hard-coded English on every patient screen | Add `offlineLabel`/`savedAtLabel` props (or a patient wrapper passing `t('common.offline…')`) | open (UI-02) |
 | P1-13 | `src/staff/features/queue/pages/WalkInPage.tsx:68,267` | `ScreenHeader` rendered inside the scroll body: double padding and it scrolls away | Pass it via `Screen header={…}` | open (UI-02) |
