@@ -79,7 +79,7 @@ export function TodayPage() {
           }
         />
       }
-      contentClassName="gap-4 pb-6">
+      contentClassName="gap-4 px-0 pb-6">
       <AccessErrorState className="py-6" />
       {status === 'ready' && show.size === 0 ? (
         <EmptyState

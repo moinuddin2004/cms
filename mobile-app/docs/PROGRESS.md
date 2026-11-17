@@ -85,6 +85,7 @@
 | M4-04 | Privacy policy, terms, Data safety, deletion page | ALL | M | — | done | Sonnet session + team lead | 2026-11-17 | rework-1; DRAFT for owner/lawyer |
 | M4-02 | Store assets: icon, adaptive/monochrome icons, splash (A-25 MedTrackr) | MOB | S | — | done (icons + splash); screenshots need a device | team lead | 2026-11-17 | |
 | M4-06 | Require `aud` on staff tokens | BE | S | — | spec | | | one release after launch |
+| UI-01 | UI/UX review + welcome page | MOB | M | — | review | Opus session | 2026-11-17 | report `docs/reviews/UI-UX-2026-11/report.md`; UI-02 follow-ups listed there |
 
 ## Gates
 

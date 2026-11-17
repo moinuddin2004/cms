@@ -1,4 +1,4 @@
-import { TriangleAlert } from 'lucide-react-native';
+import { RotateCw, TriangleAlert } from 'lucide-react-native';
 import { View } from 'react-native';
 
 import { Button } from '@/core/ui/button';
@@ -27,17 +27,19 @@ export function ErrorState({
 }: ErrorStateProps) {
   return (
     <View className={cn('items-center gap-3 px-6 py-16', className)}>
-      <View className="bg-destructive/10 size-14 items-center justify-center rounded-full">
-        <Icon as={TriangleAlert} className="text-destructive size-6" />
+      {/* Tinted tile like the web ErrorState (bg-danger-soft, rounded-2xl). */}
+      <View className="bg-destructive/10 mb-1 size-14 items-center justify-center rounded-2xl">
+        <Icon as={TriangleAlert} className="text-destructive size-7" />
       </View>
-      <Text variant="large" className="text-center">
+      <Text variant="large" accessibilityRole="header" className="text-center">
         {title}
       </Text>
-      <Text variant="muted" className="text-center">
+      <Text variant="muted" className="max-w-sm text-center">
         {message}
       </Text>
       {onRetry ? (
-        <Button variant="outline" onPress={onRetry}>
+        <Button variant="outline" className="mt-2" onPress={onRetry}>
+          <Icon as={RotateCw} className="size-4" />
           <Text>{retryLabel}</Text>
         </Button>
       ) : null}

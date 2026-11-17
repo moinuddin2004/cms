@@ -104,7 +104,7 @@ export function TodayPage() {
         refetchEvents();
         void appointments.refetch();
       }}>
-      <View className="gap-4 px-4 pb-8 pt-2">
+      <View className="gap-4 pb-8 pt-2">
         {/* Live token (M3-06): pinned while any linked entry is active today. */}
         <LiveTokenSection />
 
@@ -160,7 +160,7 @@ export function TodayPage() {
             ) : (
               sections.map((section) => (
                 <View key={section.group} className="gap-2">
-                  <SectionHeader title={t(`today.groups.${section.group}`)} />
+                  <SectionHeader inset={false} title={t(`today.groups.${section.group}`)} />
                   <View className="gap-2">
                     {section.doses.map((dose) => (
                       <DoseRow
@@ -180,7 +180,7 @@ export function TodayPage() {
 
             {appointmentSections.today.length > 0 ? (
               <View className="gap-2">
-                <SectionHeader title={t('today.appointmentsToday')} />
+                <SectionHeader inset={false} title={t('today.appointmentsToday')} />
                 {appointmentSections.today.map((a) => (
                   <AppointmentRow key={a.id} item={a} withDay={false} />
                 ))}
@@ -189,7 +189,7 @@ export function TodayPage() {
 
             {appointmentSections.comingUp.length > 0 ? (
               <View className="gap-2">
-                <SectionHeader title={t('today.comingUp')} />
+                <SectionHeader inset={false} title={t('today.comingUp')} />
                 {appointmentSections.comingUp.map((a) => (
                   <AppointmentRow key={a.id} item={a} withDay />
                 ))}

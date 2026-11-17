@@ -16,12 +16,15 @@ export const en = {
   },
   shell: {
     welcome: {
-      title: 'Your health, your clinic',
-      patient: "I'm a patient",
-      patientHint: 'Records, medicines, token',
+      tagline: 'Clinic visits, records and medicines in one place.',
+      choose: 'How will you use the app?',
+      patient: "I'm a patient or family member",
+      patientHint: "Your family's visits, records and medicine reminders",
       staff: 'I work at a clinic',
-      staffHint: 'Queue, patients, schedule',
-      legal: 'Privacy · Terms',
+      staffHint: 'Queue, patients and schedule for clinic staff',
+      language: 'Language',
+      privacy: 'Privacy policy',
+      terms: 'Terms of use',
     },
     update: {
       title: 'Update required',

@@ -23,62 +23,67 @@
 @layer theme {
   :root {
     @variant light {
-      --color-background: hsl(0 0% 100%);
-      --color-foreground: hsl(0 0% 3.9%);
-      --color-card: hsl(0 0% 100%);
-      --color-card-foreground: hsl(0 0% 3.9%);
-      --color-popover: hsl(0 0% 100%);
-      --color-popover-foreground: hsl(0 0% 3.9%);
-      /* Platform teal-blue (seed #0e7490, 5.36:1 with white); docs/10 M0-05. */
-      --color-primary: #0e7490;
+      /* Neutrals = the web app's slate palette (web-app/src/styles.css, UI-01). */
+      --color-background: #ffffff;
+      --color-foreground: #0f172a;
+      --color-card: #ffffff;
+      --color-card-foreground: #0f172a;
+      --color-popover: #ffffff;
+      --color-popover-foreground: #0f172a;
+      /* MedTrackr blue = web --brand (A-25); 5.17:1 with white. Staff space replaces it with the clinic brand. */
+      --color-primary: #2563eb;
       --color-primary-foreground: #ffffff;
-      --color-secondary: hsl(0 0% 96.1%);
-      --color-secondary-foreground: hsl(0 0% 9%);
-      --color-muted: hsl(0 0% 96.1%);
-      --color-muted-foreground: hsl(0 0% 45.1%);
-      --color-accent: hsl(0 0% 96.1%);
-      --color-accent-foreground: hsl(0 0% 9%);
-      --color-destructive: hsl(0 84.2% 60.2%);
-      --color-destructive-foreground: hsl(0 0% 98%);
-      /* Semantic status tones (docs/05 §2): 5.02:1, 6.59:1 and 5.17:1 on their foregrounds. */
-      --color-success: #15803d;
+      --color-secondary: #f1f5f9;
+      --color-secondary-foreground: #0f172a;
+      --color-muted: #f8fafc;
+      --color-muted-foreground: #64748b;
+      --color-accent: #f1f5f9;
+      --color-accent-foreground: #0f172a;
+      /* red-600: 4.83:1 with white (the web's #ef4444 is 3.8:1). */
+      --color-destructive: #dc2626;
+      --color-destructive-foreground: #ffffff;
+      /* Semantic status tones (docs/05 §2): 5.48:1, 6.59:1 and 5.17:1 on their foregrounds. */
+      --color-success: #047857;
       --color-success-foreground: #ffffff;
       --color-warning: #d97706;
       --color-warning-foreground: #000000;
       --color-info: #2563eb;
       --color-info-foreground: #ffffff;
-      --color-border: hsl(0 0% 89.8%);
-      --color-input: hsl(0 0% 89.8%);
-      --color-ring: hsl(0 0% 63%);
+      --color-border: #e2e8f0;
+      --color-input: #e2e8f0;
+      --color-ring: #2563eb;
     }
 
     @variant dark {
-      --color-background: hsl(0 0% 3.9%);
-      --color-foreground: hsl(0 0% 98%);
-      --color-card: hsl(0 0% 3.9%);
-      --color-card-foreground: hsl(0 0% 98%);
-      --color-popover: hsl(0 0% 3.9%);
-      --color-popover-foreground: hsl(0 0% 98%);
-      --color-primary: #3a92af;
+      /* The web app's dark base (web-app/src/styles.css .dark): cards lift off the background. */
+      --color-background: #0e1219;
+      --color-foreground: #f0f4fa;
+      --color-card: #181c23;
+      --color-card-foreground: #f0f4fa;
+      --color-popover: #181c23;
+      --color-popover-foreground: #f0f4fa;
+      /* deriveBrandPalette('#2563eb').dark — what a clinic on the default web brand gets (5.9:1 with black). */
+      --color-primary: #3f7dff;
       --color-primary-foreground: #000000;
-      --color-secondary: hsl(0 0% 14.9%);
-      --color-secondary-foreground: hsl(0 0% 98%);
-      --color-muted: hsl(0 0% 14.9%);
-      --color-muted-foreground: hsl(0 0% 63.9%);
-      --color-accent: hsl(0 0% 14.9%);
-      --color-accent-foreground: hsl(0 0% 98%);
-      --color-destructive: hsl(0 70.9% 59.4%);
-      --color-destructive-foreground: hsl(0 0% 98%);
-      /* Lifted for the dark background (docs/05 §2): 12.05:1, 14.56:1 and 8.26:1. */
-      --color-success: #4ade80;
+      --color-secondary: #272b34;
+      --color-secondary-foreground: #f0f4fa;
+      --color-muted: #181c23;
+      --color-muted-foreground: #a0a3a9;
+      --color-accent: #20242c;
+      --color-accent-foreground: #f0f4fa;
+      /* 7.59:1 with black. */
+      --color-destructive: #f87171;
+      --color-destructive-foreground: #000000;
+      /* Lifted for the dark background (docs/05 §2): 10.92:1, 14.56:1 and 8.26:1. */
+      --color-success: #34d399;
       --color-success-foreground: #000000;
       --color-warning: #fcd34d;
       --color-warning-foreground: #000000;
       --color-info: #60a5fa;
       --color-info-foreground: #000000;
-      --color-border: hsl(0 0% 14.9%);
-      --color-input: hsl(0 0% 14.9%);
-      --color-ring: hsl(300 0% 45%);
+      --color-border: #2a2e36;
+      --color-input: #2a2e36;
+      --color-ring: #3f7dff;
     }
   }
 }

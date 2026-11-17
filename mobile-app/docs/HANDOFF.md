@@ -3410,3 +3410,27 @@ Branch: claude/audit-fix-staff-mobile
 - Patient side of L17 (patient forced sign-out analytics) is not touched here (src/patient is not mine).
 
 Verification: tsc only the known global.css message; eslint 0 errors; lint:fences ok (10 fixtures); jest foreground chunks green: staff queue 19, staff features 22 + 38 suites, core 37.
+## UI-01 - UI/UX review + welcome page - 2026-11-17
+Status: review. Branch `claude/ui-ux-review-e800d7` (from `mobile/develop` @ 0546a54e). Not merged, not pushed.
+
+### What was done
+- **Review** `docs/reviews/UI-UX-2026-11/report.md`: web → mobile design-system mapping, P1/P2/P3 per screen (staff + patient + shell).
+- **Tokens** (`src/global.css`, `core/theme/platform-tokens.ts`): neutrals = the web's slate palette (light + the web's dark base, so dark cards lift off the background); platform primary = MedTrackr blue `#2563eb` (dark `#3f7dff` = `deriveBrandPalette('#2563eb').dark`), was teal `#0e7490`; ring = primary; destructive `#dc2626` / dark `#f87171`+black (AA; tested now), success `#047857` / dark `#34d399`. The staff clinic brand still overrides primary at runtime.
+- **RNR patches** (new `src/core/ui/PATCHES.md`, also records the existing M4-01 Urdu-font patch): `h2` without the bottom border; Button `default`/`icon` 44 pt, `lg` 48 pt.
+- **Text scale**: `--text-xs` added (staff 12, patient 14) — badges/captions are no longer 12 pt for patients.
+- **Kit**: EmptyState/ErrorState use the web's tinted `rounded-2xl` tile (ErrorState retry gets an icon); `SectionHeader inset={false}` for padded containers; `BrandMark` + `PRODUCT_NAME` (`core/components/brand`); `env.webUrl` (`EXPO_PUBLIC_WEB_URL`, dev = `<host>:3000`, release without it = `null` → links hidden).
+- **Welcome page** (`shell/WelcomePage.tsx`): M mark + MedTrackr wordmark (A-25 brand moment), value line, two choice cards ("I'm a patient or family member" / "I work at a clinic"), English/اردو toggle (sets `patient.language`; page is English until Urdu is picked, never the phone language; staff choice always English), Privacy/Terms → web `/privacy` `/terms` in the in-app browser, ScrollView + safe-area offsets, 44 pt, labels/hints. Routing unchanged (`EntryRedirect`). Test `WelcomePage.test.tsx`.
+- **Screen P1s**: staff + patient Today double gutter removed; AlertStrip "⚠" → icon, `rounded-xl`; patient tab bar declares Family (was shown with its raw route name), icons 24.
+
+### Open (proposed UI-02, details in the report)
+P1-11 patient Home placeholder → Today first + More screen; P1-12 offline banner English in patient space; P1-13 Walk-in header inside scroll; P1-14/15 DoseRow time width, Reminders/Battery padding + RTL chevron (in `medications/**`, left to the audit-fix session).
+
+### Needs the team lead / user
+- `eas.json`: add `EXPO_PUBLIC_WEB_URL` (web origin) to preview/production env, or the welcome Privacy/Terms links stay hidden in release builds.
+- Device check: welcome in light/dark, Urdu toggle with Nastaliq, 1.5× font; new slate palette across a few screens.
+
+### Install commands for the user
+none
+
+### Verification
+tsc clean (after `CI=1 npx expo start --offline`) · eslint 0 errors (5 old warnings) · lint:fences ok · jest foreground per folder, all green: core/components 11, core/i18n 3, core/theme 5, shell 5 (needs `--forceExit`), staff today 3 + patients 13, patient today 3 + navigation 1.

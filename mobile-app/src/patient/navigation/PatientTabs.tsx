@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router/js-tabs';
-import { CalendarCheck, FileText, House } from 'lucide-react-native';
+import { CalendarCheck, FileText, House, Users } from 'lucide-react-native';
 import { useCSSVariable } from 'uniwind';
 
 import { useT } from '@/core/i18n';
@@ -10,8 +10,9 @@ function useTokenColor(name: string): string | undefined {
 }
 
 /**
- * The patient bottom tabs (docs/02 §4). Minimal for now: Home + Records. The
- * Family / More tabs join with M2-10 and later cards.
+ * The patient bottom tabs (docs/02 §4): Home, Today, Records, Family. Every
+ * route file under `(tabs)/` must be declared here, or Expo Router shows it
+ * with its raw file name and a fallback icon. Home → More is UI-02.
  */
 export function PatientTabs() {
   const { t } = useT();
@@ -32,7 +33,7 @@ export function PatientTabs() {
         name="index"
         options={{
           title: t('records.homeTab'),
-          tabBarIcon: ({ color }) => <House size={26} color={color} />,
+          tabBarIcon: ({ color }) => <House size={24} color={color} />,
           tabBarAccessibilityLabel: t('records.homeTab'),
         }}
       />
@@ -40,7 +41,7 @@ export function PatientTabs() {
         name="today"
         options={{
           title: t('today.title'),
-          tabBarIcon: ({ color }) => <CalendarCheck size={26} color={color} />,
+          tabBarIcon: ({ color }) => <CalendarCheck size={24} color={color} />,
           tabBarAccessibilityLabel: t('today.title'),
         }}
       />
@@ -48,8 +49,16 @@ export function PatientTabs() {
         name="records"
         options={{
           title: t('records.tab'),
-          tabBarIcon: ({ color }) => <FileText size={26} color={color} />,
+          tabBarIcon: ({ color }) => <FileText size={24} color={color} />,
           tabBarAccessibilityLabel: t('records.tab'),
+        }}
+      />
+      <Tabs.Screen
+        name="family"
+        options={{
+          title: t('family.title'),
+          tabBarIcon: ({ color }) => <Users size={24} color={color} />,
+          tabBarAccessibilityLabel: t('family.title'),
         }}
       />
     </Tabs>

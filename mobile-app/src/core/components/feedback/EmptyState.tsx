@@ -21,19 +21,20 @@ interface EmptyStateProps {
 export function EmptyState({ icon = Inbox, title, description, actionLabel, onAction, className }: EmptyStateProps) {
   return (
     <View className={cn('items-center gap-3 px-6 py-16', className)}>
-      <View className="bg-muted size-14 items-center justify-center rounded-full">
-        <Icon as={icon} className="text-muted-foreground size-6" />
+      {/* Tinted tile like the web EmptyState (bg-primary-soft, rounded-2xl). */}
+      <View className="bg-primary/10 mb-1 size-14 items-center justify-center rounded-2xl">
+        <Icon as={icon} className="text-primary size-7" />
       </View>
-      <Text variant="large" className="text-center">
+      <Text variant="large" accessibilityRole="header" className="text-center">
         {title}
       </Text>
       {description ? (
-        <Text variant="muted" className="text-center">
+        <Text variant="muted" className="max-w-sm text-center">
           {description}
         </Text>
       ) : null}
       {actionLabel && onAction ? (
-        <Button onPress={onAction}>
+        <Button className="mt-2" onPress={onAction}>
           <Text>{actionLabel}</Text>
         </Button>
       ) : null}

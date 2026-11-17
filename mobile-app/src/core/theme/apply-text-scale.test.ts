@@ -17,6 +17,7 @@ describe('applyTextScale', () => {
       '--text-lg': 17,
       '--text-base': 15,
       '--text-sm': 13,
+      '--text-xs': 12,
     });
     expect(TEXT_SCALE_SIZES.patient).toEqual({
       '--text-4xl': 30,
@@ -25,6 +26,7 @@ describe('applyTextScale', () => {
       '--text-lg': 18,
       '--text-base': 17,
       '--text-sm': 15,
+      '--text-xs': 14,
     });
   });
 
