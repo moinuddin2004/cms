@@ -17,6 +17,8 @@ import {
   assertPatientSecret,
   PATIENT_ACCESS_SECRET,
   PATIENT_CODE_PEPPER,
+  PATIENT_LIMITS,
+  readPatientLimits,
   resolveCodePepper,
 } from './patient-config';
 import { PatientSessionService } from './patient-session.service';
@@ -57,6 +59,7 @@ import { PatientJwtStrategy } from './strategies/patient-jwt.strategy';
       useFactory: (config: ConfigService, secret: string) =>
         resolveCodePepper(config, secret),
     },
+    { provide: PATIENT_LIMITS, useFactory: () => readPatientLimits() },
     LoginCodeService,
     PatientSessionService,
     PatientSessionEvents,

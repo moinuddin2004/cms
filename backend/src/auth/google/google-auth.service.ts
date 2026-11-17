@@ -162,7 +162,10 @@ export class GoogleAuthService {
     state: string,
     req: Request,
   ): Promise<DesktopHandoffResult> {
-    const g = await this.identity.verify(credential);
+    const g = await this.identity.verify(
+      credential,
+      this.identity.clientAudiences,
+    );
     const resolved = await this.resolveUser(g, req);
 
     if (resolved.kind === 'link_required') {
@@ -244,7 +247,10 @@ export class GoogleAuthService {
     req: Request,
     res: Response,
   ): Promise<LoginResponse> {
-    const g = await this.identity.verify(dto.credential);
+    const g = await this.identity.verify(
+      dto.credential,
+      this.identity.clientAudiences,
+    );
     await this.assertNoAccount(g);
 
     const user = await this.createGoogleUser(g);
@@ -277,7 +283,10 @@ export class GoogleAuthService {
     req: Request,
     res: Response,
   ): Promise<LoginResponse> {
-    const g = await this.identity.verify(dto.credential);
+    const g = await this.identity.verify(
+      dto.credential,
+      this.identity.clientAudiences,
+    );
     let organizationId: string;
     if (dto.inviteToken) {
       const invite = await this.clinicAccess.activeInvite(dto.inviteToken);
@@ -367,7 +376,10 @@ export class GoogleAuthService {
         'Super admin accounts sign in with email and password only.',
       );
     }
-    const g = await this.identity.verify(credential);
+    const g = await this.identity.verify(
+      credential,
+      this.identity.clientAudiences,
+    );
 
     const bySub = await this.links().findOneBy({
       provider: ProviderEnum.GOOGLE,

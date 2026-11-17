@@ -160,6 +160,8 @@ describe('PatientAccountService.deleteAccount', () => {
         sqls.push({ sql, params });
         if (sql.includes('FROM patient_accounts')) return accountRow;
         if (sql.includes('FROM patient_record_links')) return [LINK];
+        if (sql.includes('SELECT id FROM patient_profiles'))
+          return [{ id: CHILD }];
         return [];
       }),
     };
@@ -203,6 +205,16 @@ describe('PatientAccountService.deleteAccount', () => {
     expect(
       all.some((s) => s.includes('DELETE FROM patient_record_links')),
     ).toBe(false);
+    // reminders + dose history go with the profiles (audit H2; dose events cascade from schedules)
+    const sched = sqls.find((q) =>
+      q.sql.includes(
+        'DELETE FROM medication_schedules WHERE profile_id = ANY($1)',
+      ),
+    );
+    expect(sched?.params).toEqual([[CHILD]]);
+    expect(at('DELETE FROM medication_schedules')).toBeLessThan(
+      at('UPDATE patient_profiles'),
+    );
     expect(at('DELETE FROM patient_account_identities')).toBeGreaterThan(-1);
     expect(at('DELETE FROM patient_login_codes')).toBeGreaterThan(-1);
     const sessions = all[at('UPDATE patient_sessions')];
@@ -291,6 +303,11 @@ describe('PatientProfilesService transactions (A-22)', () => {
     expect(update).toContain('deleted_at = now()');
     expect(update).toContain('dob = NULL');
     expect(update).toContain('gender = NULL');
-    expect(sqls.some((s) => s.includes('DELETE FROM'))).toBe(false);
+    // the only DELETE is the person's reminders + dose history (audit H2)
+    const deletes = sqls.filter((s) => s.includes('DELETE FROM'));
+    expect(deletes).toHaveLength(1);
+    expect(deletes[0]).toContain(
+      'DELETE FROM medication_schedules WHERE profile_id = ANY($1)',
+    );
   });
 });

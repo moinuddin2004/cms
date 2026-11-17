@@ -108,4 +108,68 @@ describe('PatientSessionService', () => {
     await svc.revokeByToken(`${s.session.id}:wrong`);
     expect(repo.rows.get(s.session.id)!.revokedAt).toBeNull();
   });
+
+  it('M9: a logout nulls the IP and device label', async () => {
+    const s = await svc.create(ACCOUNT, {
+      ip: '1.2.3.4',
+      deviceLabel: 'Pixel',
+    });
+    await svc.revokeByToken(s.refreshToken);
+    const row = repo.rows.get(s.session.id)!;
+    expect(row.revokedAt).toBeInstanceOf(Date);
+    expect(row.ip).toBeNull();
+    expect(row.deviceLabel).toBeNull();
+  });
+
+  it('M9: reuse detection also nulls IP and device label', async () => {
+    const first = await svc.create(ACCOUNT, {
+      ip: '1.2.3.4',
+      deviceLabel: 'Pixel',
+    });
+    await svc.rotate(first.refreshToken);
+    await expectInvalid(svc.rotate(first.refreshToken));
+    const row = repo.rows.get(first.session.id)!;
+    expect(row.ip).toBeNull();
+    expect(row.deviceLabel).toBeNull();
+  });
+
+  it('L6: rotation never extends a session past 180 days from creation', async () => {
+    const s = await svc.create(ACCOUNT);
+    const row = repo.rows.get(s.session.id)!;
+    row.createdAt = new Date(Date.now() - 170 * 86_400_000);
+    const rotated = await svc.rotate(s.refreshToken);
+    const days =
+      (rotated.session.expiresAt.getTime() - row.createdAt.getTime()) /
+      86_400_000;
+    expect(days).toBeLessThanOrEqual(180.01);
+    expect(days).toBeGreaterThan(179);
+  });
+
+  it('L6: a session past its absolute lifetime cannot be rotated', async () => {
+    const s = await svc.create(ACCOUNT);
+    repo.rows.get(s.session.id)!.createdAt = new Date(
+      Date.now() - 181 * 86_400_000,
+    );
+    await expectInvalid(svc.rotate(s.refreshToken));
+  });
+
+  it('L5: losing the compare-and-swap to a holder of the same token revokes the session', async () => {
+    const s = await svc.create(ACCOUNT, { ip: '1.2.3.4' });
+    const row = repo.rows.get(s.session.id)!;
+    const realUpdate = repo.update.bind(repo);
+    let first = true;
+    repo.update = async (crit: never, patch: never) => {
+      if (first) {
+        // someone else rotated between our read and our write
+        first = false;
+        row.previousTokenHash = row.refreshTokenHash;
+        row.refreshTokenHash = 'f'.repeat(64);
+        return { affected: 0 };
+      }
+      return realUpdate(crit, patch);
+    };
+    await expectInvalid(svc.rotate(s.refreshToken));
+    expect(row.revokedAt).toBeInstanceOf(Date);
+    expect(row.ip).toBeNull();
+  });
 });

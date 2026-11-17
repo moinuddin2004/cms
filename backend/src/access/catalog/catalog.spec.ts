@@ -97,8 +97,10 @@ describe('permission catalog', () => {
     ]);
   });
 
-  it('maps both patient-app permissions to the patient_app feature', () => {
-    expect(PERMISSIONS['patients.app_link.manage'].feature).toBe('patient_app');
+  it('maps the patient-app request permission to patient_app; link management stays available without it (audit M3)', () => {
+    expect(PERMISSIONS['patients.app_link.manage'].feature).not.toBe(
+      'patient_app',
+    );
     expect(PERMISSIONS['appointments.requests.manage'].feature).toBe(
       'patient_app',
     );

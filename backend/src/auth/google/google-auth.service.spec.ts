@@ -11,7 +11,9 @@ const identityClaims = {
   hd: 'clinic.test',
 };
 
-function harness(opts: { linkedUserId?: string; clientId?: string | null } = {}) {
+function harness(
+  opts: { linkedUserId?: string; clientId?: string | null } = {},
+) {
   const user = {
     uuid: 'user-1',
     email: identityClaims.email,
@@ -111,5 +113,32 @@ describe('GoogleAuthService.signIn (staff, web + native)', () => {
     expect(result.outcome).toBe('no_account');
     expect(h.gate.joinableClinics).toHaveBeenCalledWith('clinic.test');
     expect(h.authService.issueLogin).not.toHaveBeenCalled();
+  });
+});
+
+describe('GoogleAuthService — every flow accepts native client ids (audit L11)', () => {
+  it.each([
+    [
+      'register',
+      (s: GoogleAuthService) =>
+        s.register({ credential: 'tok' } as never, req, res),
+    ],
+    [
+      'requestToJoin',
+      (s: GoogleAuthService) =>
+        s.requestToJoin({ credential: 'tok' } as never, req, res),
+    ],
+    [
+      'createDesktopHandoff',
+      (s: GoogleAuthService) => s.createDesktopHandoff('tok', 'st', req),
+    ],
+  ])('%s verifies against web + Android + iOS', async (_name, call) => {
+    const h = harness({ linkedUserId: 'user-1' });
+    await call(h.service).catch(() => undefined); // only the verify call matters here
+    expect(h.identity.verify).toHaveBeenCalledWith('tok', [
+      'web',
+      'android',
+      'ios',
+    ]);
   });
 });

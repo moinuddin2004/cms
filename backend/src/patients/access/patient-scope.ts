@@ -12,6 +12,7 @@ import { Reflector } from '@nestjs/core';
 import { DataSource } from 'typeorm';
 import type { AccessContext, ScopeColumns } from 'src/access/access-context';
 import { noPermission } from 'src/access/decorators/access.decorators';
+import type { Permission } from 'src/access/catalog/permissions';
 import { Patient } from '../entities/patient.entity';
 
 /**
@@ -41,6 +42,7 @@ export async function isPatientInScope(
   dataSource: DataSource,
   access: AccessContext,
   patientId: string,
+  permission: Permission = 'patients.view',
 ): Promise<boolean> {
   const qb = dataSource
     .getRepository(Patient)
@@ -49,7 +51,7 @@ export async function isPatientInScope(
       patientId,
       organizationId: access.organizationId,
     });
-  access.applyScope(qb, 'patients.view', patientScope('p.id'));
+  access.applyScope(qb, permission, patientScope('p.id'));
   return qb.getExists();
 }
 
@@ -59,6 +61,8 @@ interface PatientScopeOptions {
   /** Where the patient id is: a route param (default) or a query param. */
   from: 'param' | 'query';
   name: string;
+  /** Whose scope applies (default `patients.view`). */
+  permission?: Permission;
 }
 
 /**
@@ -98,7 +102,14 @@ export class PatientScopeGuard implements CanActivate {
     const access = req.access;
     if (!access)
       throw noPermission(['patients.view'], 'No organization selected');
-    if (!(await isPatientInScope(this.dataSource, access, patientId))) {
+    if (
+      !(await isPatientInScope(
+        this.dataSource,
+        access,
+        patientId,
+        opts.permission ?? 'patients.view',
+      ))
+    ) {
       throw new NotFoundException('Patient not found');
     }
     return true;
@@ -114,11 +125,13 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export const PatientInScope = (
   name = 'id',
   from: 'param' | 'query' = 'param',
+  permission?: Permission,
 ) =>
   applyDecorators(
     SetMetadata(PATIENT_SCOPE_KEY, {
       name,
       from,
+      permission,
     } satisfies PatientScopeOptions),
     UseGuards(PatientScopeGuard),
   );

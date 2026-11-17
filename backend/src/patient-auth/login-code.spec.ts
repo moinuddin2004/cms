@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/require-await, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unnecessary-type-assertion */
 import { UnauthorizedException } from '@nestjs/common';
 import { LoginCodeService, MAX_CODE_ATTEMPTS } from './login-code.service';
+import { readPatientLimits } from './patient-config';
 import type { PatientLoginCode } from './entities/patient-login-code.entity';
 
 class FakeCodes {
@@ -22,6 +23,18 @@ class FakeCodes {
       )
       .reverse();
     return rows[0] ?? null;
+  }
+  async count({ where }: { where: { createdAt: { value: Date } } }) {
+    return this.rows.filter((r) => r.createdAt > where.createdAt.value).length;
+  }
+  async sum(
+    _col: string,
+    where: { email: string; createdAt: { value: Date } },
+  ) {
+    const hit = this.rows.filter(
+      (r) => r.email === where.email && r.createdAt > where.createdAt.value,
+    );
+    return hit.length ? hit.reduce((n, r) => n + r.attempts, 0) : null;
   }
   claimZero = false;
   createQueryBuilder() {
@@ -179,5 +192,77 @@ describe('LoginCodeService', () => {
     expect(await codeError(svc.verify('a@b.co', '999999'))).toBe(
       'CODE_INVALID',
     );
+  });
+
+  describe('abuse limits', () => {
+    const limited = (env: Record<string, string>) =>
+      new LoginCodeService(
+        codes as never,
+        mail as never,
+        'pepper',
+        readPatientLimits(env),
+      );
+
+    const oldFailures = (age: number, n: number) => {
+      for (let i = 0; i < n; i++) {
+        codes.rows.push({
+          email: 'a@b.co',
+          attempts: 5,
+          createdAt: new Date(Date.now() - age),
+          expiresAt: new Date(0),
+          usedAt: new Date(),
+        } as PatientLoginCode);
+      }
+    };
+
+    it('M7: refuses further guesses for an email after >20 failures in 24 h, right code included', async () => {
+      const s = limited({});
+      await s.start('a@b.co');
+      const code = sentCode();
+      oldFailures(60_000, 5); // 25 failed attempts spread over earlier codes
+      expect(await codeError(s.verify('a@b.co', code))).toBe('CODE_INVALID');
+      expect(codes.rows[0].usedAt).toBeNull(); // refused before touching the code
+      await s.start('c@d.co');
+      expect(await codeError(s.verify('c@d.co', sentCode()))).toBe('OK'); // another email unaffected
+    });
+
+    it('M7: failures older than 24 h do not count', async () => {
+      const s = limited({});
+      await s.start('a@b.co');
+      const code = sentCode();
+      oldFailures(25 * 3600_000, 6);
+      expect(await codeError(s.verify('a@b.co', code))).toBe('OK');
+    });
+
+    it('M8: the platform-wide hourly cap stops sending (no row, no email)', async () => {
+      const s = limited({ PATIENT_LOGIN_CODES_PER_HOUR: '2' });
+      await s.start('a@b.co', '1.1.1.1');
+      await s.start('b@b.co', '1.1.1.2');
+      await s.start('c@b.co', '1.1.1.3');
+      expect(mail.sendLoginCode).toHaveBeenCalledTimes(2);
+      expect(codes.rows).toHaveLength(2);
+    });
+
+    it('M8: the daily cap stops sending', async () => {
+      const s = limited({ PATIENT_LOGIN_CODES_PER_DAY: '1' });
+      await s.start('a@b.co');
+      await s.start('b@b.co');
+      expect(mail.sendLoginCode).toHaveBeenCalledTimes(1);
+    });
+
+    it('M8: one IP is limited per day, others are not', async () => {
+      const s = limited({ PATIENT_LOGIN_CODES_PER_IP_PER_DAY: '2' });
+      await s.start('a@b.co', '9.9.9.9');
+      await s.start('b@b.co', '9.9.9.9');
+      await s.start('c@b.co', '9.9.9.9');
+      await s.start('d@b.co', '8.8.8.8');
+      expect(
+        (mail.sendLoginCode.mock.calls as string[][]).map((c) => c[0]),
+      ).toEqual([
+        'a@b.co',
+        'b@b.co',
+        'd@b.co',
+      ]);
+    });
   });
 });

@@ -37,8 +37,8 @@ export class PatientAuthController {
     perAccountField: 'email',
     perAccountMax: 5,
   })
-  async start(@Body() dto: StartEmailDto) {
-    await this.auth.startEmail(dto.email);
+  async start(@Body() dto: StartEmailDto, @Req() req: Request) {
+    await this.auth.startEmail(dto.email, req.ip ?? null);
     return ResponseWrapper.success({ sent: true }, 'Code sent');
   }
 
@@ -49,7 +49,7 @@ export class PatientAuthController {
     maxAttempts: 30,
     windowSeconds: WINDOW_15_MIN,
     perAccountField: 'email',
-    perAccountMax: 10,
+    perAccountMax: 5,
   })
   async verify(
     @Body() dto: VerifyEmailDto,

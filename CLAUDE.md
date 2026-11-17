@@ -358,6 +358,12 @@ Plain PostgreSQL 13+ (Neon in dev only; `DATABASE_SSL` = `true`/`verify`/`false`
 | `DATABASE_URL` | PostgreSQL connection string |
 | `DATABASE_SSL` | `true` (default, SSL unverified — Neon/managed) · `verify` · `false` (local Postgres) |
 | `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` | JWT signing |
+| `JWT_PATIENT_ACCESS_SECRET` | **Required at boot, every process role.** Signs patient-space access tokens: at least 32 characters and different from `JWT_ACCESS_SECRET`, or the API refuses to start |
+| `PATIENT_CODE_PEPPER` | Optional pepper for stored login-code hashes (default: derived from the patient secret) |
+| `PATIENT_LOGIN_CODES_PER_HOUR` / `_PER_DAY` / `_PER_IP_PER_DAY` | Caps on patient login-code emails: whole platform per hour (default 100) and per day (400), and per IP per 24 h (30, in memory). Over a cap the API still answers `{ sent: true }` but sends nothing |
+| `PATIENT_FAILED_VERIFY_PER_24H` | Failed code guesses per email in 24 h before sign-in is refused (default 20) |
+| `PATIENT_SESSION_MAX_DAYS` | Absolute patient session lifetime from creation (default 180) |
+| `PATIENT_SESSION_RETENTION_MONTHS` / `PRODUCT_EVENT_RETENTION_DAYS` / `PATIENT_LOGIN_CODE_RETENTION_DAYS` | Daily retention job (worker / `all` only): ended patient sessions (default 6 months), product events (400 days), expired login codes (2 days). `0` = keep forever |
 | `REDIS_URL` | Pub/sub between split `api`/`worker` processes. Unset = single `all` process, no Redis (`start:dev`, `start:prod`) |
 | `CLOUDINARY_*` | File uploads |
 | `GOOGLE_CLIENT_ID` | Google sign-in (ID token verify). Unset = Google button hidden |
