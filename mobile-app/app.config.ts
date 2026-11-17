@@ -14,17 +14,17 @@ import type { ConfigContext, ExpoConfig } from 'expo/config';
  */
 const VARIANTS = {
   development: {
-    name: 'Clinic (Dev)',
+    name: 'MedTrackr (Dev)',
     idSuffix: '.dev',
     scheme: 'clinicapp-dev',
   },
   preview: {
-    name: 'Clinic (Preview)',
+    name: 'MedTrackr (Preview)',
     idSuffix: '.preview',
     scheme: 'clinicapp-preview',
   },
   production: {
-    name: 'Clinic',
+    name: 'MedTrackr',
     idSuffix: '',
     scheme: 'clinicapp',
   },
@@ -62,13 +62,15 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   scheme: variant.scheme,
   userInterfaceStyle: 'automatic',
   ios: {
-    icon: './assets/expo.icon',
+    icon: './assets/images/icon.png',
     bundleIdentifier: applicationId,
   },
   android: {
     package: applicationId,
     adaptiveIcon: {
-      backgroundColor: '#E6F4FE',
+      // Brand mark from the web app (web-app/public/favicon.svg); regenerate the PNGs with
+      // `python mobile-app/scripts/make-brand-assets.py`.
+      backgroundColor: '#2563EB',
       foregroundImage: './assets/images/android-icon-foreground.png',
       backgroundImage: './assets/images/android-icon-background.png',
       monochromeImage: './assets/images/android-icon-monochrome.png',
@@ -83,9 +85,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     [
       'expo-splash-screen',
       {
-        backgroundColor: '#208AEF',
+        backgroundColor: '#FFFFFF',
         image: './assets/images/splash-icon.png',
-        imageWidth: 76,
+        imageWidth: 120,
+        dark: { backgroundColor: '#0F172A', image: './assets/images/splash-icon.png' },
       },
     ],
     'expo-secure-store',
@@ -94,10 +97,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     [
       'expo-notifications',
       {
-        // Android status-bar icon: Android wants a white-on-transparent glyph, so this is a
-        // placeholder until the brand icon exists (the platform colour keeps it recognisable).
+        // Android status-bar icon: the white brand "M" on transparent, tinted with the brand blue.
         icon: './assets/images/android-icon-monochrome.png',
-        color: '#208AEF',
+        color: '#2563EB',
       },
     ],
     // Native Google sign-in (A-20). Android needs no plugin options; iOS needs the reversed

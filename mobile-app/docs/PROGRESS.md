@@ -83,7 +83,8 @@
 | M4-05 | Release hardening (A-24 error-reporting seam, perf budgets, patient gate QA) | MOB | M | M4-01 | done | Sonnet session | 2026-11-15 | rework-1 |
 | M4-03 | Demo clinic seed + demo accounts | BE | S | — | done | Sonnet session + team lead | 2026-11-17 | rework-1; seed never run on a DB |
 | M4-04 | Privacy policy, terms, Data safety, deletion page | ALL | M | — | done | Sonnet session + team lead | 2026-11-17 | rework-1; DRAFT for owner/lawyer |
-| M4-02, M4-06 | Store assets; require `aud` | — | — | see 10 | spec | | | M4-02 needs name + logo; M4-06 one release after launch |
+| M4-02 | Store assets: icon, adaptive/monochrome icons, splash (A-25 MedTrackr) | MOB | S | — | done (icons + splash); screenshots need a device | team lead | 2026-11-17 | |
+| M4-06 | Require `aud` on staff tokens | BE | S | — | spec | | | one release after launch |
 
 ## Gates
 
