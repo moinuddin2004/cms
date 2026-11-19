@@ -43,15 +43,19 @@ A multi-tenant SaaS for single- and multi-location clinics: dental, skin, genera
 
 <table>
 <tr>
-<td width="33%" valign="top">
+<td width="25%" valign="top">
 <h4>Clinic staff</h4>
-Front desk, doctors, assistants and accountants each get a workspace shaped by their role, on the web and on mobile.
+Front desk, doctors, assistants and accountants each get a workspace shaped by their role, on the web, on the desktop shell and on mobile.
 </td>
-<td width="33%" valign="top">
+<td width="25%" valign="top">
+<h4>Patients</h4>
+A separate patient space in the mobile app: sign in with an email code or Google, link to a clinic's patient record, and see appointments and the live queue.
+</td>
+<td width="25%" valign="top">
 <h4>Clinic owners</h4>
 Build roles, switch modules on or off per location, arrange the sidebar, brand the app, invite staff with a link and set notification rules.
 </td>
-<td width="33%" valign="top">
+<td width="25%" valign="top">
 <h4>Platform admin</h4>
 Approves new clinics, entitles features (with optional trials), manages subscriptions and can step into any clinic.
 </td>
@@ -62,12 +66,12 @@ Approves new clinics, entitles features (with optional trials), manages subscrip
 <tr>
 <td align="center" width="25%"><h2>37</h2>reports with Excel / PDF</td>
 <td align="center" width="25%"><h2>15+</h2>parts of the patient record</td>
-<td align="center" width="25%"><h2>156</h2>database tables</td>
+<td align="center" width="25%"><h2>170+</h2>database tables</td>
 <td align="center" width="25%"><h2>166</h2>access acceptance cases</td>
 </tr>
 </table>
 
-> **About the name:** *MedTrackr* (codename *DentalFlow*) is a working name. The final product name is not decided yet.
+> **About the name:** *MedTrackr* (codename *DentalFlow*) is a working name; the mobile app ships as MedTrackr. The final product name is not decided yet.
 
 <br />
 
@@ -143,6 +147,27 @@ Approves new clinics, entitles features (with optional trials), manages subscrip
 <tr>
 <td valign="top">
 
+<h3>Mobile app (MedTrackr)</h3>
+
+- One Expo app with two isolated spaces: **staff** and **patient**
+- Staff: the same access rules as the web, push notifications, offline cache, realtime queue
+- Patient: email-code or Google sign-in, claim links from the clinic, appointments, queue status, medication reminders
+- Minimum-version gate, device registration and push (Expo)
+
+</td>
+<td valign="top">
+
+<h3>Desktop shell</h3>
+
+- A Tauri v2 wrapper around the web app bundle, no desktop-specific UI code
+- Session kept in the app data folder; Google sign-in through the system browser
+- See [`desktop-app/README.md`](desktop-app/README.md)
+
+</td>
+</tr>
+<tr>
+<td valign="top">
+
 <h3>Customization</h3>
 
 - Clinic **theme**: logo, brand colour, sidebar style
@@ -191,20 +216,22 @@ Approves new clinics, entitles features (with optional trials), manages subscrip
 
 ## Architecture
 
-The repository holds four apps that share one API.
+The repository holds five apps; four of them talk to one API.
 
 | App | Folder | Built with |
 | --- | --- | --- |
 | **API** | [`backend/`](backend) | NestJS 11, TypeORM, PostgreSQL, Socket.IO |
 | **Web app** | [`web-app/`](web-app) | React 19, TanStack Start / Router / Query / Form / Table, shadcn/ui, Tailwind 4, Zustand |
-| **Mobile app** | [`mobile-app/`](mobile-app) | Expo 58, Expo Router, TanStack Query + Form, Uniwind |
+| **Mobile app** | [`mobile-app/`](mobile-app) | Expo 58, Expo Router, TanStack Query + Form, Uniwind (staff + patient spaces) |
+| **Desktop shell** | [`desktop-app/`](desktop-app) | Tauri v2 around the web app |
 | **Landing site** | [`landing/`](landing) | Astro, Tailwind 4 |
 
 ```mermaid
 flowchart LR
     subgraph Clients
         WEB["Web app"]
-        MOB["Mobile app"]
+        MOB["Mobile app<br/>staff + patient"]
+        DESK["Desktop shell"]
     end
 
     subgraph API["NestJS API"]
@@ -219,13 +246,17 @@ flowchart LR
     SMTP["SMTP"]
 
     WEB -- "HTTPS + org / location headers" --> GUARDS
+    DESK --> GUARDS
     MOB --> GUARDS
+    MOB -- "patient token" --> PATIENT["Patient API<br/>/patient-api · /patient-auth"]
+    PATIENT --> MODS
     GUARDS --> MODS
     MODS --> DB
     MODS --> FILES
     WORK --> DB
     WORK --> SMTP
     GW -- "live events" --> WEB
+    GW -- "live events" --> MOB
 ```
 
 <table>
@@ -284,7 +315,7 @@ Code never checks a role name; it asks `can('billing.invoice.void')`. Full guide
 
 ## Getting started
 
-**You need:** Node.js 22 and PostgreSQL 13+. Optional: an SMTP login (email), a Cloudinary account (uploads) and a Google OAuth client id (Google sign-in). Redis is not needed for local work.
+**You need:** Node.js 22 and PostgreSQL 13+. Optional: an SMTP login (email), a Cloudinary account (uploads), a Google OAuth client id (Google sign-in), Rust (desktop shell) and Expo Go or a development build (mobile app). Redis is not needed for local work.
 
 ### 1 · Install
 
@@ -301,6 +332,8 @@ cd backend && npm install
 ```bash
 cd web-app && npm install
 ```
+
+The mobile app, desktop shell and landing site have their own `npm install` in their folders when you want to run them.
 
 ### 2 · Create the database
 
@@ -327,18 +360,25 @@ cd backend && cp .env.example .env
 | --- | :---: | --- |
 | `DATABASE_URL` | ✓ | PostgreSQL connection string |
 | `DATABASE_SSL` | | `true` (default) · `verify` · `false` for local Postgres |
-| `JWT_ACCESS_SECRET` · `JWT_REFRESH_SECRET` | ✓ | Token signing |
-| `EMAIL_TOKEN_SECRET` · `RESET_TOKEN_SECRET` | ✓ | Email verification and password reset links |
+| `JWT_ACCESS_SECRET` | ✓ | Signs staff access tokens (refresh tokens are opaque, stored hashed) |
+| `JWT_PATIENT_ACCESS_SECRET` | ✓ | Signs patient-space tokens (32+ characters, different from `JWT_ACCESS_SECRET`); the API refuses to start without it |
 | `PORT` | | API port, default `5000` |
-| `FRONTEND_URL` | | Web app address for email links and CORS, default `http://localhost:3000` |
+| `FRONTEND_URL` | | Web app address for email links, default `http://localhost:3000` |
+| `CORS_ORIGIN` | | Allowed browser origins (comma separated), default `http://localhost:3000`; desktop shell origins are always allowed |
 | `GOOGLE_CLIENT_ID` | | Google sign-in; unset hides the button |
-| `SMTP_HOST` · `SMTP_PORT` · `SMTP_SECURE` · `SMTP_USER` · `SMTP_PASS` · `SMTP_FROM` | | Any SMTP. Only user + pass means Gmail app password. Unset means emails are only logged |
+| `GOOGLE_ANDROID_CLIENT_ID` · `GOOGLE_IOS_CLIENT_ID` | | Extra client ids accepted by patient Google sign-in |
+| `PATIENT_LOGIN_CODES_PER_HOUR` · `_PER_DAY` · `_PER_IP_PER_DAY` · `PATIENT_FAILED_VERIFY_PER_24H` · `PATIENT_SESSION_MAX_DAYS` · `PATIENT_CODE_PEPPER` | | Patient sign-in caps, session lifetime and code-hash pepper (defaults in [`CLAUDE.md`](CLAUDE.md)) |
+| `PATIENT_SESSION_RETENTION_MONTHS` · `PRODUCT_EVENT_RETENTION_DAYS` · `PATIENT_LOGIN_CODE_RETENTION_DAYS` | | Daily clean-up of old patient sessions, product events and login codes; `0` keeps forever |
+| `MOBILE_MIN_VERSION_ANDROID` · `MOBILE_MIN_VERSION_IOS` · `MOBILE_MIN_VERSION_MESSAGE` | | Oldest allowed mobile build per platform (`0.0.0` = no floor) and an optional message |
+| `EXPO_ACCESS_TOKEN` | | Only if the Expo project requires an access token for push |
+| `TRUST_PROXY` · `RATE_LIMIT_GLOBAL_PER_MINUTE` | | Proxy trust for client IPs and the global rate limit (default 3000/min) |
+| `SMTP_HOST` · `SMTP_PORT` · `SMTP_SECURE` · `SMTP_USER` · `SMTP_PASS` · `SMTP_FROM` · `SMTP_FROM_NAME` | | Any SMTP. Only user + pass means Gmail app password. Unset means emails are only logged |
 | `EMAIL_DAILY_CAP` | | Notification emails per day, default 450, `0` = no cap |
 | `STORAGE_DRIVER` | | File storage provider, default `cloudinary` |
 | `CLOUDINARY_CLOUD_NAME` · `CLOUDINARY_API_KEY` · `CLOUDINARY_API_SECRET` | | Cloudinary uploads |
 | `REDIS_URL` | | Only for split `api` / `worker` processes |
 
-Web app: `VITE_API_BASE_URL` (default `http://localhost:5000`). Mobile app: `EXPO_PUBLIC_API_URL` (see `mobile-app/.env.example`).
+Web app: `VITE_API_BASE_URL` (default `http://localhost:5000`), plus `VITE_APP_SCHEME`, `VITE_PLAY_STORE_URL` and `VITE_APP_STORE_URL` for the patient-app link page (see `web-app/.env.example`). Mobile app: `EXPO_PUBLIC_API_URL` (see `mobile-app/.env.example`; required for release builds).
 
 </details>
 
@@ -348,7 +388,8 @@ Web app: `VITE_API_BASE_URL` (default `http://localhost:5000`). Mobile app: `EXP
 | --- | --- | --- |
 | API | `cd backend && npm run start:dev` | `http://localhost:5000` |
 | Web app | `cd web-app && npm run dev` | `http://localhost:3000` |
-| Mobile app | `cd mobile-app && npx expo start` | Expo Go / emulator |
+| Mobile app | `cd mobile-app && npm run dev` (`npx expo start`) | Expo Go / emulator / dev build |
+| Desktop shell | `cd desktop-app && npm run dev` (Tauri dev; starts the web app) | native window |
 | Landing site | `cd landing && npm run dev` | `http://localhost:4321` |
 | API + web in Docker | `docker compose up --build` | ports 5000 and 3000 |
 
@@ -391,8 +432,9 @@ Before each deploy, back up the database and run any new `backend/database/chang
 | API unit | `cd backend && npm test` | Services, guards, queue engine; fails if any endpoint has no access rule |
 | Web | `cd web-app && npm test` | Components and hooks (Vitest + Testing Library) |
 | Access acceptance | `cd backend && npm run test:int:acceptance` | 166 access cases on a real database |
-| Other DB suites | `npm run test:int:labs` · `test:int:tenancy` · `test:int:access` | Lab, tenant isolation, access core |
-| Mobile | `cd mobile-app && npm run typecheck` | Type check |
+| Other DB suites | `npm run test:int:labs` · `test:int:tenancy` · `test:int:access` · `test:int` | Lab, tenant isolation, access core, general integration |
+| Patient API | `cd backend && npm run test:int:patient` | Patient auth, sessions and patient-space endpoints on a real database |
+| Mobile | `cd mobile-app && npm test` · `npm run lint` · `npm run lint:fences` · `npm run typecheck` | Jest unit tests, lint, staff/patient import fences, types |
 
 Database suites share one test database and each uses its own schema, so run them one at a time. [CI](.github/workflows/ci.yml) type-checks, builds and tests the API and web app on every push to `master` and every pull request.
 
@@ -403,8 +445,9 @@ Database suites share one test database and each uses its own schema, so run the
 ```text
 cms/
 ├── backend/            NestJS API
-│   ├── database/       SQL schema: schema/ for a new DB, changes/ for existing ones
+│   ├── database/       SQL schema: schema/ for a new DB, changes/ for existing ones, seed/ for demo data
 │   ├── scripts/        access:export (permission catalog → web app)
+│   ├── docs/           entity catalog and module notes
 │   ├── test/           integration and acceptance test setup
 │   └── src/            one folder per module (see below) + common/ and bootstrap/
 ├── web-app/            React web app
@@ -413,7 +456,8 @@ cms/
 │       ├── features/   one folder per feature: pages, components, hooks, api, schemas, types
 │       ├── components/ shadcn ui, shared and layout components
 │       └── lib/        api client, dates, money, query client
-├── mobile-app/         Expo app for clinic staff
+├── mobile-app/         Expo app: staff space + patient space (docs in mobile-app/docs/)
+├── desktop-app/        Tauri desktop shell around the web app
 ├── landing/            Astro marketing site
 ├── docs/               guides, ERDs, handbook, screenshots, archive
 ├── docker-compose.yml  API + web app containers
@@ -435,7 +479,9 @@ cms/
 | Front desk | `appointments` · `queue` | Booking, conflict checks, live queue, TV display |
 | Money | `billing` · `reports` | Charges, invoices, payments, commissions, printing, reports |
 | Lab | `labs` · `lab-*` · `engine` | Lab orders, production, portal, billing, workflow templates |
-| Other | `inventory` · `notifications` · `search` | Stock, notifications, quick search |
+| Patient space | `patient-auth` · `patient-app` · `patient-links` · `patient-devices` · `medications` | Patient sign-in (email codes, Google), patient sessions, claim links to clinic records, devices and push, medication reminders, patient-space reads and realtime |
+| Mobile support | `devices` · `app-version` · `product-events` | Staff device and push registration, minimum-version gate, product analytics events |
+| Other | `inventory` · `notifications` · `search` · `lab-access` | Stock, notifications, quick search, lab portal access and magic links |
 | Shared | `common` | Guards, decorators, audit, clock, mail, storage |
 
 </details>
@@ -449,6 +495,9 @@ cms/
 | 📘 | [`docs/README.md`](docs/README.md) | Index of every doc |
 | 🧭 | [`CLAUDE.md`](CLAUDE.md) | Coding conventions: layout, forms, listings, design system, dates, access |
 | 🗄️ | [`backend/database/README.md`](backend/database/README.md) | Creating and changing the schema |
+| 📱 | [`mobile-app/README.md`](mobile-app/README.md) · [`mobile-app/docs/`](mobile-app/docs/README.md) | Mobile app: setup, architecture, rules, task cards, progress |
+| 🖥️ | [`desktop-app/README.md`](desktop-app/README.md) | Desktop shell and Google sign-in on desktop |
+| 🌐 | [`landing/README.md`](landing/README.md) | Marketing site |
 | 🔐 | [`docs/access-control/README.md`](docs/access-control/README.md) | Permissions, roles, features, sidebar, theme |
 | 📅 | [`docs/appointments-and-queue.md`](docs/appointments-and-queue.md) | Booking and the live queue |
 | 🔔 | [`docs/notifications-email-plan.md`](docs/notifications-email-plan.md) | Notifications and email |

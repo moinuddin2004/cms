@@ -1,5 +1,7 @@
 # Access Control & Clinic Customization — Test Cases
 
+> Dated record: as of 2026-10-23 (166 cases). Permissions added later (`patients.app_link.manage`, `appointments.requests.manage`) are not covered here.
+
 Source of truth for the acceptance run of branch `feat/access-control`.
 Design doc: https://claude.ai/artifact/R8tGmo11eqa8Sd5BEvtMoe ("Review ke baad faisle" wins over other sections).
 

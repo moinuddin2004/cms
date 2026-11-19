@@ -1,6 +1,15 @@
 # Dental Lab Module — ERD & End-to-End Flows
 
-Generated from the live TypeORM entities (schema source of truth), cross-checked with
+Status (re-checked against code 2026-11-19): **the lab module is built and merged** — all tables,
+services, portal and clinic screens described below exist. The database is created from the
+hand-written SQL in `backend/database/schema/*.sql` (the app never changes the schema; there are
+no TypeORM migrations or `synchronize`); the entities in `backend/src/lab-*` and `backend/src/labs`
+mirror it. **Not built / planned only:** row-level security (RLS) on lab tables (isolation is by
+`organization_id` / `lab_id` filters in services and guards), DB triggers for frozen item snapshot
+columns (only `status_history` and `commission_entries` have append-only triggers), an OpenAPI
+spec for the lab/portal endpoints, and UAT sign-off. See §11 for the full gap list.
+
+Originally generated from the TypeORM entities, cross-checked with
 [`backend/docs/data-model/ENTITY_CATALOG.md`](../backend/docs/data-model/ENTITY_CATALOG.md),
 [`handbook/src/part4-data-model/ch25-labs.md`](handbook/src/part4-data-model/ch25-labs.md),
 [`handbook/src/part5-modules/ch42-lab-finance.md`](handbook/src/part5-modules/ch42-lab-finance.md) and
@@ -836,8 +845,8 @@ erDiagram
     status_history }o..|| lab_order_items : "entity_type = item"
     status_history }o..|| order_item_stages : "entity_type = stage"
     lab_invoice_lines |o..o{ commission_entries : "source (lab_invoice_line_id)"
-    commission_plans |o..o{ lab_invoice_lines : "snapshot at issue"
-    employee_org_location_assignment |o..o{ lab_invoice_lines : "snapshot at issue"
+    compensation_plans |o..o{ lab_invoice_lines : "snapshot at issue"
+    employee_org_location_assignments |o..o{ lab_invoice_lines : "snapshot at issue"
     commission_entries }o..|| ledger_journals : "commission journal"
     lab_invoices |o..o{ ledger_journals : "source_type = lab invoice"
     lab_payments |o..o{ ledger_journals : "source_type = lab payment"
@@ -858,7 +867,7 @@ erDiagram
         text reason
         uuid actor_user_id
         enum actor_side "clinic | lab | system | platform"
-        enum via "app | portal | magic_link | proxy | qr | system"
+        enum via "app | portal | magic_link | proxy | qr"
         uuid on_behalf_of_lab_id
         jsonb metadata
     }
@@ -879,10 +888,10 @@ erDiagram
         uuid organization_id
         uuid location_id
         date entry_on
-        enum source_type
+        enum source_type "vendor_bill | vendor_payment | expense | invoice | payment | credit_note | refund | commission"
         uuid source_id
         text memo
-        uuid reversed_by_id
+        uuid reversal_of_id "set on the reversing journal; unique"
     }
     ledger_journal_lines {
         uuid id PK
@@ -912,10 +921,10 @@ erDiagram
     vendor_payments {
         uuid id PK
     }
-    commission_plans {
+    compensation_plans {
         uuid id PK
     }
-    employee_org_location_assignment {
+    employee_org_location_assignments {
         uuid id PK
     }
 ```
@@ -1405,13 +1414,15 @@ stateDiagram-v2
   statements are entered line by line (`attachment_id` is unused).
 - **`receive_shipment` magic-link purpose is unused.** The enum value and `magic_links.shipment_id`
   exist for a future shipment link; receiving today uses the QR token on the shipment slip.
-- **Payables are partly API-only.** Manual bill edits and explicit `allocate` of an existing vendor
-  payment have no admin UI yet (the services exist).
-- **Overdue notifications are seeded but not emitted.** The notification catalogue has overdue-order
-  entries; no scheduler reads `lab_expected_on` to send them.
-- **Lab journals are not in reports.** `lab-finance` posts standard journals, but no report screen
-  aggregates lab revenue/payables by lab yet.
-- **Snapshot freeze is app-level.** There are no migration files/triggers for frozen item columns, so
+- ~~Payables are partly API-only.~~ Fixed: bill editing (`EditBillSheet`, `AddBillLineSheet`) and
+  allocating an existing vendor payment (`AllocatePaymentSheet`) now exist in
+  `web-app/src/features/lab-payables`.
+- ~~Overdue notifications are seeded but not emitted.~~ Fixed: `lab-orders/jobs/order-overdue.job.ts`
+  (hourly cron) emits `order.overdue` to the ordering doctor.
+- **Lab journals are only partly in reports.** `lab-finance` posts standard journals. The reports
+  module has a "Lab bills" report (`reports/definitions/cost.reports.ts`) and finance overview reads
+  lab tables, but no report aggregates the `LAB_*` ledger accounts by lab.
+- **Snapshot freeze is app-level.** There is no SQL change script or trigger for frozen item columns, so
   a direct SQL update can bypass it (unlike `status_history`, which has a trigger).
 - **`vendor_bills.lab_order_id` and `statement_id` are plain uuids** (no FK), and `shipments` has no
   FK to `labs`/`organizations`; integrity is maintained by the services, not the database.

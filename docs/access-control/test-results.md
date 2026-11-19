@@ -1,5 +1,7 @@
 # Access Control & Clinic Customization — Acceptance Test Results
 
+> Dated record: as of 2026-10-23; results are not re-run. Paths and commands re-checked 2026-11-19.
+
 Run of `docs/access-control/test-cases.md` on branch `claude/ac-acceptance-ba8839` (based on `feat/access-control` @ 4db1ed4), 2026-10-22/23.
 
 **How it was run**

@@ -7,23 +7,29 @@
 
 ```
 mobile-app/
-├── app.config.ts              # replaces app.json (M0-07): variants, bundle ids, plugins
-├── eas.json                   # build profiles: development · preview · production
+├── app.config.ts              # replaces app.json (M0-07): variants, bundle ids, plugins, EAS project id
+├── eas.json                   # build profiles: development (APK dev client) · preview (APK) · production (AAB)
+├── .easignore                 # EAS upload boundary (docs/, local tooling and secrets stay out)
+├── scripts/                   # check-fences.mjs (lint:fences), make-brand-assets.py (icons + splash PNGs)
 ├── docs/                      # this doc set
 └── src/
     ├── app/                   # Expo Router routes ONLY. A route file imports ONE page/layout and renders it.
     │   ├── _layout.tsx        # renders <RootShell/> from @/shell — nothing else
     │   ├── index.tsx          # <EntryRedirect/> from @/shell
-    │   ├── welcome.tsx        # space picker
+    │   ├── welcome.tsx        # space picker (X-01)
     │   ├── claim/[token].tsx  # deep link: patient claim (always reachable)
+    │   ├── c/[token].tsx      # the clinic web link shape /c/<token> — same claim page
     │   ├── (staff)/           # staff space: its own sign-in, offline, select-location, (main)
-    │   └── (patient)/         # patient space: its own sign-in, offline, (main)
+    │   └── (patient)/         # patient space: its own sign-in, verify-code, name, offline, (main)
     │
     ├── shell/                 # Composition root: the ONLY code allowed to import both spaces.
-    │   ├── RootShell.tsx      # global providers + root Stack (guards by activeSpace only)
+    │   ├── RootShell.tsx      # root Stack (guards by activeSpace only), min-version gate, reminder re-plan
+    │   ├── RootProviders.tsx  # gesture / safe-area / keyboard / theme / toaster / portal
+    │   ├── RootErrorBoundary.tsx  # root ErrorBoundary → core/observability reportError
     │   ├── EntryRedirect.tsx
-    │   ├── WelcomePage.tsx
+    │   ├── WelcomePage.tsx    # X-01: M mark + MedTrackr, two choice cards, English / Urdu toggle, privacy + terms
     │   ├── UpdateRequiredPage.tsx
+    │   ├── min-version.ts     # GET /app/min-version check (fails open)
     │   └── notification-router.ts  # tapped push → space + route
     │
     ├── core/                  # Shared, space-agnostic. Imports NOTHING from staff/patient/shell.
@@ -37,31 +43,34 @@ mobile-app/
     │   ├── network/           # online state hook, OfflineBanner logic
     │   ├── query/             # createQueryClient(), query managers, query helpers
     │   ├── http/              # createApiClient() factory, ApiResponse types, apiErrorMessage, idempotency key
-    │   ├── i18n/              # i18next instance (used by patient space; core components take strings as props)
-    │   ├── space/             # useSpaceStore (activeSpace) — the only cross-space state
-    │   ├── env.ts
-    │   ├── utils.ts           # cn()
+    │   ├── i18n/              # in-house t()/useT() with typed en + ur catalogs, Urdu font hook (A-21; patient space — core components take strings as props)
+    │   ├── space/             # useSpaceStore (activeSpace) — the only cross-space state; switchSpace
+    │   ├── analytics/         # privacy-safe product-event tracker (M2-13, docs/analytics-events.md)
+    │   ├── observability/     # reportError() seam + PHI scrubbers (A-24)
+    │   ├── auth/              # native Google sign-in wrapper (A-20)
+    │   ├── claim/             # claim-token parsing + pending-claim store (memory only)
+    │   ├── env.ts             # apiUrl, webUrl, googleIosClientId
+    │   ├── log.ts  splash.ts  app-version.ts  utils.ts (cn())
     │   └── types/             # ApiResponse<T>, Paginated<T>
     │
     ├── staff/                 # Staff space. Imports core only.
     │   ├── index.ts           # PUBLIC surface for shell only: getStaffStatus(), staff deep-link/push handlers
     │   ├── navigation/        # StaffLayout, StaffMainLayout, resolve-staff-route.ts (pure, unit-tested)
     │   ├── lib/               # api.ts (staff axios), session.ts, realtime.ts, datetime.ts (binds active location tz), currency.ts
-    │   ├── store/             # useStaffAuthStore.ts (moved from src/store/useAuthStore.ts)
-    │   ├── providers/         # StaffProviders.tsx (QueryClientProvider, AccessProvider, RealtimeProvider, BrandTheme)
+    │   ├── store/             # useStaffAuthStore.ts
+    │   │                      # (no providers/ folder: StaffLayout / StaffMainLayout mount QueryClientProvider, AccessProvider, realtime, push, BrandTheme)
     │   └── features/
-    │       ├── auth/  access/  dashboard/  queue/  patients/  appointments/  notifications/  devices/  more/  app-link/
+    │       ├── auth/  access/  today/  queue/  patients/  appointments/  notifications/  devices/  more/  app-link/  theme/  gallery/ (dev-only UI gallery)
     │       └── <feature>/ → api/ hooks/ components/ pages/ schemas/ types/ lib/ index.ts
     │
     └── patient/               # Patient space. Imports core only.
         ├── index.ts           # PUBLIC surface for shell only
         ├── navigation/        # PatientLayout, PatientMainLayout, resolve-patient-route.ts
         ├── lib/               # api.ts (patient axios, /patient-api), session.ts, realtime.ts
-        ├── store/             # usePatientAuthStore.ts, usePendingClaimStore.ts
-        ├── providers/         # PatientProviders.tsx
-        ├── i18n/              # en.json, ur.json (patient strings)
+        ├── store/             # usePatientAuthStore.ts (the pending-claim store is in core/claim)
+        ├── providers/         # PatientProviders.tsx (QueryClientProvider, persistence, i18n, realtime, reminder sync, push)
         └── features/
-            └── auth/ claim/ today/ reminders/ records/ family/ visit/ appointments/ clinics/ account/ devices/
+            └── auth/ claims/ today/ medications/ (reminder engine + settings) records/ profiles/ (family) queue/ (visit) clinics/ account/ contact/ devices/
 ```
 
 ### Import fences (lint-enforced in M0-02)
@@ -73,7 +82,7 @@ mobile-app/
 | `src/patient/**` | yes | **no** | yes | **no** |
 | `src/shell/**` | yes | only `@/staff` (index) | only `@/patient` (index) | yes |
 | `src/app/(staff…)/**` | yes | yes | **no** | no |
-| `src/app/(patient…)/**`, `src/app/claim/**` | yes | **no** | yes | no |
+| `src/app/(patient…)/**`, `src/app/claim/**`, `src/app/c/**` | yes | **no** | yes | no |
 | `src/app/` root files | yes | no | no | yes |
 
 Inside a space, cross-feature imports go through the feature's `index.ts` barrel:
@@ -116,10 +125,10 @@ is not active its layout is unmounted: no queries, no sockets, no timers run for
 | Active space (`'staff' \| 'patient' \| null`) | `core/space/useSpaceStore` | Yes, prefs MMKV (not secret) |
 | Staff session (user, orgs, active org/location, status, access token) | `staff/store/useStaffAuthStore` | No (memory). Refresh token in SecureStore `auth.refreshToken` |
 | Patient session (account, status, access token) | `patient/store/usePatientAuthStore` | No (memory). Refresh token in SecureStore `patient.refreshToken` |
-| Pending claim token (from deep link) | `patient/store/usePendingClaimStore` | No (memory only; a killed app loses it — the QR is re-scanned) |
+| Pending claim token (from deep link) | `core/claim/usePendingClaimStore` | No (memory only; a killed app loses it — the QR is re-scanned) |
 | Server data | Each space's `QueryClient` | Allow-listed queries only, encrypted MMKV per space, 24 h |
 | UI state of a screen (filters, sheet open) | Feature Zustand slice or component state | Prefs MMKV only for harmless prefs (last tab, last filter) |
-| Reminder plan (scheduled notification ids) | `patient/features/reminders` | Encrypted MMKV (patient) |
+| Reminder plan (scheduled notification ids) | `patient/features/medications` | Encrypted MMKV (patient) |
 
 `SessionStatus` per space: `restoring | unreachable | signedOut | signedIn` (existing staff
 semantics, copied for patient).
@@ -134,7 +143,7 @@ src/app/
   _layout.tsx                          RootShell (shell)
   index.tsx                            EntryRedirect → welcome | /(staff) | /(patient)
   welcome.tsx                          X-01 space picker
-  claim/[token].tsx                    stores token → activeSpace = 'patient' → patient flow
+  claim/[token].tsx  c/[token].tsx     stores token → activeSpace = 'patient' → patient flow
   (staff)/
     _layout.tsx                        StaffLayout (staff/navigation)
     offline.tsx                        staff session saved but API unreachable
@@ -148,10 +157,10 @@ src/app/
       (tabs)/patients.tsx              S-04  can: patients.view
       (tabs)/schedule.tsx              S-06  can: appointments.view
       (tabs)/more.tsx                  S-08  always
+      __gallery.tsx                    dev-only component gallery
       patients/[patientId].tsx         S-05
       queue/walk-in.tsx                S-02c (modal)
       queue/arrivals.tsx               S-03
-      queue/close-session.tsx          S-02a close flow (modal)
       notifications.tsx                S-07
       app-link/[patientId].tsx         S-09 (M2-15)
   (patient)/
@@ -159,13 +168,16 @@ src/app/
     offline.tsx
     sign-in.tsx                        P-00
     verify-code.tsx                    P-00
+    name.tsx                           first-sign-in name step (account without a name)
     (main)/
       _layout.tsx                      PatientMainLayout
-      (tabs)/_layout.tsx
+      (tabs)/_layout.tsx               tabs: Home, Today, Records, Family
+      (tabs)/index.tsx                 Home — placeholder until UI-02 (Today first + More screen)
       (tabs)/today.tsx                 P-02
       (tabs)/records.tsx               P-03
       (tabs)/family.tsx                P-04
-      (tabs)/more.tsx                  P-05
+      reminders/index.tsx              reminder settings (M3-03)
+      reminders/battery.tsx            battery-optimisation guide (M3-03)
       claim/confirm.tsx                P-01
       visit/[entryId].tsx              P-06
       prescriptions/[id].tsx           P-03
@@ -181,7 +193,7 @@ src/app/
 activeSpace == null      → welcome
 activeSpace == 'staff'   → (staff)
 activeSpace == 'patient' → (patient)
-index, claim/[token]     → always
+index, welcome, claim/[token], c/[token] → always
 ```
 
 ### Space guards (pure functions, unit-tested)
@@ -200,6 +212,7 @@ signedIn                                   → (main)
 ```
 status == 'unreachable'                    → offline
 status in (signedOut, restoring)           → sign-in / verify-code
+signedIn && account has no name            → name
 signedIn                                   → (main)
 ```
 
@@ -226,7 +239,7 @@ signedIn                                   → (main)
 | 401 handling | single-flight refresh, retry once | same pattern, own single-flight |
 | 403 codes | `EMAIL_NOT_VERIFIED`, clinic gate codes (existing) | `ACCOUNT_DISABLED`, `LINK_REVOKED` → refetch links |
 
-The existing logic in `src/lib/api.ts` (single-flight refresh, gate codes, `apiErrorMessage`) is
+The logic in `staff/lib/api.ts` (single-flight refresh, gate codes, `apiErrorMessage`) is
 the reference implementation; the factory generalises it, it does not rewrite it.
 
 Responses are always `ApiResponse<T>`; API functions unwrap `res.data.data` and return `T`.
@@ -319,14 +332,19 @@ Namespace `/patient-realtime`, patient token, rooms `patient:<accountId>` (serve
 
 ## 11. Configuration, builds and updates (M0-07)
 
-- `app.config.ts` reads `APP_VARIANT` (`development | preview | production`) → name suffix, bundle
-  id suffix (`.dev`, `.preview`), icon badge. Placeholder package until decision O-01.
-- `eas.json` profiles with the same names; `EXPO_PUBLIC_API_URL` per profile.
+- `app.config.ts` reads `APP_VARIANT` (`development | preview | production`) → app name
+  (`MedTrackr (Dev)` / `(Preview)` / `MedTrackr`), bundle id suffix (`.dev`, `.preview`), URL scheme
+  (`clinicapp-dev` / `clinicapp-preview` / `clinicapp`). Placeholder package until decision O-01.
+  The EAS project id is set in `app.config.ts` (`EAS_PROJECT_ID`).
+- `eas.json` profiles with the same names (`development` = dev-client APK, `preview` = internal APK,
+  `production` = AAB); `APP_VARIANT`, `EXPO_PUBLIC_API_URL` (and `EXPO_PUBLIC_WEB_URL`) come from the
+  matching EAS environment — see `docs/RELEASE.md`.
 - `expo-updates` with channels `preview` and `production`; runtime version policy `appVersion`.
 - `GET /app/min-version` (backend) → `{ android: "1.0.0", ios: "1.0.0" }`; below it the app shows
   a blocking "Update required" screen (shell).
-- Deep link scheme: change `mobileapp` → final scheme with O-01; links:
-  `<scheme>://claim/<token>`, `<scheme>://s/<route>` (staff), `<scheme>://p/<route>` (patient).
+- Deep link: scheme per variant (above; final scheme with O-01). Built: `<scheme>://claim/<token>` and
+  the web link shape `/c/<token>`. Pushes carry a `route` in `data` that `shell/notification-router.ts`
+  resolves; there are no generic `s/` / `p/` deep-link routes.
 
 ## 12. Performance budgets
 

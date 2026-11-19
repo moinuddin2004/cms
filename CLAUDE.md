@@ -4,9 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Multi-tenant dental/medical practice management SaaS (DentalFlow). Monorepo with:
+Multi-tenant dental/medical practice management SaaS (codename DentalFlow; the mobile app ships as MedTrackr). Monorepo with:
 - `cms/backend/` — NestJS 11 REST API (TypeScript, TypeORM, PostgreSQL)
 - `cms/web-app/` — React 19 SPA (TanStack Start/Router/Query/Form/Table, shadcn/ui, Tailwind CSS 4, Zustand)
+- `cms/desktop-app/` — Tauri v2 shell around the web-app bundle (no desktop-specific UI code; see its README)
+- `cms/landing/` — Astro marketing site
 - `cms/mobile-app/` — Expo SDK 58 app: staff space + patient space in one binary. **All mobile work (and the backend/web pieces it needs) follows `mobile-app/CLAUDE.md` and `mobile-app/docs/`** (architecture, rules, task cards, handoff log)
 
 ---
@@ -22,11 +24,13 @@ npm run test             # Unit tests (Jest)
 npm run test:e2e         # End-to-end tests
 npm run lint             # ESLint fix
 npm run format           # Prettier format
+npm run start:api        # Split processes (need REDIS_URL): HTTP only
+npm run start:worker     #   …and jobs/outbox only
+npm run test:int:<name>  # Integration suites on a real DB (access, acceptance, labs, tenancy, patient)
+npm run access:export    # Regenerate the web permission catalog after editing permissions.ts
+npm run seed             # Seed reference data (seed:check verifies, seed:demo = demo clinic)
 
-# TypeORM migrations
-npm run migration:generate -- --name=MigrationName
-npm run migration:run
-npm run migration:revert
+# No migrations — the schema is hand-written SQL in backend/database/ (see "Database" below)
 ```
 
 ### Frontend (`cms/web-app/`)
@@ -34,6 +38,8 @@ npm run migration:revert
 npm run dev              # Dev server on port 3000
 npm run build            # Production build
 npm run test             # Vitest
+npm run lint             # ESLint (check only)
+npm run format           # Prettier check
 npm run check            # Prettier write + ESLint fix
 ```
 
@@ -41,35 +47,29 @@ npm run check            # Prettier write + ESLint fix
 
 ## Frontend File Structure (STRICT — Never Deviate)
 
+TanStack Router **file-based routing** (flat file names, `.` = `/`, `_` suffix = not nested under the parent layout); `routeTree.gen.ts` is generated — never edit it.
+
 ```
-src/
-├── app/                          # TanStack Start routes ONLY — zero logic here
-│   ├── __root.tsx
-│   ├── _auth/
-│   │   ├── login.tsx             → renders <LoginPage />
-│   │   └── register.tsx          → renders <RegisterPage />
-│   ├── _dashboard/
-│   │   ├── layout.tsx            # Dashboard shell (sidebar + header)
-│   │   ├── index.tsx             → renders <DashboardPage />
-│   │   ├── patients/
-│   │   │   ├── index.tsx         → renders <PatientsPage />
-│   │   │   └── $patientId.tsx    → renders <PatientDetailPage />
-│   │   ├── appointments/
-│   │   │   ├── index.tsx         → renders <AppointmentsPage />
-│   │   │   └── $appointmentId.tsx
-│   │   ├── treatments/index.tsx
-│   │   ├── billing/
-│   │   │   ├── index.tsx
-│   │   │   └── $invoiceId.tsx
-│   │   ├── staff/
-│   │   │   ├── index.tsx
-│   │   │   └── $staffId.tsx
-│   │   └── settings/index.tsx
-│   └── api/                      # TanStack Start server functions only
+web-app/src/
+├── routes/                        # Route files ONLY — no business logic here
+│   ├── __root.tsx                 # auth/location redirects, `staticData.can` check, providers
+│   ├── login.tsx · register.tsx · select-location.tsx · confirm-email.tsx · join.$token.tsx …
+│   ├── dashboard.tsx              → <DashboardLayout><DashboardPage /></DashboardLayout>
+│   ├── patients/
+│   │   ├── index.tsx              → /patients        (PatientsPage)
+│   │   ├── new.tsx                → /patients/new
+│   │   └── $patientId.index.tsx   → /patients/$patientId
+│   ├── employees/ · invoices/ · prescriptions/   # same folder pattern
+│   ├── appointments.tsx · queue.doctor.tsx · billing.index.tsx · inventory.tsx …
+│   ├── lab-orders.tsx · lab-orders_.$orderId.tsx # `_` = detail page outside the list layout
+│   ├── settings.tsx + settings.<section>.tsx     # settings shell + sub-pages
+│   └── admin.roles.index.tsx · admin.features.tsx … # clinic setup screens
+├── router.tsx                     # router instance
+├── routeTree.gen.ts               # GENERATED
 │
-├── features/                     # ALL business logic lives here
-│   └── [feature-name]/
-│       ├── index.ts              # barrel export — always import from here cross-feature
+├── features/                      # ALL business logic lives here
+│   └── [feature-name]/            # e.g. patients, appointments, queue, billing, lab-orders …
+│       ├── index.ts               # barrel export — always import from here cross-feature
 │       ├── pages/
 │       │   ├── [Feature]Page.tsx
 │       │   └── [Feature]DetailPage.tsx
@@ -77,61 +77,45 @@ src/
 │       │   ├── [Feature]Table.tsx
 │       │   ├── [Feature]Card.tsx
 │       │   ├── [Feature]Form.tsx
-│       │   ├── [Feature]Filters.tsx
+│       │   ├── FiltersBar.tsx / [Feature]Filters.tsx
 │       │   └── [Feature]Sheet.tsx
 │       ├── hooks/
 │       │   ├── use[Feature]s.ts       # TanStack Query hooks
-│       │   ├── use[Feature]Form.ts    # TanStack Form logic
-│       │   └── use[Feature]Store.ts   # Zustand slice
-│       ├── api/
-│       │   └── [feature].api.ts       # axios calls only
+│       │   └── use[Feature]Form.ts    # TanStack Form logic
+│       ├── services/
+│       │   └── [feature].api.ts       # axios calls only (via `@/lib/api`)
 │       ├── schemas/
 │       │   └── [feature].schema.ts    # Zod schemas
-│       └── types/
-│           └── [feature].types.ts
+│       ├── query-keys.ts              # optional — query key factory
+│       ├── lib/ · utils/              # optional — pure helpers
+│       └── types.ts                   # (or types/ folder for big features)
 │
-├── shared/
-│   ├── components/
-│   │   ├── ui/                        # shadcn/ui — auto-generated, NEVER edit manually
-│   │   ├── layout/
-│   │   │   ├── Sidebar.tsx
-│   │   │   ├── Header.tsx
-│   │   │   └── PageWrapper.tsx        # wraps every page — breadcrumbs + page header
-│   │   ├── data-display/
-│   │   │   ├── DataTable.tsx          # generic TanStack Table wrapper
-│   │   │   ├── DataCards.tsx
-│   │   │   ├── ViewToggle.tsx         # card/list toggle button
-│   │   │   ├── StatusBadge.tsx
-│   │   │   ├── Avatar.tsx
-│   │   │   └── StatCard.tsx
-│   │   ├── feedback/
-│   │   │   ├── LoadingSkeleton.tsx
-│   │   │   ├── EmptyState.tsx
-│   │   │   └── ErrorState.tsx
-│   │   └── forms/
-│   │       ├── FieldWrapper.tsx       # label + error wrapper for ALL form fields
-│   │       ├── FormInput.tsx
-│   │       ├── FormSelect.tsx
-│   │       ├── FormTextarea.tsx
-│   │       ├── FormDatePicker.tsx
-│   │       └── FormPhoneInput.tsx
-│   ├── hooks/
-│   │   ├── useDebounce.ts
-│   │   ├── usePagination.ts
-│   │   ├── useViewMode.ts
-│   │   └── useTableFilters.ts
-│   ├── lib/
-│   │   ├── axios.ts                   # configured axios instance with interceptors
-│   │   ├── queryClient.ts             # TanStack Query client config
-│   │   └── utils.ts                   # cn() + other helpers
-│   ├── store/
-│   │   └── index.ts                   # Zustand root store (combines all slices)
-│   └── types/
-│       ├── api.types.ts               # ApiResponse<T>, PaginatedResponse<T>
-│       └── common.types.ts
-│
-└── styles/
-    └── globals.css
+├── components/                    # shared, cross-feature UI
+│   ├── ui/                        # shadcn/ui — auto-generated, NEVER edit manually
+│   ├── layout/                    # DashboardLayout (title/backTo/actions), Sidebar, Topbar,
+│   │                              #   PageWrapper, LocationSwitcher, BrandMark, DesktopFrame
+│   ├── data-display/              # ViewToggle, StatusBadge, StatCard, InitialsAvatar, Pagination
+│   ├── feedback/                  # LoadingSkeleton, EmptyState, ErrorState, NoResultsState
+│   ├── forms/                     # FieldWrapper, FormInput, FormSelect, FormTextarea,
+│   │                              #   NumberInput, FormSheet, fieldError
+│   ├── feature/                   # RequireFeaturePage
+│   └── shared/                    # DataTable (TanStack Table wrapper), ListToolbar,
+│                                  #   CollapsibleFilters, DatePicker, DateRangePicker,
+│                                  #   TooltipButton, ConfirmDialog, BackButton, SaveBar,
+│                                  #   SearchableSelect, MultiSelect, FileUploadField, …
+├── hooks/                         # useDebounce, useBackNavigation, useUnsavedChangesGuard, useTheme
+├── lib/
+│   ├── api.ts                     # axios instance `apiClient` (default export) + interceptors
+│   ├── query-client.ts            # TanStack Query client config
+│   ├── datetime.ts                # clinic-timezone helpers (see "Dates & Times")
+│   ├── currency.ts · formatters.ts · zod-numbers.ts
+│   └── utils.ts                   # cn() + other helpers
+├── store/                         # Zustand stores, one file per area (no combined root store)
+│   ├── useAuthStore.ts            # auth + active org/location
+│   ├── patient-store.ts · employee-store.ts · appointment-store.ts  # view mode, drafts, filters
+│   ├── ui-store.ts · nav-history-store.ts
+├── context/                       # FeatureFlagsContext
+└── styles.css                     # Tailwind 4 entry + theme tokens
 ```
 
 ---
@@ -139,13 +123,21 @@ src/
 ## Frontend Rules (Read Before Every Task)
 
 ### Route Files
-- Route files in `app/` contain **ZERO logic** — only import and render the feature page
+- Route files in `routes/` contain **no business logic** — only `createFileRoute` config (`staticData: { can }`, `validateSearch`, params) and rendering the feature page inside `DashboardLayout`. Data fetching, state and UI live in `features/`.
 ```tsx
-// app/_dashboard/patients/index.tsx
-import { PatientsPage } from '@/features/patients'
-export default function PatientsRoute() {
-  return <PatientsPage />
-}
+// routes/patients/index.tsx
+import { createFileRoute } from '@tanstack/react-router'
+import { DashboardLayout } from '@/components/layout/DashboardLayout'
+import { PatientsPage } from '@/features/patients/pages/PatientsPage'
+
+export const Route = createFileRoute('/patients/')({
+  staticData: { can: 'patients.view' },
+  component: () => (
+    <DashboardLayout>
+      <PatientsPage />
+    </DashboardLayout>
+  ),
+})
 ```
 
 ### Forms — TanStack Form ONLY
@@ -179,7 +171,7 @@ export default function PatientsRoute() {
 
 ### Listings — Card + List View Both Required
 - Every listing page must have a View Toggle (card/list switch)
-- Toggle state via `useViewMode` hook
+- Toggle with `ViewToggle` (`@/components/data-display/ViewToggle`); the mode lives in the feature's Zustand store (`viewMode` / `setViewMode`, e.g. `store/patient-store.ts`)
 - **List view** (TanStack Table): column sorting, row hover, action column (last), pagination (size selector + prev/next + page info)
 - **Card view**: responsive grid of `[Feature]Card.tsx`
 - Both views show same data and support same actions
@@ -217,8 +209,8 @@ export default function PatientsRoute() {
 - No results (filtered) → distinct message from empty
 
 ### API Layer
-- All axios calls in `[feature].api.ts` files only — never in components
-- Return typed responses using `ApiResponse<T>` from `shared/types`
+- All axios calls in `features/<feature>/services/[feature].api.ts` files only — never in components; import the client from `@/lib/api`
+- Return typed responses (`ApiResponse<T>` / `PaginatedResponse<T>` from the feature's `types.ts`); unwrap `res.data.data`
 - TanStack Query hooks in `use[Feature]s.ts` consume the api functions
 
 ### Dates & Times — clinic timezone
@@ -228,16 +220,15 @@ export default function PatientsRoute() {
 - FullCalendar runs with `timeZone="UTC"` fed clinic wall times (`features/appointments/utils/datetime.ts`).
 
 ### Zustand
-- Each feature has its own slice in `use[Feature]Store.ts`
-- Slice handles: selected item, sheet open/close, view mode
-- Root store in `shared/store/index.ts` combines all slices
-- Auth store: token in memory, refresh token in httpOnly cookie (no persistence)
+- Stores live in `src/store/` — one file per area (`patient-store.ts`, `employee-store.ts`, …); a feature may keep a small local store inside its folder (e.g. `features/auth/store`). There is no combined root store.
+- A store handles: selected item, sheet open/close, view mode, filters, form drafts
+- Auth store (`store/useAuthStore.ts`): refresh token is an httpOnly cookie on the web (`x-refresh-token` header on desktop). The access token, user and active org/location are currently **persisted to localStorage** via zustand `persist` (`partialize`).
 
 ### Imports
-- Use `@/` path alias for all imports
+- Use `@/` path alias for all imports (`@/` = `web-app/src/`)
 - Cross-feature imports always go through the feature's `index.ts` barrel
-- shadcn components from `@/shared/components/ui/`
-- Shared components from `@/shared/components/`
+- shadcn components from `@/components/ui/`
+- Shared components from `@/components/<group>/` (`shared`, `layout`, `forms`, `feedback`, `data-display`)
 
 ---
 
@@ -276,7 +267,7 @@ export default function PatientsRoute() {
 
 ## What NEVER To Do
 
-- No logic in route files (`app/` folder)
+- No business logic in route files (`routes/` folder)
 - No `react-hook-form` anywhere in the project
 - No inline styles — Tailwind classes only
 - No hardcoded colors — use design system classes above
@@ -289,7 +280,8 @@ export default function PatientsRoute() {
 - No action without loading state
 - No icon-only button without a tooltip
 - No list/detail without empty + error states
-- No edits to `shared/components/ui/` (shadcn auto-generated)
+- No edits to `components/ui/` (shadcn auto-generated)
+- No edits to `routeTree.gen.ts` (generated)
 
 ---
 
@@ -298,13 +290,13 @@ export default function PatientsRoute() {
 ### Multi-tenancy
 All core entities have an `organizationId` foreign key. Tenant isolation via NestJS guards. JWT tokens carry organization context. Multi-location: organizations → locations → employees/appointments.
 
-Axios client (`web-app/src/shared/lib/axios.ts`) injects `x-organization-id` and `x-location-id` headers on every request from the Zustand auth store. Backend reads these to resolve `request.tenantContext`.
+Axios client (`web-app/src/lib/api.ts`) injects `x-organization-id` and `x-location-id` headers on every request from the Zustand auth store. Backend reads these to resolve `request.tenantContext`.
 
 ### Global Guard Chain (order matters)
 Registered as `APP_GUARD` in `app.module.ts`:
 1. **`JwtAuthGuard`** — validates Bearer token (skips `@Public()`)
 1b. **`EmailVerifiedGuard`** — a password account with `users.email_verified_at` null may work only until `email_verification_due_at` (new accounts: now; accounts from before enforcement: +7 days, set on first request/login); after that everything except `/auth/*` is 403 `EMAIL_NOT_VERIFIED` → web app shows `/confirm-email`. Exempt: super admins, Google sessions, Google-only (no password) accounts. All verification state goes through `user/email-verification.service.ts`; super admin can mark verified (`POST /user/:id/verify-email`), managers resend (`POST /user/:id/resend-verification`). Never return the raw `User` entity from an API — use `toUserAdminView` / `UserDto`.
-2. **`TenantContextGuard`** — validates org+location access. Skips for `@Public()`, `@ContextFree()`, path-prefixes (`/auth/`, `/organizations`, `/locations`), `@RequireSuperAdmin()`, and super admins (always exempt).
+2. **`TenantContextGuard`** — validates org+location access. Skips for `@Public()`, `@ContextFree()` (auth/switching routes), `@RequireSuperAdmin()` (checked first — must be a super admin), and super admins (always exempt). There is deliberately no path-prefix allow-list.
 3. **`FeatureFlagGuard`** — enforces `@RequireFeature('key')`. No metadata = allow; super admin = allow; else feature must be enabled for active org.
 
 4. **`AccessGuard`** (`src/access/`) — enforces `@Can(...perms)` (all required; class + method lists merge) and `@AnyMember()`. `AccessResolver` builds an `AccessContext` per (user, org, location, `organizations.access_version`): owner / super admin get every permission; staff get their employment role's `permissions` jsonb (`{ perm: 'own'|'location'|'org'|true }`) at that location; permissions whose feature is not active (entitled ∧ enabled ∧ not disabled at the location) are dropped. Missing key = no access (fail-closed). `@Access()` injects the context: `can`, `scope`, `applyScope(qb, perm, { own, location, ownWhere })`, `decide`. `@VisibleIf(perm)` strips DTO fields.
@@ -326,6 +318,10 @@ Each domain is a self-contained NestJS module under `src/`:
 - `appointments/` — booking only: scheduling, validate, booking rules, conflict detection (DB exclusion constraint `no_doctor_overlap`), status transition map. Check-in hands over to the queue.
 - `queue/` — doctor-wise clinic queue after arrival. ALL queue mutations go through `QueueOrchestrator` (transaction → session row lock → transition map → audit `queue_events` + `outbox`). `SelectionEngine` is a pure function (spec covers the 14 scenarios in both modes). Mutations need an `Idempotency-Key` header; entry actions accept `If-Match: <version>`. Realtime: Socket.IO `/realtime` rooms fed by the outbox relay. Policies: `queue_policies` (org default + location override).
 - `common/clock/` — `ClockService`: "now"/"today" in the LOCATION's timezone. Never use server-local `new Date()` + `setHours()` for clinic days/times. The process runs in UTC (`bootstrap/utc.ts`, imported first by every entry point); every instant column is `timestamptz` (date decorators included — `type: 'timestamptz'`); SQL that derives a clinic day/month from a `timestamptz` uses `AT TIME ZONE <location tz>`.
+- `patient-auth/` · `patient-app/` · `patient-links/` · `patient-devices/` · `medications/` — the **patient space** (mobile app only): separate patient accounts and tokens (`JWT_PATIENT_ACCESS_SECRET`, login codes by email or Google, `patient_sessions`), routes under `/patient-api/*` and `/patient-auth/*` behind the patient fence guard, claim links that tie an account to a clinic's patient record, patient devices + Expo push, medication reminders, patient realtime. Staff and patient code never share tokens or routes.
+- `devices/` · `app-version/` · `product-events/` — staff push devices (Expo), public minimum mobile version (`GET /app/min-version`), product analytics events
+- `search/` — Ctrl+K quick search
+- `lab-access/` — lab portal and magic links (no clinic login for labs)
 - `employees/` — staff records, salary, work schedules, location assignments
 - `payroll/` — payroll records, payment tracking
 - `feature-flags/` — per-org features: super admin sets `is_entitled` (+ optional trial `entitled_until`), owner sets `is_enabled` within that (`/admin/features`), `location_feature_overrides` can switch one off per location. Catalog seeding inserts missing keys only. Cache is invalidated across instances via Redis (only when `REDIS_URL` is set; single `all` process needs none).
@@ -339,7 +335,7 @@ Each domain is a self-contained NestJS module under `src/`:
 - `notifications/` — the only way to notify anyone: `NotificationService.enqueue(tx, …)` (inside the caller's transaction), `enqueueSafely(tx, …)` (savepoint — never aborts the caller), or `notify(…)` (after commit, own transaction, never throws) → `notification_outbox` → `NotificationDispatcher` → providers: in-app (bell + realtime `notification.new` to socket room `user:<id>` via the queue `outbox`), email (`EmailChannelProvider`: verified address only → else `skipped_unverified`; daily cap → requeued). Audiences: doctor, coordinator, lab, `staff` (picked by owner/permission — `recipients/staff-recipients.ts`, never role names), patient (no channel yet). Events are code-owned seeds (`seeds/notification-events.seed.ts`; `emailDefault` = important, `channels` limits). Clinic rules: `/settings/notifications` (super admins also see "Mandatory emails (platform)": per clinic, force a mandatory event's email on/off over the owner's switch — `notification_platform_overrides`, `PUT /admin/clinics/:orgId/notification-overrides`); personal switches (sound, per-event email): `/settings/my-notifications` (`user_notification_prefs`). Account emails (verify, reset, security notices, lab address confirm) go direct through `MailService` and are logged in `email_log`. Plan + status: `docs/notifications-email-plan.md`
 
 Implemented end-to-end: auth, sessions, organizations, locations, employees, appointments (booking), queue (check-in → consultation → completion, reception board, doctor screen, TV display), patients (15+ sub-entities), payroll, feature-flags.
-Missing: chair/room scheduling (the `chairs` entity was removed; locations only keep a `total_chairs` count), patient notifications of any kind (clinic users only for now; patient email follow-ups are a later project — see `docs/notifications-email-plan.md` "Patients later"). SMS/WhatsApp have no provider. The dashboard page reads real data; some unused dashboard widgets (`AppointmentsTable`, `KpiCard`, …) still use mock data from `dashboard.api.ts`.
+Missing: chair/room scheduling (the `chairs` entity was removed; locations only keep a `total_chairs` count), patient email notifications (patients get push through the patient app only; email follow-ups are a later project — see `docs/notifications-email-plan.md` "Patients later"). SMS/WhatsApp have no provider. The dashboard page reads real data; some unused dashboard widgets (`AppointmentsTable`, `KpiCard`, …) still use mock data from `dashboard.api.ts`.
 
 ### Backend Key Patterns
 - **Repository pattern** via TypeORM + injectable repositories
@@ -357,13 +353,18 @@ Plain PostgreSQL 13+ (Neon in dev only; `DATABASE_SSL` = `true`/`verify`/`false`
 |---|---|
 | `DATABASE_URL` | PostgreSQL connection string |
 | `DATABASE_SSL` | `true` (default, SSL unverified — Neon/managed) · `verify` · `false` (local Postgres) |
-| `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` | JWT signing |
+| `JWT_ACCESS_SECRET` | Staff access-token signing (refresh tokens are opaque; `JWT_REFRESH_SECRET` is not read) |
 | `JWT_PATIENT_ACCESS_SECRET` | **Required at boot, every process role.** Signs patient-space access tokens: at least 32 characters and different from `JWT_ACCESS_SECRET`, or the API refuses to start |
 | `PATIENT_CODE_PEPPER` | Optional pepper for stored login-code hashes (default: derived from the patient secret) |
 | `PATIENT_LOGIN_CODES_PER_HOUR` / `_PER_DAY` / `_PER_IP_PER_DAY` | Caps on patient login-code emails: whole platform per hour (default 100) and per day (400), and per IP per 24 h (30, in memory). Over a cap the API still answers `{ sent: true }` but sends nothing |
 | `PATIENT_FAILED_VERIFY_PER_24H` | Failed code guesses per email in 24 h before sign-in is refused (default 20) |
 | `PATIENT_SESSION_MAX_DAYS` | Absolute patient session lifetime from creation (default 180) |
 | `PATIENT_SESSION_RETENTION_MONTHS` / `PRODUCT_EVENT_RETENTION_DAYS` / `PATIENT_LOGIN_CODE_RETENTION_DAYS` | Daily retention job (worker / `all` only): ended patient sessions (default 6 months), product events (400 days), expired login codes (2 days). `0` = keep forever |
+| `CORS_ORIGIN` | Allowed browser origins, comma separated (default `http://localhost:3000`); desktop (Tauri) origins always allowed |
+| `GOOGLE_ANDROID_CLIENT_ID` / `GOOGLE_IOS_CLIENT_ID` | Optional extra OAuth client ids accepted by patient sign-in |
+| `MOBILE_MIN_VERSION_ANDROID` / `_IOS` / `_MESSAGE` | Minimum supported mobile build per platform for `GET /app/min-version` (`0.0.0` = no floor) |
+| `EXPO_ACCESS_TOKEN` | Only if the Expo project requires an access token for push |
+| `STORAGE_DRIVER` | File storage provider (default `cloudinary`) |
 | `REDIS_URL` | Pub/sub between split `api`/`worker` processes. Unset = single `all` process, no Redis (`start:dev`, `start:prod`) |
 | `CLOUDINARY_*` | File uploads |
 | `GOOGLE_CLIENT_ID` | Google sign-in (ID token verify). Unset = Google button hidden |

@@ -179,7 +179,7 @@ export function useMySession() {
 - Patient space: `@/core/datetime` with an explicit zone: `formatInZone(value, record.timezone, pattern)`.
   Every patient-api record that has an instant also carries its location `timezone`.
 - Dose reminder times: wall-clock `HH:mm` in the phone's timezone (A-10) — use
-  `@/patient/features/reminders/lib/*` helpers only.
+  `@/patient/features/medications/lib/*` helpers only.
 - Forbidden: `new Date(x).toLocale*String()`, `format(new Date(x), …)` without a zone,
   `toISOString().slice(0, 10)` as "today", manual offset math.
 - Money: `formatMoney(amount, currency)` from `@/core/money`. Check the contract for whether a field
@@ -226,7 +226,7 @@ export function useMySession() {
 ## 16. Comments
 
 - Comment *why*, not *what*. A file-level doc comment on every hook/lib module explaining its job
-  in one or two sentences (see existing `src/lib/api.ts` style).
+  in one or two sentences (see the existing `src/staff/lib/api.ts` style).
 - `TODO(<TASK-ID>): …` only with a task id that exists in the roadmap.
 
 ## 17. Tests

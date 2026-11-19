@@ -1,7 +1,7 @@
 # Mobile app — documentation index
 
 > The single map for everyone working on `mobile-app/` (and the backend/web pieces it needs).
-> Product plan (why/what, Roman Urdu): [`../DentalFlow Mobile App — Final Use Cases & Feature Plan.md`](<../DentalFlow Mobile App — Final Use Cases & Feature Plan.md>).
+> Setup, run and build commands: [`../README.md`](../README.md). Product plan (why/what, Roman Urdu): [`../DentalFlow Mobile App — Final Use Cases & Feature Plan.md`](<../DentalFlow Mobile App — Final Use Cases & Feature Plan.md>).
 
 ## Documents
 
@@ -21,7 +21,12 @@
 | — | [DECISIONS.md](DECISIONS.md) | When something seems to conflict |
 | — | [PROGRESS.md](PROGRESS.md) | To pick a task / see state |
 | — | [HANDOFF.md](HANDOFF.md) | Read the last entries before starting; append when done |
+| — | [RELEASE.md](RELEASE.md) | Builds, EAS environments, OTA updates, demo accounts, legal URLs, deploy checklist |
+| — | [analytics-events.md](analytics-events.md) | Privacy-safe product events (M2-13): allowed names and properties |
+| — | `legal/` | DRAFT privacy policy, terms, account deletion, Play Data safety (M4-04; owner/lawyer review) |
 | — | `reviews/<TASK-ID>/` | Screenshots + architect reviews |
+| — | `reviews/AUDIT-2026-11/`, `reviews/UI-UX-2026-11/` | Independent audit report; UI/UX review (UI-01) |
+| — | [`../src/core/ui/PATCHES.md`](../src/core/ui/PATCHES.md) | The only allowed hand edits to the generated RNR components |
 
 ## Reading order by role
 

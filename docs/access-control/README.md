@@ -2,7 +2,7 @@
 
 How DentalFlow decides **who may do what** in each clinic, and how a clinic customises roles, features, its sidebar and its look.
 
-Status: merged into `master` (eab1ddf, 2026-10-23). The acceptance plan passes 166/166 ([test-cases.md](test-cases.md), [test-results.md](test-results.md)). Design background lives in the "Clinic Customization & Access Control — Design" Claude Doc; where this README and that doc differ, **this README describes the code**.
+Status: merged into `master` (eab1ddf, 2026-10-23); doc re-checked against the code on 2026-11-19. The acceptance plan passed 166/166 on 2026-10-23 ([test-cases.md](test-cases.md), [test-results.md](test-results.md)). Design background lives in the "Clinic Customization & Access Control — Design" Claude Doc; where this README and that doc differ, **this README describes the code**.
 
 ---
 
@@ -46,7 +46,7 @@ effective = granted, minus every permission whose feature is not in `features`
 
 **Change propagation.**
 1. Writes to roles, assignments, org feature flags, ownership, nav layouts or location overrides bump `organizations.access_version`. This happens through the entity subscriber in `access/version/`, or explicitly where a DB cascade bypasses TypeORM.
-2. The bump is published on Redis channel `dentalflow:access:changed`.
+2. The bump is published on Redis channel `dentalflow:access:changed` (only when `REDIS_URL` is set; a single `all` process delivers locally and needs no Redis).
 3. Every API instance and the worker drop their caches. The org version itself is cached for 15 s; without Redis that is the worst-case delay.
 4. The Socket.IO gateway emits `access.changed { organizationId, version }` to room `org:<organizationId>` on namespace `/realtime`.
 5. The web app (subscribed to that room) refetches `/me/access`. It also refetches on window focus once the data is older than 30 s.
@@ -65,6 +65,7 @@ Every permission belongs to one feature. A permission is only effective while it
 | Patients | `patients.price.view` | patients.core | | | |
 | Patients | `patients.clinical.view` | patients.core | | | |
 | Patients | `patients.clinical.edit` | patients.core | | | patients.clinical.view |
+| Patients | `patients.app_link.manage` | patients.core (deliberately not `patient_app`, so a link can always be cut) | | high | |
 | Patients | `patients.documents.manage` | patients.documents | | | |
 | Patients | `patients.chart.edit` | patients.teeth_chart | | | patients.clinical.view |
 | Patients | `plans.manage` | patients.treatment_plans | | | |
@@ -74,6 +75,7 @@ Every permission belongs to one feature. A permission is only effective while it
 | Appointments | `appointments.reschedule` | appointments.core | | | appointments.view |
 | Appointments | `appointments.cancel` | appointments.core | | | appointments.view |
 | Appointments | `appointments.override_rules` | appointments.core | | high | appointments.book |
+| Appointments | `appointments.requests.manage` | patient_app | | | |
 | Queue | `queue.board.view` | appointments.core | | | |
 | Queue | `queue.checkin` | appointments.core | | | queue.board.view |
 | Queue | `queue.entry.manage` | appointments.core | | | queue.board.view |
@@ -242,6 +244,7 @@ The older `/employment-roles` endpoints still work. Reads need `employees.view`;
   | `theme.brand_color` | org | hex |
   | `theme.sidebar_style` | org | `light` / `dark` / `brand` |
   | `theme.default_mode` | org | `light` / `dark` / `system` |
+  | `theme.dark_base` | org | `tinted` / `graphite` / `midnight` / `stone` / `black` (dark-mode palette; default `tinted`) |
 
 - **Login page:** before sign-in, the app reads `GET /public/theme/:orgId`. The org comes from `?org=` or the last org used on that device. The response holds theme tokens only.
 - **Signed in:** the app reads `GET /theme`.
@@ -265,7 +268,7 @@ The older `/employment-roles` endpoints still work. Reads need `employees.view`;
 | Endpoint | Access |
 | --- | --- |
 | `GET /me/access` | Signed in. Org header required, location optional. Returns `{ version, organizationId, locationId, isSuperAdmin, isOwner, features, permissions, roles, employeeId, homeRoute, nav }` |
-| `GET /me/catalog` | `admin.roles.manage` — permissions grouped by module, bundles, templates |
+| `GET /access/catalog` | `admin.roles.manage` — permissions grouped by module, bundles, templates |
 | `GET /admin/roles`, `GET /admin/roles/:id`, `POST /admin/roles`, `POST /admin/roles/:id/clone`, `PATCH /admin/roles/:id`, `DELETE /admin/roles/:id` | `admin.roles.manage` |
 | `GET /employment-roles`, `GET /employment-roles/:id` | `employees.view` |
 | `POST`, `PUT /:id`, `DELETE /:id` on `/employment-roles` | `admin.roles.manage` |
@@ -363,14 +366,14 @@ The route check runs once in `__root.tsx` (`RouteAccessGate`): it shows a skelet
 | `config_values` | new — settings registry (theme) |
 | `audit_logs` | used for roles, features, nav, theme, patient exports |
 
-All schema comes from entities (`synchronize` in dev). There are no migration files and no data migration.
+The schema is hand-maintained SQL in `backend/database/` (`schema/02_tables.sql`, plus a `changes/` script for existing databases); the app never changes it and TypeORM `synchronize` is off. There was no data migration for the old role maps.
 
 ## 15. Going live
 
 1. **Assign roles.** Every clinic owner assigns staff to the new roles (template or custom). Staff on old roles have **no** access until then.
 2. **Re-save existing Admin roles.** Orgs seeded before 2026-10-23 keep their stored Admin map, which lacks `queue.doctor.any`.
-3. **Production schema.** Run the reviewed schema sync (`npm run schema:sync:prod`), since `synchronize` is off there. See [../database-migrations.md](../database-migrations.md).
-4. **Redis.** Redis must be reachable for instant cross-instance invalidation. Without it, changes take effect within 15 s (org version) to 30 s (feature flags).
+3. **Production schema.** Apply the `backend/database/changes/` scripts to the existing database (there is no sync command). See [../database-migrations.md](../database-migrations.md).
+4. **Redis.** Only needed when `api` and `worker` run as separate processes (instant cross-instance invalidation). Without it (single `all` process), changes take effect within 15 s (org version) to 30 s (feature flags).
 5. **Browser check.** Not yet checked in a browser: the Export button, the staff option in the user form, the permission-gated dashboard, and the login theme after an in-app sign-out.
 
 ## 16. Not built yet (by decision)

@@ -1,6 +1,6 @@
 # Auth, Identity & Role Access — ERD
 
-Generated from the live TypeORM entities (the schema source of truth) and cross-checked with
+Checked against the entities and `backend/database/schema/02_tables.sql` (hand-maintained SQL; the entities and that file must match) on 2026-11-19, and with
 [`backend/docs/data-model/ENTITY_CATALOG.md`](../backend/docs/data-model/ENTITY_CATALOG.md).
 Real table names, real column names, PostgreSQL types.
 
@@ -19,15 +19,20 @@ erDiagram
     users ||--o{ user_sessions : "signs in with"
     users ||--o{ security_logs : "generates"
     users ||--o{ oauth_providers : "links"
+    users ||--o{ user_devices : "push tokens"
+    users ||--o{ desktop_auth_handoffs : "desktop sign-in codes"
     user_sessions |o..o{ security_logs : "session context (logical)"
 
     users {
         uuid uuid PK
         varchar email UK
         varchar password
-        enum provider "google | github | local"
+        enum provider "google | local"
         enum global_role "super_admin | null"
         enum status "active | suspended | deleted"
+        timestamptz email_verified_at "null = unverified"
+        timestamptz email_verification_due_at "grace deadline"
+        varchar email_verification_token "hashed, with _expires"
         uuid last_accessed_organization_id "logical"
         uuid last_accessed_location_id "logical"
     }
@@ -39,6 +44,23 @@ erDiagram
         timestamptz expires_at
         boolean is_revoked
         boolean is_current
+        varchar auth_method "password | google ..."
+        varchar auth_domain "Workspace hd"
+    }
+
+    user_devices {
+        uuid id PK
+        uuid user_id FK
+        varchar expo_push_token
+        varchar platform
+    }
+
+    desktop_auth_handoffs {
+        uuid uuid PK
+        uuid user_id FK
+        varchar code_hash
+        timestamptz expires_at
+        timestamptz used_at
     }
 
     security_logs {
@@ -64,9 +86,10 @@ erDiagram
 - `users` is **global / platform-wide**: one person, one email, many clinics. Access is not stored on the user.
 - `user_sessions` holds one row per device. Only `refresh_token_hash` is stored; revocation is soft (`is_revoked`).
 - `security_logs` is the authentication audit trail. `session_id` is a logical link (no FK) so a log row survives session deletion.
-- `oauth_providers` exists in the schema but OAuth is **not wired** (the table is registered, no code reads/writes it).
+- `oauth_providers` is live for **Google sign-in** only (`auth/google/`: ID token -> `POST /auth/google`, matched on the Google `sub` in `provider_id`; unique per `(user_id, provider)`). There is no GitHub provider. The session's method rides in the access token (`amr`, `hd`) and is stored as `user_sessions.auth_method` / `auth_domain`.
 - `users.global_role = 'super_admin'` is a platform-level privilege; ordinary users have `NULL`.
-- Password reset / email verification are columns on `users`, not separate tables.
+- Password reset / email verification are columns on `users`, not separate tables. A password account with `email_verified_at` null may work only until `email_verification_due_at`; then `EmailVerifiedGuard` answers 403 `EMAIL_NOT_VERIFIED` (super admins, Google sessions and Google-only accounts are exempt). All of it goes through `user/email-verification.service.ts`.
+- `user_devices` holds staff mobile push tokens (Expo); `desktop_auth_handoffs` holds short-lived hashed one-time codes for the desktop sign-in handoff.
 
 ---
 
@@ -93,6 +116,9 @@ erDiagram
         varchar name
         varchar slug UK
         int access_version "cache key, bumped on access writes"
+        enum approval_status "pending | approved | rejected"
+        timestamptz trial_ends_at
+        timestamptz paid_until
     }
 
     locations {
@@ -168,9 +194,8 @@ erDiagram
   (the only kind v1 writes); per-role layouts are reserved for later.
 - `organizations.access_version` is the cache-invalidation key for the resolved access context.
 
-> **Legacy, not live:** `organization_admins` and `user_locations` appear only in the never-executed baseline
-> migration `1776356529788-create-table`. They have no entity and are replaced by `organization_ownership`
-> and `employee_org_location_assignments`.
+> **Legacy, not live:** `organization_admins` and `user_locations` no longer exist in the schema; they are
+> replaced by `organization_ownership` and `employee_org_location_assignments`.
 
 ---
 
@@ -294,7 +319,7 @@ effective = granted minus every permission whose feature is not in `features`
 The result is cached per `(user, org, location, organizations.access_version)` for at most 5 minutes.
 Writes to `employment_roles`, `employee_org_location_assignments`, `org_feature_flags` or
 `organization_ownership` bump `organizations.access_version` through the entity subscriber, which invalidates
-every API/worker cache and pushes `access.changed` over Socket.IO.
+every API/worker cache (over Redis only when `REDIS_URL` is set) and pushes `access.changed` over Socket.IO.
 
 Practical consequences visible in this ERD:
 
@@ -319,6 +344,12 @@ Not part of clinic auth, but worth knowing when reading the schema:
 | Table | Purpose |
 | --- | --- |
 | `lab_members` | A user's membership + `LabMemberRole` in a dental lab. Lab users hold **no clinic membership**, so clinic queries cannot return their data. |
+| `clinic_invites` | Owner-created join link (`/join/<token>`, 7 days, `revoked_at`, `uses`) for staff to request access. |
+| `clinic_join_requests` | A signed-in user's request to join a clinic (`pending` / `approved` / `rejected`), from an invite link or a Workspace domain; approved under Employees with a role (`employee_id` set on approval). Self-signup clinics start `organizations.approval_status = pending` until a super admin approves. |
+| `patient_accounts` | Mobile patient space login, **separate from `users`**: `email` (+ verified), `status` (`active` / `disabled` / `deleted`). Sign-in by emailed code (`patient_login_codes`, hashed, 10 min, attempt-capped) or Google/Apple (`patient_account_identities`: `provider` + `subject`). |
+| `patient_sessions` | Patient refresh sessions: `refresh_token_hash` + `previous_token_hash` (reuse revokes the session), `revoked_at`, sliding `expires_at`. Access tokens use their own secret (`JWT_PATIENT_ACCESS_SECRET`). |
+| `patient_profiles`, `patient_record_links` | An account's people (self / family) and their verified links to a clinic's `patients` row (`status`, `link_method`, `revoked_*`). Created via `patient_claim_tokens` (hashed, single use, from clinic staff with `patients.app_link.manage`). |
+| `patient_account_consents`, `patient_access_log`, `patient_devices` | Consent trail, who-viewed-what log (no FK, survives account deletion), patient push tokens. |
 | `magic_links` | No-login, single-order links for lab partners. Only `token_hash` is stored; scoped to one `lab_id` + `order_id`, with expiry, max uses and revocation. |
 
 ---
@@ -342,3 +373,6 @@ Not part of clinic auth, but worth knowing when reading the schema:
 | Audit | `backend/src/common/audit/entities/audit-log.entity.ts` |
 | Access rules | `backend/src/access/access.resolver.ts`, `docs/access-control/README.md` |
 | Lab access | `backend/src/labs/entities/lab-member.entity.ts`, `backend/src/lab-access/entities/magic-link.entity.ts` |
+| Clinic join | `backend/src/clinic-access/entities/clinic-invite.entity.ts`, `clinic-join-request.entity.ts` |
+| Patient accounts | `backend/src/patient-auth/entities/*.entity.ts`, `backend/src/patient-links/entities/patient-claim-token.entity.ts` |
+| Devices | `backend/src/devices/entities/user-device.entity.ts`, `backend/src/auth/entities/DesktopAuthHandoff.ts` |

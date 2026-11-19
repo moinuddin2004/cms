@@ -8,14 +8,14 @@ Goal before the pilot: **activation, claim success, daily use** — nothing else
 - An event is an allow-listed **name** + allow-listed **scalar props** (enum values or a version string). No names,
   phones, emails, free text, tokens, diagnoses, medicine names, patient/record/visit ids.
 - Who: `actor_id` = `users.uuid` (staff) or `patient_accounts.id` (patient), nothing else. `organization_id` is never taken from the client
-  and is currently always null (org tagging, with an `(organization_id, name, at)` index, is future work — see "Clinic" below).
+  and is currently always null (org tagging is future work — see "Clinic" below; the only index is `(name, at)`).
 - The server validates the name against the catalog (`backend/src/product-events/product-event-catalog.ts`), accepts a
   name only on its own endpoint (staff names on `/me/events`, patient names on `/patient-api/events`), drops unknown props and
   out-of-enum values, and answers `{ accepted }`; unknown events are dropped silently (analytics must never break the app).
 - Rate limit: 60 requests / 5 min per IP on both endpoints, ≤ 50 events per request. Client time `at` is kept only if within
   the last 7 days and not in the future, else the server stamps now.
-- Retention: **400 days**. The delete is **manual** (open item: no scheduled job yet) — run monthly:
-  `DELETE FROM product_events WHERE at < now() - interval '400 days';`
+- Retention: **400 days** by default (`PRODUCT_EVENT_RETENTION_DAYS`, `0` = keep forever). The daily retention job
+  (`backend/src/patient-auth/patient-retention.job.ts`, runs on the `worker` / `all` process at 03:15) deletes older rows.
 - Account deletion (M2-11) does not need to touch these rows: they hold only the account id and enums. Delete by `actor_id`
   if a patient asks.
 - Mobile: `src/core/analytics` `createTracker({ send })` — batched (5 s), in-memory, fire-and-forget, retries on network/5xx/429,
@@ -25,7 +25,7 @@ Goal before the pilot: **activation, claim success, daily use** — nothing else
 
 | Event | Endpoint | Props (all optional) | Fired when |
 | --- | --- | --- | --- |
-| `staff_signed_in` | `/me/events` | `method`: `password`·`google` | A staff sign-in succeeds (not on session restore) |
+| `staff_signed_in` | `/me/events` | `method`: `password`·`google` (the catalog also allows `email`) | A staff sign-in succeeds (not on session restore) |
 | `staff_checked_in` | `/me/events` | `source`: `appointment`·`walk_in` | Check-in from the schedule sheet succeeds (`appointment`) |
 | `staff_called_next` | `/me/events` | — | Doctor "Call next" returns a patient |
 | `app_opened` | `/me/events` | `platform`, `appVersion` | Reserved (not sent yet) |

@@ -21,7 +21,9 @@ npm run seed
 ```
 
 (In DataGrip / pgAdmin: run `schema/00_reset_public_schema.sql` — it wipes
-everything — then `01 → 05`, then `npm run seed`.)
+everything — then `01 → 05`, then `npm run seed`.) Set at least
+`JWT_ACCESS_SECRET` and `JWT_PATIENT_ACCESS_SECRET` in `backend/.env` too: the
+seed boots the app's module graph, which refuses to start without them.
 
 - Uses `DATABASE_URL` from `backend/.env` (or `SEED_DATABASE_URL`). On Neon
   it switches to the direct host (not `-pooler`) by itself.
@@ -43,6 +45,8 @@ Builds the whole schema in a throw-away Postgres schema `seedcheck` inside
 the same database, runs the seed into it, prints row counts per table and
 drops it. `public` is never read or written. `--keep` leaves it for
 inspection (drop later: `DROP SCHEMA seedcheck CASCADE`).
+`SEED_CHECK_SCHEMA` (`seedcheck`, `seedcheck_a`, `seedcheck_b` or
+`seedcheck_c`) lets two checks run side by side.
 
 ### Options (env)
 
@@ -51,6 +55,32 @@ inspection (drop later: `DROP SCHEMA seedcheck CASCADE`).
 | `SEED_HISTORY_DAYS` | `30` | how many days of history (more = longer run) |
 | `SEED_ONLY` | all | `visits`, `billing`, `labs`, `inventory` — core steps + only these groups |
 | `SEED_PARALLEL` | on | `0` = visits in one process (slower, easier to debug) |
+| `SEED_DATABASE_URL` | `DATABASE_URL` | connection string used by the seed instead |
+
+## Store-review demo clinic (separate seed)
+
+```bash
+npm run seed:demo -- --allow-demo-seed
+```
+
+`database/seed/demo-store-review.ts` creates ONE approved, obviously fictional
+clinic ("Demo Family Clinic (store review)") with an owner, a doctor and a
+receptionist, five demo patients, a few appointments, one patient waiting in
+the queue, a prescription, and a demo **patient-app** account already linked to
+one patient. It is safe to re-run (it looks up each piece first) and never runs
+on startup. It is independent of `npm run seed`; it only needs the
+schema built (`database/schema/`).
+
+| Variable | |
+|---|---|
+| `DEMO_STAFF_PASSWORD` | Required. At least 12 characters; the dev seed passwords are refused |
+| `DEMO_PATIENT_EMAIL` | Required. A mailbox you control: the patient app signs in with an emailed 6-digit code |
+| `DEMO_STAFF_EMAIL_DOMAIN` | Optional, default `demo-clinic.example` (staff are `owner@`, `doctor@`, `reception@` on it) |
+| `ALLOW_DEMO_SEED=1` | Same as the `--allow-demo-seed` flag |
+| `ALLOW_DEMO_SEED_IN_PRODUCTION=1` | With `NODE_ENV=production`, needed as well (or the `--allow-demo-seed-in-production` flag) |
+
+The guard logic is in `src/demo-seed/` (unit-tested); store-review steps are in
+`mobile-app/docs/RELEASE.md`.
 
 ## Logins
 
@@ -96,8 +126,9 @@ step is final).
   payment each; 1 clinic waiting for approval (approval screen).
 - **Clinics:** Smile Care has two branches (Clifton, Gulshan-e-Iqbal) —
   Dr. Bilal works at both on alternate days. Al-Shifa charges 5 % tax.
-  Every feature is on except the ones without a provider (SMS, WhatsApp,
-  online payments, online booking, patient portal); the general clinic has
+  Every feature is on except the ones without a provider (`comms.sms`,
+  `comms.whatsapp`, `billing.online_payments`, `appointments.online_booking`,
+  `patients.portal`); the general clinic has
   the dental-only features off.
 - **Staff:** owners, admins, doctors (salary, salary + commission,
   commission only), receptionists, assistants / nurse, accountants, one

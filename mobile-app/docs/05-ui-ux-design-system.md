@@ -34,10 +34,10 @@ All colours are CSS variables in `src/global.css`, used through Uniwind classes.
 
 | Token (class root) | Use | Staff | Patient |
 | --- | --- | --- | --- |
-| `background` / `foreground` | Screen background / main text | neutral | warm neutral |
+| `background` / `foreground` | Screen background / main text | neutral (the web's slate palette, UI-01) | slate, dark base like the web |
 | `card` / `card-foreground` | Cards, rows, sheets | | |
 | `muted` / `muted-foreground` | Secondary surfaces / secondary text | | |
-| `primary` / `primary-foreground` | Primary buttons, active tab, links, focus | **clinic brand** (runtime) | platform teal-blue |
+| `primary` / `primary-foreground` | Primary buttons, active tab, links, focus | **clinic brand** (runtime) | platform MedTrackr blue `#2563eb` (dark `#3f7dff`), set in `global.css` / `core/theme/platform-tokens.ts` |
 | `secondary`, `accent` | Secondary buttons, pressed rows | | |
 | `destructive` | Delete, cancel visit, errors | red | red |
 | `success` *(new)* | Completed, taken, connected | green | green |
@@ -104,7 +104,7 @@ Mixed text (Urdu with English medicine names) stays in one `Text` with the Urdu 
 
 - `lucide-react-native` via `<Icon as={…}>`. Sizes: 16 (inline), 20 (row/button), 24 (tab bar,
   header), 32+ (empty states only).
-- No tooth/dental-only icons (F-05). Neutral marks: `Stethoscope`, `HeartPulse`, `Pill`,
+- No tooth/dental-only icons (F-05). The product mark is the web's "M" (`BrandMark`, A-25) — a neutral mark, not a tooth. Neutral marks: `Stethoscope`, `HeartPulse`, `Pill`,
   `CalendarClock`, `Users`, `ClipboardList`, `Ticket`, `Bell`, `Building2`.
 - Clinic logos from `theme.logo_url` via `expo-image`, fallback = initials avatar on clinic colour.
 - Patient avatars: initials on a deterministic colour from a fixed palette of 8 token-based tints

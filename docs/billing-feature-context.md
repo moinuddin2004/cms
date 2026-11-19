@@ -3,7 +3,15 @@
 **Snapshot:** 2026-10-17, branch `feat/doctor-wise-queue`. Everything below was read from the code (not assumed). Where something is *unverified* it says so.
 **Purpose:** give a planning AI everything it needs to design the "Billing, Invoices & Payments" feature for DentalFlow **without having to explore the repo first**. The feature is NOT greenfield: a billing module already exists and covers part of the requirement. The job is to close the gaps and fix the foundation, not rebuild.
 
-> **Outdated on access (2026-10-23):** this is a pre-billing-v2 snapshot. Roles (`clinic_admin` / `receptionist` / `doctor`), `RolesGuard`, `@Roles` and `@CurrentActor` no longer exist. Billing is gated by permissions — `billing.desk.use`, `billing.invoice.view` (scoped), `billing.invoice.void`, `billing.refund.issue`, `billing.price.override`, `billing.discount.apply` / `.custom`, `billing.cash_close`, … — via `@Can(...)` and `AccessContext.decide()` for discount limits. See [access-control/README.md](access-control/README.md).
+> **Historical snapshot, superseded by billing v2 (checked 2026-11-19).** Everything below describes the code *before* the billing v2 rebuild. The current design is in [finance-billing-erd.md](finance-billing-erd.md) (tables), [billing-v2-test-cases.md](billing-v2-test-cases.md) (behaviour) and [commissions.md](commissions.md). What changed against this document:
+>
+> - **Model:** invoices have no draft (stored status `ISSUED` / `CANCELLED`; `UNPAID` / `PARTIALLY_PAID` / `PAID` / `OVERDUE` are computed from amounts and `due_date`). The billable unit is `charges` (from the consultation fee, performed treatments, treatment plans or manual lines), paid through patient-level `payments` + signed `payment_allocations`. Overpayment becomes the patient's **advance**. Invoice revisions (edit with reason) replace the old draft-only editing.
+> - **Gaps closed:** service/price catalog (`services`, `service_prices`, per-location and per-doctor); discount types with limits and notes (`discount_types`; coupons are gone); advance deposits; refunds (`refunds` + `refund_sources`, paid out of advance); per-document numbering (`document_sequences`, per org + location + type + year, atomic); patient statement (`ledger_entries`); cash close; payment accounts; "ready to bill" from the queue; billing audit (`billing_audit_logs`); nightly invariant job; print data endpoints (`/print/*`, A4 or 80 mm thermal, Urdu-capable) replacing the pdf-lib receipt; `idempotency` via `client_request_id` on payments and refunds.
+> - **Defects B1 to B15 (section 6):** fixed by the rebuild (per-org/location atomic numbering, tenant-scoped reads, transactions, `ClockService` dates, derived status, shared `money` util). Not repeated here as open items.
+> - **Still the old model:** `credit_packages` / `patient_credits` (legacy prepaid packages, not connected to payments; billing v2 advances are the live wallet), `expenses`, `financial-summary`. Money in billing v2 is still `numeric(12,2)` rupees; commissions, payroll, lab and the general ledger use `*_minor` bigint.
+> - **Not built:** insurance claims, online payment gateway (the mock was removed), late fees, patient-facing invoice sharing.
+> - **Access:** roles (`clinic_admin` / `receptionist` / `doctor`), `RolesGuard`, `@Roles` and `@CurrentActor` no longer exist. Billing is gated by permissions: `billing.desk.use`, `billing.invoice.view` (scoped), `billing.invoice.edit`, `billing.invoice.void`, `billing.payment.collect`, `billing.refund.issue`, `billing.price.override`, `billing.discount.apply` / `.custom`, `billing.cash_close`, `billing.activity.view`, `expenses.view` / `.manage`, via `@Can(...)` and `AccessContext.decide()` for discount limits. See [access-control/README.md](access-control/README.md).
+> - **Other stale facts in the text below:** the DB is hand-maintained SQL in `backend/database/` (no `synchronize`, a `changes/` script per change); web-app routes live in `src/routes/`; forms are Sheets/`FormSheet`.
 
 ---
 
@@ -31,7 +39,7 @@ Multi-tenant SaaS for dental/medical clinics, Pakistan-focused (currency PKR, ti
 |---|---|
 | Backend `backend/` | NestJS 11, TypeScript, TypeORM 0.3, PostgreSQL (Neon), `pdf-lib`, `@nestjs/schedule` (cron), Socket.IO |
 | Frontend `web-app/` | React 19, TanStack Start/Router/Query/Form/Table, Zustand, shadcn/ui, Tailwind 4, Zod 4, axios, sonner, date-fns, Recharts |
-| DB schema in dev | `synchronize: true` — schema changes go **in entities only**. Owner's standing rule: **no migration files** during dev. |
+| DB schema | Hand-maintained SQL in `backend/database/` (`synchronize` is off; a `changes/` script per change). *(This snapshot predates that: it said `synchronize: true`, no migration files.)* |
 
 ### Request pipeline (backend)
 Global guards in order: `JwtAuthGuard` → `TenantContextGuard` (reads `x-organization-id` + `x-location-id` headers → `@ActiveTenant()` gives `{organizationId, locationId}`) → `FeatureFlagGuard` (`@RequireFeature('key')`) → `RolesGuard` (`@Roles(AppRole.CLINIC_ADMIN | RECEPTIONIST | DOCTOR)`, gives `@CurrentActor()`; routes without `@Roles()` are open to any member of the location). *(Historical — now `AccessGuard` + `@Can`; see the note at the top.)*
@@ -144,7 +152,7 @@ Fix these as part of the work — the new design builds on them.
 - Dates via `DatePicker`/`DateTimePicker` (`@/components/shared/`), never native date input. shadcn `Input`/`Button` only. Tailwind classes, no inline styles/hardcoded colors.
 - No axios in components: calls live in `features/<x>/services/*.api.ts`, consumed by TanStack Query hooks.
 - Backend: DTO validation, `ResponseWrapper`, tenant-scoped queries on **every** lookup (org + location), `@RequireFeature`, `@Roles` on all new/changed billing routes. Transaction for any multi-write money operation. Audit trail for financial mutations.
-- **Dev DB: entity changes only, no migration files.** Run `npm run build` (backend) and `npx tsc --noEmit` + `npm run check` (web-app) before declaring done; Vitest exists in web-app, Jest in backend (add unit tests for the money math and status derivation — pure functions are easy to test, see `queue` specs for style).
+- **Schema (historical wording: "entity changes only, no migration files"; now edit the entity, `schema/02_tables.sql` and add a `changes/` script).** Run `npm run build` (backend) and `npx tsc --noEmit` + `npm run check` (web-app) before declaring done; Vitest exists in web-app, Jest in backend (add unit tests for the money math and status derivation — pure functions are easy to test, see `queue` specs for style).
 - Owner prefers autonomous end-to-end execution and communicates in Roman Urdu/English.
 
 ---

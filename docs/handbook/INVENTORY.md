@@ -1,5 +1,23 @@
 # Handbook Phase 1 — Documentation and Image Inventory
 
+> **Snapshot status (checked 2026-11-19).** This document, like the whole handbook, reflects the code as of **2026-10-28**. Chapters have only been corrected where a statement became factually wrong (Chapters 4, 6, 7, 64, 65). Chapters not listed there do **not** cover the following, all added since and all verified in the code:
+>
+> - **Mobile app** (`mobile-app/`, Expo): one app with a staff space (today, queue, patients, appointments, notifications) and a patient space (records, family profiles, medications, live token, appointments).
+> - **Patient accounts** (`patient-auth`, `patient-app`, `patient-links`): email login codes, patient sessions with their own token secret, Google sign-in, linking an app profile to clinic patient records by claim link or QR, and a `/patient-api/*` surface fenced from the clinic API. Gated by the `patient_app` feature.
+> - **Push notifications**: a `push` channel through Expo for staff devices and patient devices (`user_devices`, `patient_devices`); patient events for queue turn near, queue called and a 24-hour appointment reminder.
+> - **Medications**: medication schedules created from finalized prescriptions and a patient medications API (`medications`).
+> - **Product events** (`product-events`): app usage events with a retention job.
+> - **Email**: real SMTP sending, notification emails with per-clinic and per-user switches, a platform override for mandatory events, a daily cap, and an email verification gate on password accounts (`EmailVerifiedGuard`).
+> - **Clinic approval, invite links and join requests** (`clinic-access`): self-signup clinics wait for super admin approval and start with no free trial; staff join by invite link or Workspace domain. Chapters 45, 46, 53 and 56 still describe a 14-day trial, email verification as informational and OAuth as off.
+> - **Google sign-in** for staff (Identity Services ID token), replacing the unregistered OAuth code the chapters describe.
+> - **Hand-written SQL schema** (`backend/database/`): TypeORM `synchronize`, migrations and `data-sourse.ts` are gone; the app never changes the schema.
+> - **Quick search** (`search`, Ctrl+K) with trigram indexes, and **clinic timezone** handling in the web app (`@/lib/datetime`, location timezone).
+> - **Desktop app** (`desktop-app/`, Tauri shell around the web build) with its own Google sign-in hand-off, and a **landing site** (`landing/`, Astro).
+> - **Operations files**: Dockerfiles, `docker-compose.yml` and a GitHub Actions CI workflow now exist; app-version floor endpoint for the mobile app; subscription reminder job; lab payables bill-edit screens and hourly lab overdue notifications.
+>
+> Counts, endpoint totals and feature lists below are as of 2026-10-28 and were not recomputed.
+
+
 **Date:** 2026-10-26. The inventory covers branch `master` at HEAD `26a0303`. The working tree is clean except `web-app/package.json`.
 **Method:** Every document was read and its key claims were sample-checked against the code. Nothing was executed and no application file was changed. Every image was opened and looked at.
 **Rule applied:** The code is the source of truth. Where a document disagrees with the code, the conflict is recorded below.

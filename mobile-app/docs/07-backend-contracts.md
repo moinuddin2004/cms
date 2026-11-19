@@ -248,6 +248,8 @@ clinic; create is not.
 | --- | --- | --- | --- |
 | POST `/me/devices` | `@ContextFree()` (user-owned, no tenant) | `{ expoPushToken, platform: 'android'\|'ios', deviceLabel? ≤80, appVersion ≤20 }` | `{ id }` — upsert by token; a token moves to the calling user if it belonged to another user |
 | DELETE `/me/devices` | same | `{ expoPushToken }` | `{ deleted }` |
+| POST `/auth/devices/unregister` | **not built yet** — `@Public`, rate-limited, `{ expoPushToken }` → `{ ok: true }` (removes that token from the staff devices table) | | The staff app (audit M4, `finishPendingUnregister`) calls it on a signed-out start to drop a push token kept after an offline / forced sign-out; until the backend route exists the call fails quietly and the token is kept. The patient equivalent exists: `POST /patient-auth/devices/unregister` (§5) |
+| POST `/me/events` | `@ContextFree()` | `{ events: [...] }` | Privacy-safe product events (M2-13): names and properties in [analytics-events.md](analytics-events.md) |
 
 ### 4.3 App version — `GET /app/min-version` (`@Public`, M0-08)
 
@@ -265,6 +267,7 @@ All `@Public()` + `@RateLimit` + `@PatientAuthRoute()` metadata (so `PatientFenc
 | POST `/patient-auth/google` | `{ idToken, termsVersion, privacyVersion }` | `PatientSession` | 30 / 15 min per IP |
 | POST `/patient-auth/refresh` | header `x-patient-refresh-token` | `PatientSession` (rotated) | 300 / 5 min |
 | POST `/patient-auth/logout` | header `x-patient-refresh-token` | `{ ok: true }` | |
+| POST `/patient-auth/devices/unregister` | `{ expoPushToken }` | `{ ok: true }` always (the push token is the credential; used for the offline sign-out cleanup) | 30 / 15 min |
 
 ```ts
 interface PatientSession {
@@ -338,6 +341,7 @@ interface LocationRef { id: string; name: string; timezone: string; phone: strin
 | POST `/patient-api/medications/dose-events` | `{ events: { scheduleId, dueAt, action: 'taken'\|'skipped', actedAt }[] }` (≤200) | `{ accepted: number }` — upsert on `(schedule_id, due_at)`, latest `actedAt` wins | M3-02 |
 | POST `/patient-api/devices` | `{ expoPushToken, platform, deviceLabel?, appVersion }` | `{ id }` | M3-07 |
 | DELETE `/patient-api/devices` | `{ expoPushToken }` | `{ deleted }` | M3-07 |
+| POST `/patient-api/events` | `{ events: [...] }` | privacy-safe product events (60 / 5 min); list in [analytics-events.md](analytics-events.md) | M2-13 |
 
 **Claims as built (M2-04)** — rate limit 30 / 15 min per IP on both routes.
 `link = { id, profileId, clinic: ClinicRef, location: LocationRef | null, status: 'active', linkedAt, linkMethod: 'staff_qr', linkedByLabel: 'Clinic QR' }`,

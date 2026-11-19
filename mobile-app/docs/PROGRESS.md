@@ -5,7 +5,7 @@
 > Implementers change only their own row (`in-progress`, `review`). The architect sets `ready`,
 > `changes-requested`, `done`.
 
-**Current phase:** 1 — Staff baseline + UI in parallel (all Sonnet sessions; a final Opus audit session when everything is done) · **Running:** M1-08, M1-09, M1-11, M1-12, M1-14, M2-02b · **Merged today:** M1-15a, M1-13a · **Next:** M1-10, M1-13, M1-05, M1-15, then M1-16 · Updated 2026-11-15
+**Current phase:** 4 done in code — every card of phases 0–4 is merged into `mobile/develop`; the final independent audit (`reviews/AUDIT-2026-11/report.md`, 4 High / 13 Medium / 24 Low) is fixed except for the items noted in HANDOFF (the staff offline-unregister endpoint `POST /auth/devices/unregister` is still needed on the backend) · **Open:** M0-D device smoke run, UI-02 (UI/UX follow-ups), M4-02 screenshots, O-01 final app identity, owner/lawyer review of the legal drafts, M4-06 (after launch), M2-16 (iOS only) · Updated 2026-11-17
 
 > **Parallel work rule:** one checkout = one implementer at a time. Two implementers in the same folder
 > share one branch and one working tree (that is how M0-08 ended up on M0-01's branch). For parallel work
@@ -69,23 +69,26 @@
 | M2-07 | Claim flow P-01 | MOB | M | M2-04, M2-06 | done | Sonnet session | 2026-11-15 | rework-1 |
 | M2-15 | Staff "Link app" QR screen (S-09) | MOB | S | M2-04, M1-12 | done | Sonnet session (with M2-07) | 2026-11-15 | rework-1 |
 | M2-13 | Product events (analytics) | BE+MOB | S | M2-06 | done | Sonnet session | 2026-11-15 | rework-1 |
-| M2-04 … M2-16 (rest) | Patient core | — | — | see 10 | spec | | | |
+| M2-16 | Apple sign-in (iOS only, behind a platform check) | MOB | S | M2-06 | spec | | | only when an iOS build is planned |
 | M3-01 | Medication schedules from finalized prescriptions (parsers + event handler) | BE | L | M2-08 | done | Sonnet session | 2026-11-15 | rework-1 |
 | M3-02 | Patient medications endpoints (list, patch, dose events) | BE | M | M3-01 | done | Sonnet session (with M3-01) | 2026-11-15 | rework-1 |
-| M3-03 | Reminder engine | MOB | L | M3-02 | done | Sonnet session | 2026-11-21 | rework-1 |
-| M3-04 | Today screen P-02 | MOB | L | M3-03 | done | Sonnet session (with M3-03) | 2026-11-21 | rework-1 |
-| M3-08 | Appointment confirm (patient_confirmed_at) | BE+MOB | S | M2-09 | done | Sonnet session | 2026-11-21 | rework-1 |
-| M3-09 | Emergency/contact sheet P-07 | MOB | S | M2-09 | done | Sonnet session (with M3-08) | 2026-11-21 | rework-1 |
+| M3-03 | Reminder engine | MOB | L | M3-02 | done | Sonnet session | 2026-11-16 | rework-1 |
+| M3-04 | Today screen P-02 | MOB | L | M3-03 | done | Sonnet session (with M3-03) | 2026-11-16 | rework-1 |
+| M3-08 | Appointment confirm (patient_confirmed_at) | BE+MOB | S | M2-09 | done | Sonnet session | 2026-11-16 | rework-1 |
+| M3-09 | Emergency/contact sheet P-07 | MOB | S | M2-09 | done | Sonnet session (with M3-08) | 2026-11-16 | rework-1 |
 | M3-05 | Patient realtime gateway + queue/active + visit tokens | BE | M | M2-03 | done | Sonnet session | 2026-11-15 | rework-1 |
 | M3-06 | Live token card + visit screen (P-06) | MOB | M | M3-05 | done | Sonnet session | 2026-11-15 | rework-1 |
 | M3-07 | Patient push (BE + MOB) | BE+MOB | M | M3-05, M1-04 | done | Sonnet session (with M3-06) | 2026-11-17 | rework-1 |
-| M4-01 | Urdu translation pass + Noto Nastaliq font | MOB | M | — | done | Sonnet session | 2026-11-21 | rework-1; native-speaker review before release |
+| M4-01 | Urdu translation pass + Noto Nastaliq font | MOB | M | — | done | Sonnet session | 2026-11-16 | rework-1; native-speaker review before release |
 | M4-05 | Release hardening (A-24 error-reporting seam, perf budgets, patient gate QA) | MOB | M | M4-01 | done | Sonnet session | 2026-11-15 | rework-1 |
 | M4-03 | Demo clinic seed + demo accounts | BE | S | — | done | Sonnet session + team lead | 2026-11-17 | rework-1; seed never run on a DB |
 | M4-04 | Privacy policy, terms, Data safety, deletion page | ALL | M | — | done | Sonnet session + team lead | 2026-11-17 | rework-1; DRAFT for owner/lawyer |
-| M4-02 | Store assets: icon, adaptive/monochrome icons, splash (A-25 MedTrackr) | MOB | S | — | done (icons + splash); screenshots need a device | team lead | 2026-11-17 | |
+| M4-02 | Store assets: icon, adaptive/monochrome icons, splash (A-25 MedTrackr) | MOB | S | — | done (icons + splash); store screenshots need a device | team lead | 2026-11-17 | regenerate with `scripts/make-brand-assets.py` |
 | M4-06 | Require `aud` on staff tokens | BE | S | — | spec | | | one release after launch |
-| UI-01 | UI/UX review + welcome page | MOB | M | — | review | Opus session | 2026-11-17 | report `docs/reviews/UI-UX-2026-11/report.md`; UI-02 follow-ups listed there |
+| UI-01 | UI/UX review + welcome page | MOB | M | — | review (merged into develop 2026-11-17) | Opus session | 2026-11-17 | report `docs/reviews/UI-UX-2026-11/report.md`; needs device check (light/dark, Urdu toggle, 1.5x font) |
+| UI-02 | UI/UX follow-ups (patient Home → Today first + More screen, patient offline banner in Urdu, Walk-in header, DoseRow / Reminders padding + RTL chevron) | MOB | M | UI-01 | spec | | | proposed in the UI-01 report (P1-11 … P1-15) |
+| AUDIT | Final independent audit + fixes (notify/realtime, account/auth, patient mobile, staff mobile) | ALL | L | M4-05 | done (in develop) | Opus audit + Sonnet fix sessions | 2026-11-17 | `docs/reviews/AUDIT-2026-11/report.md`; backend `POST /auth/devices/unregister` still missing (staff mobile M4) |
+| EAS | EAS project id, development APK profile, run scripts, `.easignore` | MOB | S | M0-07 | done (in develop) | user | 2026-11-17 | commit 17d26689; `docs/RELEASE.md` |
 
 ## Gates
 

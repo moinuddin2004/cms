@@ -14,7 +14,7 @@
 | F-02 | One patient account across many clinics | 2026-11-11 |
 | F-03 | Family / guardian management is in MVP | 2026-11-11 |
 | F-04 | Dental first, but every feature must work for any clinic type | 2026-11-11 |
-| F-05 | No product name or dental-only icons in UI | 2026-10-23 |
+| F-05 | No dental-only wording or tooth icons in UI; neutral for every clinic type. (The "no product name" half was superseded by A-25: the app is named MedTrackr, 2026-11-17) | 2026-10-23 |
 | F-06 | User runs all package installs; agents only write the command | 2026-11-06 |
 | F-07 | No Redis. Single `all` backend process. Postgres for queues/pub-sub | 2026-10-31 |
 | F-08 | UTC on the wire and in DB; clinic instants shown in the location's timezone | 2026-11-02 |
@@ -80,3 +80,4 @@
 | 2026-11-15 | A-19 (suspended/unapproved clinic reads), A-20 (native Google library) by the architect; user: start all parallel work without asking |
 | 2026-11-16 | A-22 (patient deletion keeps revoked link rows; profiles soft-deleted) by the architect |
 | 2026-11-11 | User: staff cards (M1-02 onward) may start without the device gate M0-D; device checks accumulate in M0-D and must pass before the staff pilot (Gate A) |
+| 2026-11-17 | A-24 (error reporting seam), A-25 (MedTrackr name + M mark, supersedes the no-name half of F-05), A-26 (`patient_app` off → no patient pushes) |

@@ -1,8 +1,8 @@
 # 01 — Organizations, locations and clinic subscriptions
 
-**Backend:** `src/organizations/`, `src/locations/`, `src/subscriptions/`
+**Backend:** `src/organizations/`, `src/locations/`, `src/subscriptions/` (clinic approval lives in `src/clinic-access/`, see F-22)
 **Frontend:** `web-app/src/features/organizations/`, `features/locations/`, `features/account/`
-**Status:** Verified by reading the code. Nothing was executed. Statements are **VERIFIED** (seen in code) unless they are marked **INFERRED**.
+**Status:** Verified by reading the code. Nothing was executed. Re-checked against the code on 2026-11-19 (first written 2026-10-24). Statements are **VERIFIED** (seen in code) unless they are marked **INFERRED**.
 
 `subscriptions` is documented here, not separately. It creates organizations and locations through self-signup and the setup wizard, and it gates both through plan limits and read-only mode.
 
@@ -17,7 +17,7 @@ This module answers four questions:
 - **Who is the clinic?** Name, contact details, timezone and currency, and which specialties it practices (general, dental, skin, ortho, physio, eye).
 - **Where does it operate?** Each branch has an address, a short code (`MAIN`, `KHI`), a timezone (which decides what "today" means for queues and reports), a currency and per-branch settings such as tax rate and daily appointment cap.
 - **Is the clinic allowed to use the product right now?** Trial, paid period, grace period, read-only after expiry, and limits on branches and logins per plan.
-- **How does a new clinic start?** A self-signup creates the clinic, its main branch and the owner link in one step. A one-time setup wizard then collects the details.
+- **How does a new clinic start?** A self-signup creates the clinic, its main branch and the owner link in one step, as **pending approval**. A super admin approves it, and a one-time setup wizard collects the details.
 
 ## 2. Entities
 
@@ -38,14 +38,15 @@ One row is one clinic business. A dental group with three branches is one organi
 | `max_locations`, `max_users` | Per-org overrides of the plan limits. `null` means the plan's limit applies. |
 | `trial_ends_at`, `paid_until` | Subscription period. Both `null` means an **unmanaged** clinic: no expiry and no limits. |
 | `onboarding_pending` | `true` for self-signup clinics until the owner finishes `/setup`. |
+| `approval_status`, `approval_decided_at`, `approval_decided_by`, `approval_note` | `pending` | `approved` | `rejected` (enum `ClinicApprovalStatus`). Column default `approved`, so super-admin-created and older clinics need no approval; self-signup sets `pending`. While not `approved`, every tenant request is refused (`ClinicGateService`, checked in `TenantContextGuard`). Decided by a super admin through `POST /admin/clinics/:orgId/approval` (module `clinic-access`). |
 | `access_version` | Counter bumped by `AccessVersionService` (raw SQL) on every access change. Entity saves never write it (`insert: false, update: false`). |
-| `is_active` | Soft delete. A deactivated org is excluded from login and access resolution (`authorization.service.ts:189`, `:223`). |
+| `is_active` | Soft delete. A deactivated org is excluded from login and access resolution (`auth/services/authorization.service.ts`). |
 
 ### 2.2 `OrganizationOwnership` → `organization_ownership`
 
 One row means "this login owns this clinic". The owner has every permission at every location of the org; the access resolver checks this table.
 
-- `is_primary_owner`: `true` for the person who signed up. Extra owners are added with `false` by `user/user.service.ts:275` (module 02).
+- `is_primary_owner`: `true` for the person who signed up. Extra owners are added with `false` by `user/user.service.ts` (module 02).
 - Unique on (`user_id`, `organization_id`).
 
 ### 2.3 `OrganizationSettings` → `organization_settings`
@@ -56,7 +57,7 @@ One row per org (unique `organization_id`). It is created lazily on first read. 
 - `allow_location_override`.
 - Booking defaults: `default_slot_duration`, `advance_booking_days`, `cancellation_notice_hours`.
 
-**No backend code reads any of these columns** (grep over `src/`, excluding the entity and DTOs). The frontend uses them only to hide one card and grey out three inputs on the location-settings page. Real feature gating lives in `org_feature_flags` (feature-flags module).
+**No backend code reads any of these columns** (grep over `src/`, excluding the entity, DTO, controller and service that just load and save the row). The frontend uses them only to hide one card and grey out three inputs on the location-settings page. Real feature gating lives in `org_feature_flags` (feature-flags module).
 
 ### 2.4 `Location` → `locations`
 
@@ -66,10 +67,10 @@ One row is one branch, for example "Clifton branch, code KHI".
 |---|---|
 | `code` | Short branch code, unique per org (DB unique index and a service check). It cannot be changed after creation, because `UpdateLocationDto` has no `code`. |
 | `token_prefix` | Prefix of daily queue tokens ("KHI-007"). It falls back to `code`. The queue token engine reads it; no API writes it. |
-| `timezone`, `currency` | Entity defaults are `UTC` and `USD`, which differ from the org defaults. `ClockService` uses `timezone` for every "today" computation. |
+| `timezone`, `currency` | Entity defaults are `UTC` and `USD`, which differ from the org defaults (`Asia/Karachi`, `PKR`). The create and edit forms and DTOs now carry `timezone` (validated with `@IsTimeZone`) and `currency`. `ClockService` uses `timezone` for every "today" computation. |
 | `is_main_branch` | Flag only; several branches can have it. The setup wizard edits the first active branch, ordered by `is_main_branch DESC, created_at ASC`. |
-| `total_chairs`, `capacity_per_day`, `operating_hours`, `manager_id`, `business_model` | Stored, but no backend code reads them. |
-| `is_active` | Soft delete. Inactive branches are skipped by access resolution (`authorization.service.ts:247`, `:318`). |
+| `total_chairs`, `capacity_per_day`, `operating_hours`, `manager_id`, `business_model` | Stored, but no backend code reads them. `total_chairs` and `business_model` can be set through the create and update DTOs; the others have no API. |
+| `is_active` | Soft delete. Inactive branches are skipped by access resolution (`authorization.service.ts`). |
 
 ### 2.5 `LocationSettings` → `location_settings`
 
@@ -77,11 +78,11 @@ One row per branch (unique `location_id`). It is created with the branch, or laz
 
 | Field | Used by |
 |---|---|
-| `max_appointments_per_day` | **Used.** Booking cap in `appointments.service.ts:1126`. `0` means no cap. |
+| `max_appointments_per_day` | **Used.** Booking cap in `appointments.service.ts` (`max_appointments_per_day`). `0` means no cap. |
 | `tax_rate` | **Used.** Sales tax applied when an invoice is issued (`billing/tax/location-tax-rate.ts`), and by lab billing and purchase orders. |
-| `logo_url` | **Used.** Fallback logo for printed invoices when the theme has none (`billing/print/print-data.service.ts:213`). |
+| `logo_url` | **Used.** Fallback logo for printed invoices when the theme has none (`billing/print/print-data.service.ts`). |
 | `appointment_slot_duration` | Read only by the **frontend** as the booking form's default length (`useLocationSlotDuration.ts`). |
-| `advance_booking_days`, `cancellation_notice_hours`, `reminder_*`, `payment_gateway`, `late_fee_percentage`, `primary_color`, `theme` | Stored, but no code reads them. |
+| `advance_booking_days`, `cancellation_notice_hours`, `reminder_*`, `payment_gateway`, `late_fee_percentage`, `primary_color`, `theme` | Stored, but no backend code reads them (the brand colour and logo come from the theme settings, `theme.*`). The settings DTO accepts all of them. |
 | `organization_id` | Nullable. It stays `null` when the row is created lazily by `LocationsService.getSettings`, which omits it. |
 
 ### 2.6 `SubscriptionPayment` → `subscription_payments`
@@ -113,11 +114,11 @@ Because of the CASCADE rules, a **hard** delete of an organization removes its l
 **Common request path for every endpoint.**
 
 1. Express → `bootstrap/http.ts`: JSON body parser (5 MB), then the global `ValidationPipe` with `whitelist` + **`forbidNonWhitelisted`** + `transform`.
-2. Global guards in order (`app.module.ts:138-154`): `JwtAuthGuard` → `TenantContextGuard` → `FeatureFlagGuard` → `AccessGuard` → `SubscriptionGuard`.
+2. Global guards in order (`APP_GUARD` list in `app.module.ts`): `PatientFenceGuard` → `RateLimiterGuard` → `JwtAuthGuard` → `EmailVerifiedGuard` → `TenantContextGuard` (also checks the clinic is approved and the sign-in policy) → `FeatureFlagGuard` → `AccessGuard` → `SubscriptionGuard`.
 3. Controller → service → TypeORM repository.
 4. Every response uses `ResponseWrapper.success(data, message)`. Errors pass through `GlobalExceptionFilter`. For validation errors it returns the first message (for example "property id should not exist"), which the web app shows as a toast.
 
-`TenantContextMiddleware` (`common/middleware/tenant-context.middleware.ts`) is **not applied** anywhere. No module registers it.
+`TenantContextMiddleware` (`common/middleware/tenant-context.middleware.ts`) is still **not applied** anywhere. No module registers it.
 
 **Endpoint count: 25.**
 
@@ -138,19 +139,19 @@ The UI is `/organizations` → `routes/organizations.tsx`. It redirects non-supe
 
 | # | Capability | API | Execution path | Rules and validation | Tables | Side effects | Errors |
 |---|---|---|---|---|---|---|---|
-| F-01 | Create clinic | `POST /organizations` | `create` → `OrganizationsService.create` → `orgRepo.save` | `CreateOrganizationDto`: name (required, ≤255), email, phone ≤20, website ≤500, subscriptionPlan. Slug comes from the name. **No transaction.** | W `organizations`; then seeding writes `org_feature_flags` and role tables | `FeatureFlagsService.seedFlagsForOrg`, `AccessTemplatesService.seedForOrg` (system roles). **No owner, no location, no subscription dates**: the clinic is "unmanaged". No audit log. | 409 duplicate slug. 400 if the UI sends `clinicType` / `timezone` / `currency` (the form has those inputs; the DTO does not). |
+| F-01 | Create clinic | `POST /organizations` | `create` → `OrganizationsService.create` → `orgRepo.save` | `CreateOrganizationDto`: name (required, ≤255), email, phone ≤20, website ≤500, subscriptionPlan. Slug comes from the name. **No transaction.** | W `organizations`; then seeding writes `org_feature_flags` and role tables | `FeatureFlagsService.seedFlagsForOrg`, `AccessTemplatesService.seedForOrg` (system roles). **No owner, no location, no subscription dates**: the clinic is "unmanaged". No audit log. | 409 duplicate slug. 400 if a client sends `clinicType` / `timezone` / `currency` (the DTO does not have them; the create form sends only `name` and `subscriptionPlan`). |
 | F-02 | List clinics | `GET /organizations` | `findAll` | Active orgs only, ordered by name | R `organizations` | — | — |
 | F-03 | View clinic | `GET /organizations/:id` | `findOne` | No `ParseUUIDPipe` | R | — | 404. A malformed id probably reaches Postgres and returns 500 (INFERRED). |
-| F-04 | Edit clinic | `PATCH /organizations/:id` | `update` → `Object.assign` + save | `UpdateOrganizationDto`: name, email, phone, website, subscriptionPlan, isActive | W `organizations` | Changing `subscriptionPlan` here is **not audited**, unlike F-19. No access-version bump. | **The UI edit dialog sends the whole org object** (`setFormData(org)`), including `id`, `slug`, `createdAt` and `accessVersion`. With `forbidNonWhitelisted`, this should always fail with 400 "property id should not exist" (by reading; not executed). |
+| F-04 | Edit clinic | `PATCH /organizations/:id` | `update` → `Object.assign` + save | `UpdateOrganizationDto`: name, email, phone, website, subscriptionPlan, isActive | W `organizations` | Changing `subscriptionPlan` here is **not audited**, unlike F-19. No access-version bump. | The edit form (`useOrganizationForm.ts`) now sends only `name` and `subscriptionPlan`, so it is no longer rejected by `forbidNonWhitelisted`. |
 | F-05 | Deactivate clinic | `DELETE /organizations/:id` | `deactivate` → `isActive=false` | Confirm dialog in the UI | W `organizations` | Its users can no longer select it at login. Running sessions are not revoked. No audit log. | 404 |
 | F-06 | Read clinic settings | `GET /organizations/:id/settings` | `getSettings` (`@ContextFree`) | Super admin **or** owner of that org (`AuthorizationService.isOwner`); `ParseUUIDPipe` | R, or W lazily: `organization_settings` | Creates the row on first read | 403 "You cannot access settings for this organization"; 404 |
-| F-07 | Edit clinic settings | `PATCH /organizations/:id/settings` | `updateSettings(id, dto: any)` | `UpdateOrganizationSettingsDto`: booleans, slot 5–480, advance 1–365, notice 0–168 | W `organization_settings` | None. No code reads these values. | The UI sends the whole settings row, including `id`, `organizationId` and timestamps, so it should fail with 400 (by reading). |
+| F-07 | Edit clinic settings | `PATCH /organizations/:id/settings` | `updateSettings(id, dto: any)` | `@RequireSuperAdmin()` (owners can read but not write). `UpdateOrganizationSettingsDto`: booleans, slot 5–480, advance 1–365, notice 0–168 | W `organization_settings` | None. No code reads these values. | — |
 
 The UI at `/organizations/$id/settings` (`OrganizationSettingsFeature.tsx`) covers F-06 and F-07. `/organizations/$id/features` belongs to the feature-flags module (documented under customization).
 
 ### Locations (owner, Admin role, super admin)
 
-All handlers are in `locations/locations.controller.ts` → `LocationsService`. The class is `@ContextFree()`, so `TenantContextGuard` and `AccessGuard` do not check the tenant. Each handler checks the permission itself:
+All handlers are in `locations/locations.controller.ts` → `LocationsService`. The class is `@ContextFree()`, so `TenantContextGuard` and `AccessGuard` do not check the tenant. The class also carries `@UseGuards(JwtAuthGuard)`. Each handler checks the permission itself:
 
 - `authorize(req, orgId, locationId)` → `AccessResolver.resolve(user, org, location).can('admin.locations.manage')`, or 403 (`noPermission`).
 - The org comes from the location being acted on, or for create and list from `dto.organizationId` / the `x-organization-id` header.
@@ -162,13 +163,13 @@ The UI is `/locations` → `routes/locations.tsx` (`staticData.can = 'admin.loca
 
 | # | Capability | API | Execution path | Rules and validation | Tables | Side effects | Errors |
 |---|---|---|---|---|---|---|---|
-| F-08 | Add branch | `POST /locations` | `create` → plan check `SubscriptionsService.assertCanAddLocation` (skipped for super admins) → `LocationsService.create` | `CreateLocationDto`: name, code (≤50) required; address, city, state, postal, country, phone, email, timezone, currency, totalChairs ≥1, isMainBranch, businessModel. Code unique per org. **No transaction**: the location and settings rows are two separate saves. | W `locations`, `location_settings`; R `organizations`, `organization_ownership`, `employee_org_location_assignments` (usage count) | Default settings row. Timezone and currency default to `UTC` / `USD` because the UI form has no timezone or currency field (INFERRED impact: wrong "today" for a Pakistani clinic). No audit log. No access-version bump. | 409 duplicate code. 403 `PLAN_LIMIT` ("Your Professional plan allows 3 locations…"). 402 `SUBSCRIPTION_EXPIRED`. |
+| F-08 | Add branch | `POST /locations` | `create` → plan check `SubscriptionsService.assertCanAddLocation` (skipped for super admins) → `LocationsService.create` | `CreateLocationDto`: name, code (≤50) required; address, city, state, postal, country, phone, email, timezone (IANA, `@IsTimeZone`), currency, totalChairs ≥1, isMainBranch, businessModel. Code unique per org. **No transaction**: the location and settings rows are two separate saves. | W `locations`, `location_settings`; R `organizations`, `organization_ownership`, `employee_org_location_assignments` (usage count) | Default settings row. If a client omits timezone and currency they fall back to the entity defaults `UTC` / `USD`; the web form now always sends a timezone (starting from the clinic's current one). No audit log. No access-version bump. | 409 duplicate code. 403 `PLAN_LIMIT` ("Your Professional plan allows 3 locations…"). 402 `SUBSCRIPTION_EXPIRED`. |
 | F-09 | List branches | `GET /locations` | `findAll` | Super admin: every active location of every org (with `organization`). Otherwise the active org (header), or every org where the user holds the permission org-wide. | R `locations` | — | 403 when the user manages no org |
 | F-10 | View branch | `GET /locations/:id` | `authorizedLocation` → `findOne` | Permission in the branch's org | R | — | 404, 403 |
-| F-11 | Edit branch | `PATCH /locations/:id` | `update` → `Object.assign` + save | `UpdateLocationDto` (same fields as create minus `code` and `organizationId`, plus `isActive`) | W `locations` | Setting `isActive: true` **re-activates without the plan-limit check**. No audit log. | **The UI sends the whole location row** (`setFormData(loc)`), so it should fail with 400 (by reading). |
+| F-11 | Edit branch | `PATCH /locations/:id` | `update` → `Object.assign` + save | `UpdateLocationDto` (same fields as create minus `code` and `organizationId`, plus `isActive`) | W `locations` | Setting `isActive: true` **re-activates without the plan-limit check**. No audit log. | The edit form now sends only the editable fields (name, address, city, country, phone, email, timezone). |
 | F-12 | Deactivate branch | `DELETE /locations/:id` | `deactivate` → `isActive=false` | Confirm dialog. No check for the last branch, the main branch, future appointments or an open queue. | W `locations` | Access resolution skips the branch. Staff assignments, appointments and queue sessions stay as they are. | 404, 403 |
 | F-13 | Read branch settings | `GET /locations/:id/settings` | `getSettings` (lazy create) | Permission | R, or W lazily: `location_settings` | Lazy create leaves `organization_id` null | 403 for staff **without** `admin.locations.manage`. That includes the booking form's `useLocationSlotDuration`, so receptionists always fall back to 30 minutes. |
-| F-14 | Edit branch settings | `PATCH /locations/:id/settings` | `updateSettings` → `Object.assign` + save | `UpdateLocationSettingsDto` | W `location_settings` | Changes the tax on the next invoice issued and the daily booking cap | **Its field names do not match the entity.** The DTO has `defaultSlotDuration`, `maxDailyAppointments`, `enableReminders`, `reminderBeforeHours`, `followUpAfterDays`; the entity has `appointmentSlotDuration`, `maxAppointmentsPerDay`, `reminderEnabled`, `reminderHoursBefore`, … The UI sends the entity names plus `id` / timestamps, so it should get 400. If a client sent the DTO names, they would be accepted but silently not stored. |
+| F-14 | Edit branch settings | `PATCH /locations/:id/settings` | `updateSettings` → `Object.assign` + save | `UpdateLocationSettingsDto` | W `location_settings` | Changes the tax on the next invoice issued and the daily booking cap | The DTO field names now match the entity (`appointmentSlotDuration`, `maxAppointmentsPerDay`, `reminderEnabled`, `reminderDaysBefore`, `reminderHoursBefore`, `reminderChannels`, `taxRate`, …). |
 
 The UI at `/locations/$id/settings` (`LocationSettingsFeature.tsx`) covers F-13 and F-14. It also loads F-06 to apply `allowLocationOverride`; for a non-owner Admin that call returns 403 and the page treats the override as allowed. The same page embeds `QueueSettingsSection`, which belongs to the queue module (module 04). A comment says the reminders card is hidden "until SMS/WhatsApp delivery exists".
 
@@ -180,7 +181,7 @@ All handlers are in `subscriptions/account.controller.ts`. Each one is `@AnyMemb
 |---|---|---|---|---|---|---|---|
 | F-15 | Plan and billing summary | Any member. Owners also get plans, payment instructions and payment history. | `/settings/subscription` → `SubscriptionPage.tsx`; banner `AccountBanner.tsx` inside `DashboardLayout` | `GET /account` | `summary` → `SubscriptionsService.summary` + `ClinicSetupService.get` | R `organizations`, `locations`, `location_settings`, `organization_ownership`, `employee_org_location_assignments`, `subscription_payments`, `config_values` | Usage counts active locations, and owners plus active staff with a `user_id`. The banner shows expired, grace and trial states; owners with `onboardingPending` are redirected to `/setup`. |
 | F-16a | Read setup | Owner | `/setup` → `SetupWizardPage.tsx` | `GET /account/setup` | `ClinicSetupService.get` | R | Returns the main branch: first active, `is_main_branch DESC, created_at ASC`. |
-| F-16b | Save clinic step | Owner | same | `PATCH /account/setup/clinic` | `saveClinic` (**transaction**) | W `organizations`; W `locations` (all of them) | `SetupClinicDto`: name, phone, email, website, specialtyTags ⊂ `CLINIC_SPECIALTIES`, timezone, currency (upper-cased). **Overwrites timezone and currency on every branch of the org.** The timezone is free text; it is not checked against IANA names. |
+| F-16b | Save clinic step | Owner | same | `PATCH /account/setup/clinic` | `saveClinic` (**transaction**) | W `organizations`; W `locations` (all of them) | `SetupClinicDto`: name, phone, email, website, specialtyTags ⊂ `CLINIC_SPECIALTIES`, timezone, currency (upper-cased). **Overwrites timezone and currency on every branch of the org.** The timezone is validated as an IANA zone (`@IsTimeZone`). |
 | F-16c | Save branch step | Owner | same | `PATCH /account/setup/location` | `saveLocation` (**transaction**) | W `locations` (main branch), `location_settings` | name, address, city, phone, email, taxRate 0–100 |
 | F-16d | Finish setup | Owner | same | `POST /account/setup/complete` | `complete` → `onboarding_pending=false` | W `organizations` | Does not check that the earlier steps were saved |
 
@@ -200,9 +201,10 @@ All handlers are in `subscriptions/admin-subscriptions.controller.ts`, with clas
 
 | # | Capability | Where |
 |---|---|---|
-| F-22 | **Self-signup.** `POST /auth/register` → `AuthService.register` → `UserService.createLocalUser` → `ClinicSetupService.createClinicForOwner`. In **one transaction** it creates the org (slug with a random suffix on collision, plan `professional`, `trial_ends_at = now + 14 days`, `onboarding_pending = true`, PKR / Asia/Karachi), the `MAIN` location (`is_main_branch`), its settings row and the primary ownership, and sets `users.last_accessed_*`. Feature-flag and role seeding run **after** the commit; a failure there is only logged. If clinic creation fails, the new user row is deleted. | Module 02 (auth) |
-| F-23 | **Plan limit on logins.** `assertCanAddUser`, called by `user/user.service.ts:241`. | Module 02 |
+| F-22 | **Self-signup.** `POST /auth/register` → `AuthService.register` → `UserService.createLocalUser` → `ClinicSetupService.createClinicForOwner`. In **one transaction** it creates the org (slug with a random suffix on collision, `approval_status = pending`, **no trial and no paid period** (`trial_ends_at` and `paid_until` stay `null`, so the clinic is unmanaged), `onboarding_pending = true`, PKR / Asia/Karachi), the `MAIN` location (`is_main_branch`), its settings row and the primary ownership, and sets `users.last_accessed_*`. Feature-flag and role seeding run **after** the commit; a failure there is only logged. If clinic creation fails, the new user row is deleted. After that `AuthService.register` starts email verification (`EmailVerificationService.start`). Until a super admin approves the clinic (`POST /admin/clinics/:orgId/approval`, `ClinicAccessService.decideApproval`: audited as `organization_approval`, notifies the owners with `clinic.approved` / `clinic.rejected`), `TenantContextGuard` refuses every tenant request with `CLINIC_PENDING_APPROVAL` (or `CLINIC_REJECTED`). Approval does not set a trial or plan; a super admin sets dates through F-19. `TRIAL_PLAN` and `TRIAL_DAYS` in `subscriptions/plans.ts` exist but nothing uses them. | Module 02 (auth) |
+| F-23 | **Plan limit on logins.** `assertCanAddUser`, called by `user/user.service.ts` (adding staff logins) and `clinic-access.service.ts` (approving a join request). | Module 02 and `clinic-access` |
 | F-24 | **Read-only enforcement.** `SubscriptionGuard`, the last global guard, rejects every non-GET with **402 `SUBSCRIPTION_EXPIRED`** once a managed clinic's period plus 3 grace days has passed. Exempt: super admins, `@Public`, paths `/auth/`, `/account`, `/me/`, `/admin/subscriptions`, and requests without an org. The org comes from `req.access` or the `x-organization-id` header. The result is cached per process for 30 s. | Applies to every module |
+| F-25 | **Subscription reminders.** `SubscriptionRemindersJob` (`@Cron('0 4 * * *')`, runs where jobs run: `worker` / `all`) notifies the clinic's owners through `NotificationService.notify` with `subscription.ending_soon` (7, 3 and 1 day before the period ends) and `subscription.expired` (once, from the grace period on). Each reminder is sent once (the outbox is the record). Link: `/settings/subscription`. | notifications |
 
 ## 5. Status lifecycles
 
@@ -232,7 +234,7 @@ What looks wrong:
 ```mermaid
 stateDiagram-v2
     [*] --> Unmanaged: POST /organizations (super admin)
-    [*] --> Trialing: self-signup (14 days, Professional limits)
+    [*] --> Unmanaged: self-signup (no trial; also needs approval, see F-22)
     Trialing --> Active: payment recorded (paid_until > now)
     Trialing --> Grace: trial ends
     Active --> Grace: paid_until passes
@@ -291,6 +293,7 @@ What looks wrong:
 - **access:** `AccessResolver`, the `noPermission` helper, `AccessTemplatesService.seedForOrg`.
 - **feature-flags:** `FeatureFlagsService.seedFlagsForOrg`.
 - **settings-registry:** platform setting `subscription.payment_instructions`.
+- **notifications:** `NotificationService` for the reminder job (F-25).
 - **common:** `AuditService` (subscriptions only), `ResponseWrapper`, `RequestActor`.
 
 **Used by:**
@@ -302,71 +305,56 @@ What looks wrong:
 - engine, labs, theme: org lookups.
 - auth: ownership and the org and location lists at login.
 - user: `assertCanAddUser` and ownership creation.
+- clinic-access: reads and decides `organizations.approval_status`; `assertCanAddUser` when a join request is approved.
 
 The `SubscriptionGuard` runs on every write in the app.
 
 ## 7. Background jobs, scheduled tasks, webhooks, events
 
-- **None.** Trial and paid expiry is computed lazily on each request; no cron moves states (grep for `@Cron`, `@Interval` and Bull processors found nothing related).
-- **No notifications**: nothing emails or alerts about trial ending, grace or expiry. Owners see it only in the in-app banner.
-- **No realtime events.** Creating or deactivating a location does not bump `access_version` or emit `access.changed`.
+- **One job:** `SubscriptionRemindersJob` (F-25), daily at 04:00 server time (UTC), only in `worker` / `all` processes. Trial and paid expiry itself is computed lazily on each request; no job changes the state.
+- **Notifications:** `subscription.ending_soon`, `subscription.expired` (F-25) and `clinic.approved` / `clinic.rejected` (F-22) go to the clinic's owners (mandatory events, email on by default; email goes only to verified addresses). Owners also see the state in the in-app banner.
+- **No realtime events from this module.** Creating or deactivating a location does not bump `access_version` or emit `access.changed`.
 - **No payment gateway or webhook.** Payments are recorded by hand (`plans.ts` comment).
 
 ## 8. Gaps
 
-**UI calls that are broken by reading the code (not executed).** The global `forbidNonWhitelisted: true` rejects unknown body properties.
-
-| UI action | Sends | Expected result |
-|---|---|---|
-| Edit organization | the whole org row (`id`, `slug`, `createdAt`, `accessVersion`, `clinicType`, `timezone`, `currency`, …) | 400 |
-| Create organization, with Clinic Type / Timezone / Currency filled | fields not in `CreateOrganizationDto` | 400. Also, `handleCreateNew` does not reset `formData`, so a create opened after an edit carries the old org's `id`. |
-| Edit location | the whole row | 400 |
-| Save location settings | entity field names plus `id` and timestamps | 400 |
-| Save organization settings | the whole row | 400 |
+The 2026-10-24 list of UI calls that the global `forbidNonWhitelisted: true` rejected is **resolved**: the web forms for organizations, locations and settings now send only the fields their DTOs accept, and `UpdateLocationSettingsDto` uses the entity's field names. (Checked in `web-app/src/features/{organizations,locations}` hooks and the DTOs; not executed.)
 
 **API without UI:**
 
 - Reactivating an organization or a location (both lists hide inactive rows).
 - Writing `token_prefix`, `operating_hours`, `manager_id`, `capacity_per_day`, `clinic_type`, `specialty_tags` (except in setup), `max_locations`, `max_users` (only through F-19).
 
-**UI without API:**
-
-- The org form's Clinic Type, Timezone and Currency fields.
-- The location settings reminder card (hidden).
-- The location form has no timezone or currency field at all.
-
-**Stored but unused:**
+**Stored but unused (no backend code reads them):**
 
 - The entire `organization_settings` table.
-- Location settings: `advance_booking_days`, `cancellation_notice_hours`, `reminder_*`, `payment_gateway`, `late_fee_percentage`, `primary_color`, `theme`.
+- Location settings: `advance_booking_days`, `cancellation_notice_hours`, `reminder_*`, `payment_gateway`, `late_fee_percentage`, `primary_color`, `theme`. Only `max_appointments_per_day`, `tax_rate`, `logo_url` and `appointment_slot_duration` (frontend) are used.
 - Location: `total_chairs`, `operating_hours`, `capacity_per_day`, `business_model`, `manager_id`.
-
-**DTO / entity mismatch:** `UpdateLocationSettingsDto` names five fields that do not exist on the entity, and lacks `appointmentSlotDuration`, `maxAppointmentsPerDay`, `reminderEnabled`, `reminderDaysBefore`, `reminderHoursBefore`. **As written, there is no working way to change the daily appointment cap or the slot duration.**
 
 **Permission problems:**
 
-- `GET /locations/:id/settings` needs `admin.locations.manage`, so the booking form's slot-duration lookup fails for receptionists and doctors.
-- Location settings for non-owner Admins call `GET /organizations/:id/settings`, which allows owners only.
+- `GET /locations/:id/settings` needs `admin.locations.manage`, so the booking form's slot-duration lookup (`useLocationSlotDuration`) fails for receptionists and doctors.
+- Location settings for non-owner Admins call `GET /organizations/:id/settings`, which allows owners and super admins only.
 
 **Validation:**
 
-- Org and location `timezone` are not validated as IANA zones.
-- `currency` is free text.
+- `currency` is free text (timezones are now validated as IANA zones).
 - `:id` params on organizations and locations (except settings) have no `ParseUUIDPipe`.
 - `isMainBranch` is not exclusive.
 
 **Consistency:**
 
-- Branches created through `POST /locations` default to `UTC` / `USD` instead of the org's timezone and currency.
+- A branch created through `POST /locations` without a timezone or currency gets `UTC` / `USD`, not the org's.
 - Creating a location and its settings is not atomic (two saves, no transaction). Super-admin org creation and seeding are not atomic either.
+- A super-admin-created clinic (F-01) has no trial or paid dates, so it is unmanaged; a self-signup clinic is unmanaged too until a super admin sets dates (F-22).
 
-**Audit:** organization and location create, update and deactivate write no audit rows. Only subscription changes are audited.
+**Audit:** organization and location create, update and deactivate write no audit rows. Subscription changes and approval decisions are audited.
 
-**Stale docs:** CLAUDE.md says `TenantContextGuard` skips `/organizations` and `/locations` by path prefix. The guard explicitly has no prefix list; it relies on `@RequireSuperAdmin` and `@ContextFree` (`tenant-context.guard.ts:25`).
+**Stale docs:** the root `CLAUDE.md` still says `TenantContextGuard` skips `/organizations` and `/locations` by path prefix. The guard has no prefix list; it relies on `@RequireSuperAdmin` and `@ContextFree` (`auth/guards/tenant-context.guard.ts`).
 
 ## 9. Questions for you
 
-1. Should a super-admin-created clinic start on a trial, or stay "unmanaged" (no expiry, no limits) as it does today?
+1. Should a clinic (super-admin-created or self-signup) start on a trial, or stay "unmanaged" (no expiry, no limits) as it does today? The code has unused `TRIAL_PLAN` / `TRIAL_DAYS` constants for a 14-day Professional trial.
 2. When a clinic pays for a lower plan during a higher-plan trial, should the payment downgrade it immediately?
 3. Should deactivating a clinic also make it read-only, end active sessions, or block the subscription guard? Today it only hides the clinic at login.
 4. Can a clinic have more than one main branch? If not, which branch should become main when the current one is deactivated?
@@ -375,4 +363,4 @@ The `SubscriptionGuard` runs on every write in the app.
 7. What should `advance_booking_days`, `cancellation_notice_hours` and `late_fee_percentage` do? Should they be enforced at booking and invoicing?
 8. Who is `locations.manager_id` meant to be, an employee or a login? And what powers would a branch manager have?
 9. Should staff without `admin.locations.manage` be able to read the booking-related parts of location settings (slot duration, daily cap)?
-10. Should owners get trial-ending and expiry notifications (email / WhatsApp), and how many days ahead?
+10. Owners already get ending-soon (7, 3, 1 days) and expired notifications in-app and by email. Are those days right, and is a WhatsApp channel wanted?

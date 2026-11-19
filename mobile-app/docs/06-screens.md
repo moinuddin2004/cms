@@ -11,12 +11,13 @@
 
 ### X-01 Welcome (space picker) — `src/app/welcome.tsx`
 
-Shown when `activeSpace == null` (first launch, or after signing out of the last space).
+Shown when `activeSpace == null` (first launch, or after signing out of the last space). Built in
+`shell/WelcomePage.tsx` (UI-01): English until the user picks Urdu (never the phone language).
 
 ```
 ┌──────────────────────────────┐
-│        [neutral mark]        │
-│   Your health, your clinic   │   ← no product name (F-05)
+│  [M mark]  MedTrackr         │   ← `BrandMark` + `PRODUCT_NAME` (A-25); never "DentalFlow"
+│  value line (shell.welcome.tagline) │
 │                              │
 │ ┌──────────────────────────┐ │
 │ │ 👪  I'm a patient         │ │   card button → activeSpace=patient
@@ -31,7 +32,8 @@ Shown when `activeSpace == null` (first launch, or after signing out of the last
 ```
 
 - Never auto-detect the space from an email (enumeration risk).
-- Language toggle (English / اردو) at top-end — affects patient space only.
+- Language toggle (English / اردو) at top-end — sets `patient.language`; the staff space is always English.
+- Privacy / Terms open the web `/privacy` and `/terms` pages in the in-app browser (`env.webUrl`; hidden in a release build without `EXPO_PUBLIC_WEB_URL`).
 
 ### X-02 Offline — `(staff)/offline.tsx`, `(patient)/offline.tsx`
 
@@ -106,7 +108,7 @@ Gate: `queue.doctor.own` OR `queue.board.view`.
 │ ┌──────────────────────────┐ │
 │ │ NOW   A-007  With doctor │ │  current card (status called or in_consultation)
 │ │ Ali Raza · 34y · M       │ │
-│ │ Reason: Toothache        │ │
+│ │ Reason: Fever            │ │
 │ │ [Patient file]           │ │  → S-05
 │ │ [Send for test] [Done ✓] │ │  in_consultation actions
 │ └──────────────────────────┘ │
@@ -374,7 +376,12 @@ clinic record), linked records per clinic, reminders privacy toggle. "Add a fami
 "Ask the reception at their clinic to show a link code, then choose *My child* or *My parent*." (No
 self-service dependent creation in MVP — F-03 via clinic attestation.)
 
-### P-05 More — `(patient)/(main)/(tabs)/more.tsx`
+### P-05 More — `(patient)/(main)/(tabs)/more.tsx` (**not built — UI-02**)
+
+> Today the tabs are Home, Today, Records, Family. The Home tab (`(tabs)/index.tsx`,
+> `PatientPlaceholderPage`) is a placeholder with the greeting, signed-in email and buttons for Family,
+> Linked clinics, Switch to clinic space, Sign out and Delete account; reminder settings are reached
+> from the Today screen. UI-02 replaces it with Today-first and this More screen.
 
 Account (name, email) · Linked clinics (→ P-08) · Reminders settings (private reminders, quiet
 hours, battery-optimisation guide) · Language · Switch to clinic space · Privacy policy / Terms ·

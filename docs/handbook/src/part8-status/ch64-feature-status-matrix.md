@@ -13,6 +13,22 @@ Each row has four columns: the chapter number, the feature as a user would name 
 
 The workflow chapters (46 to 55) follow one business process across several modules, so many of their rows restate a feature that already has a row in a module chapter. They are listed separately so that each workflow can be judged on its own, and the totals in Section 64.5 report modules, workflows and cross-cutting chapters separately to avoid counting the same feature twice. No application was run while the handbook was written, so every label comes from reading the code.
 
+## 64.1a Updates since the 2026-10-28 snapshot
+
+Checked against the code on 2026-11-19. Only the rows listed here were changed; their labels below are the **current** ones and carry "(updated)" in the note. **The totals in Section 64.5 were not recomputed** and still describe the 2026-10-28 labels. Features added since then that have no row at all (mobile app, patient accounts, patient push, medications, product events, clinic approval and invite links, Google sign-in, desktop app, quick search, notification emails) are listed in `INVENTORY.md` and `OUTLINE.md`.
+
+| Row (chapter) | Was | Now |
+|---|---|---|
+| Reminders (29) | Not implemented | Partial: a 24-hour reminder push goes to patients who use the mobile app; no email, SMS or WhatsApp; recurring and online booking still not built |
+| Deliver messages in the background (44), Appointment reminders (44) | in-app only; no reminder | email and push channels exist; reminder as above |
+| Verify email and resend link (45), Email verification (46), Verify an email address (56) | informational, nothing gated | Implemented: gated (see rows) |
+| Sign up and create a clinic (45) | 14-day trial, ready at once | starts awaiting super admin approval, no free trial |
+| Sign-in with Google or GitHub (56) | Not implemented | Google Implemented; GitHub does not exist |
+| Delivery by WhatsApp, SMS and email (59) | Not implemented | Partial: email and push built, WhatsApp and SMS not |
+| Inventory alerts (39, 50, 55, 63) | log only | Implemented: staff digests |
+| Renewal reminder email (53) | Not implemented | Implemented (daily job, 7/3/1 days before and at expiry) |
+| Review, approve, void vendor bill (42) | API only | Implemented: edit and allocate screens exist |
+
 ## 64.2 Module chapters
 
 ### 64.2.1 Chapter 28 — Patients
@@ -69,7 +85,7 @@ The workflow chapters (46 to 55) follow one business process across several modu
 | 29 | Check a patient in (hand-over to the queue) | [Implemented] | QueueOrchestrator.checkInAppointment; detailed in Chapter 30 |
 | 29 | Convert a late booking to a walk-in | [Implemented] | Works; UI rarely reaches it because the no-show job removes the Check in action |
 | 29 | Respect availability overrides and leave when booking | [Not implemented] | Tables exist in Employees; booking, validation and calendar ignore them |
-| 29 | Reminders, recurring bookings and online booking | [Not implemented] | Feature keys commented out; notifications are in-app only |
+| 29 | Reminders, recurring bookings and online booking | [Partial] | (updated) Reminder: 24 h before, push to patients using the mobile app only (`appointment.reminder`). Recurring bookings and online booking: feature keys commented out |
 
 14 rows: 10 Implemented, 2 Partial, 2 Not implemented, 0 Unverified. Booking is solid: the list, calendar, live slot check, double-booking constraint and no-show job all work. The gaps are rules the booking engine does not consult (availability overrides and leave), the override-booking flag that no screen sends, and cancel reasons that the API supports but the screen never sends. Reminders, recurring and online booking are not built.
 
@@ -307,7 +323,7 @@ The workflow chapters (46 to 55) follow one business process across several modu
 | 39 | Receive goods into stock | [Unverified] | Same FK risk via applyMovement |
 | 39 | Define consumption templates | [Partial] | CRUD works; nothing uses templates |
 | 39 | Record materials used on a patient | [Not implemented] | ConsumptionRecorder not placed on any screen |
-| 39 | Daily low-stock and expiry alerts | [Partial] | 08:00 server-time cron only logs |
+| 39 | Daily low-stock and expiry alerts | [Implemented] | (updated) 08:00 UTC cron logs and sends `inventory.low_stock` / `inventory.expiring` digests to owners and inventory managers (in-app, email per rules) |
 
 10 rows: 0 Implemented, 6 Partial, 1 Not implemented, 3 Unverified. Inventory has no Implemented row. Stock, suppliers, purchase orders and receiving work through the API and have screens, but the module has no sidebar entry. Three rows are Unverified because the code passes a login id into columns that are foreign keys to employees, and this was never run to see whether the writes fail. Recording materials used on a patient has no screen, and the daily alert job only writes to the log.
 
@@ -400,7 +416,7 @@ The workflow chapters (46 to 55) follow one business process across several modu
 | 42 | Doctor commission on lab work | [Implemented] | collected basis net of lab cost; skipped when billing.commissions off |
 | 42 | Receivables journals (GL) | [Partial] | written for all lab money, no screen or report reads them |
 | 42 | Vendor bill drafts at lab accept | [Implemented] | effect create_vendor_bill_draft plus item listener |
-| 42 | Review, approve, void vendor bill | [Partial] | PATCH bill and add line exist in API only |
+| 42 | Review, approve, void vendor bill | [Implemented] | (updated) Edit bill and add line screens exist (`EditBillSheet`, `AddBillLineSheet`) |
 | 42 | Pay a lab | [Implemented] | allocations over approved bills, journals |
 | 42 | Use lab advance on bills | [Partial] | endpoint and api client exist, no UI button |
 | 42 | Reverse a payment to a lab | [Implemented] | mirrors journals |
@@ -436,15 +452,15 @@ The workflow chapters (46 to 55) follow one business process across several modu
 | 44 | See notifications in the header bell | [Implemented] | 30 s polled badge, 20 newest items, own inbox only |
 | 44 | Mark notifications as read | [Implemented] | one or all; no mark-unread or delete |
 | 44 | Raise a notification event | [Implemented] | enqueue in caller transaction; 6-step decision order |
-| 44 | Deliver messages in the background | [Implemented] | LISTEN + 2 s poll, skip-locked claim, 5 attempts; in-app only |
+| 44 | Deliver messages in the background | [Implemented] | LISTEN + 2 s poll, skip-locked claim, 5 attempts; (updated) channels in-app, email and push |
 | 44 | Choose who is notified (switches and rules) | [Implemented] | audited; mandatory rules locked |
 | 44 | Set quiet hours | [Partial] | saved but never holds in-app messages |
 | 44 | Edit message wording in several languages | [Implemented] | en / ur / roman_ur; placeholder validation |
 | 44 | Review the message log | [Implemented] | filters by status, channel, text |
 | 44 | Patient messaging opt-outs and language | [Partial] | backend works; UI card commented out |
 | 44 | Notify through a workflow transition | [Partial] | notify effect exists; no shipped transition found using it |
-| 44 | Send to patients by WhatsApp, SMS or email | [Not implemented] | no patient channel; dev-log stand-in only |
-| 44 | Appointment reminders | [Not implemented] | no event, no job |
+| 44 | Send to patients by WhatsApp, SMS or email | [Not implemented] | (updated) patients now get app push only; WhatsApp and SMS have no provider and patient email is blocked by the address verifier |
+| 44 | Appointment reminders | [Partial] | (updated) `appointment.reminder` push to mobile-app patients 24 h before; none by email, SMS or WhatsApp |
 
 12 rows: 7 Implemented, 3 Partial, 2 Not implemented, 0 Unverified. The in-app bell, message rules, templates and the delivery pipeline work. Quiet hours, patient opt-outs and workflow-driven notification are Partial. Sending to patients by WhatsApp, SMS or email and appointment reminders are not built.
 
@@ -452,8 +468,8 @@ The workflow chapters (46 to 55) follow one business process across several modu
 
 | Chapter | Feature | Status | One-line note |
 |---|---|---|---|
-| 45 | Sign up and create a clinic | [Implemented] | one transaction; 14-day Professional trial |
-| 45 | Verify email and resend link | [Partial] | works, but nothing is gated by verification |
+| 45 | Sign up and create a clinic | [Implemented] | one transaction; (updated) clinic starts awaiting super admin approval, no free trial; nobody can use it until approved |
+| 45 | Verify email and resend link | [Implemented] | (updated) password accounts are blocked with `EMAIL_NOT_VERIFIED` after the due date (new accounts at once; super admins, Google sessions exempt); super admin can mark verified |
 | 45 | Complete the setup wizard | [Implemented] | 3 steps; owner only; finish does not check the other steps |
 | 45 | Trial, plans and plan limits | [Implemented] | plans in code; PLAN_LIMIT on locations and logins |
 | 45 | Read-only mode after expiry | [Implemented] | 402 SUBSCRIPTION_EXPIRED; 30 s cache |
@@ -472,7 +488,7 @@ The workflow chapters (46 to 55) follow one business process across several modu
 | Chapter | Feature | Status | One-line note |
 |---|---|---|---|
 | 46 | Self-signup and clinic creation | [Implemented] | POST /auth/register creates user, clinic, MAIN location, trial |
-| 46 | Email verification | [Partial] | Informational; nothing gated by email_verified_at |
+| 46 | Email verification | [Implemented] | (updated) Gated by `EmailVerifiedGuard` after the due date |
 | 46 | Setup wizard | [Implemented] | finish does not check the other steps |
 | 46 | Super admin creates organization | [Partial] | Endpoint works; screen form sends values the API rejects; no owner/location created |
 | 46 | Create owner login for a super-admin-created clinic | [Partial] | Only through User Admin after selecting the org; sequence deduced, not run |
@@ -546,7 +562,7 @@ The workflow chapters (46 to 55) follow one business process across several modu
 | 50 | Credit expiry job 01:00 | [Implemented] | Server date |
 | 50 | Invariant check 02:30 | [Implemented] | Log only |
 | 50 | Queue cleanup 03:15 | [Implemented] |  |
-| 50 | Inventory alerts 08:00 | [Partial] | Log only |
+| 50 | Inventory alerts 08:00 | [Implemented] | (updated) Log plus staff digest notifications |
 
 9 rows: 8 Implemented, 1 Partial, 0 Not implemented, 0 Unverified. Closing the day is built: queue close, automatic day-end close, no-show marking, daily collection, cash close and the nightly jobs. The inventory alert job is Partial because it only logs.
 
@@ -588,7 +604,7 @@ The workflow chapters (46 to 55) follow one business process across several modu
 | 53 | Read-only mode 402 | [Implemented] | Cached 30 s per process |
 | 53 | Super admin records payment | [Implemented] | Overwrites plan |
 | 53 | Return to active | [Implemented] |  |
-| 53 | Renewal reminder email | [Not implemented] | None sent |
+| 53 | Renewal reminder email | [Implemented] | (updated) `subscription-reminders` job, 7/3/1 days before and when ended, to clinic owners |
 | 53 | Worker jobs while read-only | [Unverified] | Deduced: guard is HTTP only |
 
 7 rows: 5 Implemented, 0 Partial, 1 Not implemented, 1 Unverified. The subscription lifecycle (trial, grace, read-only, recovery) is built. Renewal reminder emails are not sent. Whether background jobs keep running while a clinic is read-only is Unverified, deduced from the guard being HTTP only.
@@ -615,7 +631,7 @@ The workflow chapters (46 to 55) follow one business process across several modu
 | 55 | Receive goods | [Unverified] | performedBy FK to employees receives a user id |
 | 55 | Stock movement and adjustment | [Unverified] | Same FK risk |
 | 55 | Patient consumption | [Not implemented] | API only, no screen |
-| 55 | Low-stock alert | [Partial] | Server log only |
+| 55 | Low-stock alert | [Implemented] | (updated) Digest notification to staff with inventory rights |
 
 6 rows: 0 Implemented, 2 Partial, 1 Not implemented, 3 Unverified. The purchase-to-consumption chain is the weakest workflow: the page has no sidebar entry, three steps are Unverified because of the login-id versus employee-id foreign keys, consumption has no screen and the alert only logs.
 
@@ -626,7 +642,7 @@ The workflow chapters (46 to 55) follow one business process across several modu
 | Chapter | Feature | Status | One-line note |
 |---|---|---|---|
 | 56 | Register a clinic (self-signup) | [Implemented] | Creates user, organization, main location and 14-day trial |
-| 56 | Verify an email address | [Implemented] | Informational only; nothing is gated by it (Chapter 45 labels the same feature Partial) |
+| 56 | Verify an email address | [Implemented] | (updated) Gated after the due date; see Chapter 45 |
 | 56 | Sign in | [Implemented] | Session of 1 or 30 days; at most 5 sessions per user |
 | 56 | Choose and switch organization and location | [Implemented] |  |
 | 56 | Access token, refresh cookie and silent refresh | [Implemented] | Refresh secret rotates on every use; expiry fixed |
@@ -636,7 +652,7 @@ The workflow chapters (46 to 55) follow one business process across several modu
 | 56 | Rate limiting | [Implemented] | In memory of one API process; five endpoints |
 | 56 | Security log | [Partial] | Write-only; some event types never written; no reader |
 | 56 | User administration and staff logins | [Implemented] | Eight-character minimum on this path |
-| 56 | Sign-in with Google or GitHub | [Not implemented] | Disabled; strategies not registered |
+| 56 | Sign-in with Google or GitHub | [Partial] | (updated) Google sign-in works (ID token, needs `GOOGLE_CLIENT_ID`; patient app too). GitHub sign-in does not exist |
 | 56 | The first super admin | [Partial] | Created by a manual database step |
 
 13 rows: 9 Implemented, 3 Partial, 1 Not implemented, 0 Unverified. Sign-in, sessions, refresh and rate limiting work. The gaps are the add-password screen, a write-only security log, a manual first super admin and disabled Google and GitHub sign-in.
@@ -676,7 +692,7 @@ The workflow chapters (46 to 55) follow one business process across several modu
 | Chapter | Feature | Status | One-line note |
 |---|---|---|---|
 | 59 | Pipeline from event to in-app inbox | [Implemented] |  |
-| 59 | Delivery by WhatsApp, SMS and email | [Not implemented] | Dev-log stand-in provider only |
+| 59 | Delivery by WhatsApp, SMS and email | [Partial] | (updated) Email provider (SMTP, verified addresses only, daily cap) and Expo push provider exist; WhatsApp and SMS still dev-log only |
 | 59 | Recipient resolvers | [Partial] | Only the lab order workflow registers one |
 | 59 | Decision order and quiet hours | [Implemented] | Quiet hours never hold in-app messages |
 | 59 | Message templates | [Implemented] |  |
@@ -735,7 +751,7 @@ The workflow chapters (46 to 55) follow one business process across several modu
 | 63 | Socket.IO gateway and rooms | [Implemented] |  |
 | 63 | Outbox relay, Redis bus, heartbeat and watchdog | [Implemented] |  |
 | 63 | Scheduled jobs (seven of eight) | [Implemented] |  |
-| 63 | Inventory alert job | [Partial] | Logs only; sends nothing |
+| 63 | Inventory alert job | [Implemented] | (updated) Logs and sends staff digests |
 
 5 rows: 4 Implemented, 1 Partial, 0 Not implemented, 0 Unverified. Process roles, sockets, the relay and seven of the eight jobs are Implemented. The inventory alert job is the eighth.
 
