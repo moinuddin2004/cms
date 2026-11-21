@@ -130,7 +130,7 @@ Allowed transitions are one constant map:
 
 Rule 7 is *also* enforced by the database: exclusion constraint
 `no_doctor_overlap` on `appointments` (needs `btree_gist`, created before
-schema sync in `common/database/ensure-extensions.ts`). Two concurrent bookings
+`database/schema/01_extensions_functions.sql`). Two concurrent bookings
 can both pass the read check; the loser gets Postgres `23P01`, mapped to 409
 `DOCTOR_DOUBLE_BOOKED`.
 
@@ -160,6 +160,14 @@ duration (`useLocationSlotDuration`).
 **Never** use server-local `new Date()` + `setHours()`/`getDay()` for clinic
 days or times. Frontend datetime-local values use
 `toDateTimeLocalValue()` (local wall time), never `toISOString().slice(0,16)`.
+
+### 3.5 Patient-app hooks
+
+Booking enqueues an `appointment.reminder` notification (push to patients who
+use the app, 24 h before start; `appointments/appointment-reminders.service.ts`).
+A patient's confirmation sets `appointments.patient_confirmed_at`; staff moving
+the time clears it. Queue changes also drive patient push ("your turn is near",
+see `patient_turn_near_ahead`).
 
 ---
 
@@ -278,6 +286,7 @@ is the location's own (`locations.timezone`), not in the policy.
 | `call_timeout_sec` | off | auto-skip a CALLED patient who doesn't come (≥ 30) |
 | `manual_select_reason_required` | false | Select needs a reason |
 | `service_day_cutoff` | 00:00 | start of the service day |
+| `patient_turn_near_ahead` | 2 | patient-app "your turn is near" push when this few people are ahead (0–20) |
 
 Changes apply to **the next day's sessions** (session copies the flag when
 created) so nobody's place moves mid-day. An admin can flip one session today:
@@ -349,8 +358,9 @@ Client contract (`useQueueSocket` / `useQueueData`): load a snapshot
 **Process roles** (`bootstrap/`, `common/runtime/process-role.ts`):
 `main.ts` runs everything in one process (dev); production runs `main.api`
 (2+ instances: HTTP + gateway) and `main.worker` (1+: outbox relay + jobs),
-fanned out through Redis (Socket.IO Redis adapter). Redis down → data safe,
-screens poll.
+fanned out through Redis (Socket.IO Redis adapter). Redis is optional: with no
+`REDIS_URL` a single `all` process uses an in-process publisher (the production
+setup today, no Redis budget). Redis down → data safe, screens poll.
 
 **Jobs** (`queue/jobs/queue-jobs.service.ts`; each re-checks state under the
 session lock, so running twice is harmless):
@@ -409,6 +419,8 @@ Cancel reason codes: `patient_left`, `other` (a no-show is its own action).
 | GET | `/queue/patients/:id/visits` | patient's queue visits (incl. walk-ins) |
 | GET/PATCH/DELETE | `/queue/policies`, `/queue/policies/location` | settings |
 | GET | `/queue/displays/:locationId/state` | **public** TV state |
+| POST | `/queue/entries/:entryId/visit-link` | `queue.checkin`: share link to one entry (token stored hashed in `queue_visit_tokens`) |
+| GET | `/visit/:token/state` | **public** one patient's token, status, people ahead, now-serving; stays readable 30 min after the entry ends |
 
 ---
 
@@ -435,8 +447,13 @@ employee_org_location_assignments.token_prefix   doctor's token letter at a loca
 The old `appointment_token_counters` table and the appointment columns
 `token_number / token_prefix / is_walk_in / in_room_at` no longer exist.
 
-Dev schema comes from TypeORM `synchronize: true` (no migration files in the
-dev phase; production must switch to real migrations — see "Gaps").
+`queue_visit_tokens` (entry_id, token_hash, expires_at) backs the public visit link.
+`appointments.patient_confirmed_at` is set when the patient confirms in the app
+and cleared if staff reschedule.
+
+The schema is hand-maintained SQL in `backend/database/` (`schema/02_tables.sql`
++ `changes/*.sql`); TypeORM `synchronize` is off. Any entity change needs the
+SQL block and a `changes/` script.
 
 ---
 
@@ -492,9 +509,6 @@ property-based tests (fast-check), Playwright full-day e2e.
 - **Row-level security** (`USING organization_id = current_setting('app.organization_id')`)
   is **not enabled**. The orchestrator already sets the GUCs per transaction;
   other modules don't. Tenant isolation is application-level for now.
-- **Production migrations**: dev relies on `synchronize`; before production
-  generate real migrations (new tables, partial indexes, `no_doctor_overlap`,
-  dropped appointment columns) and turn synchronize off.
 - Doctor working hours are looked up by doctor + weekday, **not per location**
   (`EmployeeSchedule` has `location_id`; the lookup ignores it).
 - `appointment_slot_duration` is only a form default; slot grid is not enforced.

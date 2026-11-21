@@ -1,4 +1,5 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { useEffect, type ReactNode } from 'react';
 import { useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -10,6 +11,10 @@ import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { PortalHost } from '@rn-primitives/portal';
 
 import { setupQueryManagers } from '@/core/query/managers';
+import { applyStoredThemePreference } from '@/core/theme/theme-preference';
+
+// The saved light/dark choice is painted before the first frame (MMKV reads are synchronous).
+applyStoredThemePreference();
 
 /**
  * Every global provider, in one place. Order matters: gestures → safe area →
@@ -33,7 +38,9 @@ export function RootProviders({ children }: { children: ReactNode }) {
             <ThemeProvider value={scheme === 'dark' ? DarkTheme : DefaultTheme}>
               {/* Hosts FormSheet / ActionSheet (core overlays). */}
               <BottomSheetModalProvider>{children}</BottomSheetModalProvider>
-              <Toaster />
+              <Toaster theme={scheme === 'dark' ? 'dark' : 'light'} />
+              {/* Status-bar icons follow the applied scheme (screens on a dark hero override it). */}
+              <StatusBar style="auto" />
               {/* Must be last: Dialog / Popover / Select render into this. */}
               <PortalHost />
             </ThemeProvider>

@@ -1,7 +1,6 @@
 import { Volume2 } from 'lucide-react-native';
 
-import { ListRow } from '@/core/components';
-import { Icon } from '@/core/ui/icon';
+import { IconTile, ListRow } from '@/core/components';
 import { Switch } from '@/core/ui/switch';
 
 import { useNotificationPrefs, useSetNotificationSound } from '../hooks/useNotifications';
@@ -16,7 +15,7 @@ export function NotificationSoundRow() {
 
   return (
     <ListRow
-      leading={<Icon as={Volume2} className="text-muted-foreground size-5" />}
+      leading={<IconTile icon={Volume2} tone="info" />}
       title="Notification sound"
       subtitle={prefs.isError ? 'Could not load this setting' : undefined}
       disabled={disabled}

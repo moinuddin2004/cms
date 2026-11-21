@@ -16,6 +16,7 @@
 <a href="#start-here"><b>Start here</b></a> &nbsp;·&nbsp;
 <a href="#feature-guides"><b>Feature guides</b></a> &nbsp;·&nbsp;
 <a href="#architecture-and-data"><b>Architecture &amp; data</b></a> &nbsp;·&nbsp;
+<a href="#mobile-app"><b>Mobile app</b></a> &nbsp;·&nbsp;
 <a href="#handbook"><b>Handbook</b></a> &nbsp;·&nbsp;
 <a href="#archive"><b>Archive</b></a>
 </p>
@@ -34,6 +35,7 @@
 | Understand project structure and coding conventions | [`../CLAUDE.md`](../CLAUDE.md) |
 | Create a database or apply a schema change | [`../backend/database/README.md`](../backend/database/README.md) |
 | Find the main application setup instructions | [`../README.md`](../README.md) |
+| Work on the mobile app | [`../mobile-app/docs/README.md`](../mobile-app/docs/README.md) |
 
 <br />
 
@@ -61,6 +63,52 @@
 | [`handbook/src/part5-modules/`](handbook/src/part5-modules/) | Handbook chapters covering implemented modules |
 
 The canonical database definition is the hand-maintained SQL under [`../backend/database/`](../backend/database/), not these diagrams.
+
+<br />
+
+## Backend reference
+
+| Reference | Covers |
+| --- | --- |
+| [`../backend/docs/data-model/ENTITY_CATALOG.md`](../backend/docs/data-model/ENTITY_CATALOG.md) | Catalog of the backend entities |
+| [`../backend/docs/modules/01-organizations-locations.md`](../backend/docs/modules/01-organizations-locations.md) | Organizations and locations module |
+| [`../backend/database/seed/README.md`](../backend/database/seed/README.md) | Demo / QA seed data (`npm run seed`) |
+
+<br />
+
+## Mobile app
+
+The mobile app (staff space and patient space) keeps its own documentation set. Start at [`../mobile-app/docs/README.md`](../mobile-app/docs/README.md); setup is in [`../mobile-app/README.md`](../mobile-app/README.md).
+
+| Document | Covers |
+| --- | --- |
+| [`01-overview.md`](../mobile-app/docs/01-overview.md) | Product scope and goals |
+| [`02-architecture.md`](../mobile-app/docs/02-architecture.md) | Core / staff / patient / shell structure and import fences |
+| [`03-security.md`](../mobile-app/docs/03-security.md) | Security and privacy rules |
+| [`04-coding-standards.md`](../mobile-app/docs/04-coding-standards.md) | Coding standards |
+| [`05-ui-ux-design-system.md`](../mobile-app/docs/05-ui-ux-design-system.md) | UI/UX design system |
+| [`06-screens.md`](../mobile-app/docs/06-screens.md) | Screen specifications |
+| [`07-backend-contracts.md`](../mobile-app/docs/07-backend-contracts.md) | Backend contracts used by the app |
+| [`08-database.md`](../mobile-app/docs/08-database.md) | Database changes for the mobile app |
+| [`09-testing-and-quality.md`](../mobile-app/docs/09-testing-and-quality.md) | Testing and Definition of Done |
+| [`10-roadmap-and-tasks.md`](../mobile-app/docs/10-roadmap-and-tasks.md) | Roadmap and task cards |
+| [`11-review-protocol.md`](../mobile-app/docs/11-review-protocol.md) | Review protocol |
+| [`DECISIONS.md`](../mobile-app/docs/DECISIONS.md) | Settled decisions |
+| [`PROGRESS.md`](../mobile-app/docs/PROGRESS.md) | Task board and current state |
+| [`HANDOFF.md`](../mobile-app/docs/HANDOFF.md) | Implementer hand-off log |
+| [`RELEASE.md`](../mobile-app/docs/RELEASE.md) | Release process |
+| [`analytics-events.md`](../mobile-app/docs/analytics-events.md) | Product analytics events |
+| [`legal/`](../mobile-app/docs/legal/) | Privacy policy, terms of use, account deletion, Play data-safety answers |
+| [`reviews/`](../mobile-app/docs/reviews/) | Per-task review notes and audits |
+
+<br />
+
+## Other apps
+
+| App | Readme |
+| --- | --- |
+| Desktop shell (Tauri) | [`../desktop-app/README.md`](../desktop-app/README.md) |
+| Landing site | [`../landing/README.md`](../landing/README.md) |
 
 <br />
 

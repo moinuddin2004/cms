@@ -18,9 +18,9 @@ Run these files **in this order**, each top to bottom:
 | # | File | What |
 |---|---|---|
 | 1 | `schema/01_extensions_functions.sql` | `btree_gist`, `pg_trgm`, `uuid_generate_v7()`, trigger functions |
-| 2 | `schema/02_tables.sql` | every table (156), in dependency order: enum types, table, constraints, foreign keys, indexes |
+| 2 | `schema/02_tables.sql` | every table (172), in dependency order: enum types, table, constraints, foreign keys, indexes |
 | 3 | `schema/03_foreign_keys_circular.sql` | foreign keys between tables that point at each other (currently none) |
-| 4 | `schema/04_search_indexes.sql` | Ctrl+K trigram search indexes on `patients` |
+| 4 | `schema/04_search_indexes.sql` | Ctrl+K trigram search indexes on `patients` (name, number, phone, guardian phone, CNIC) |
 | 5 | `schema/05_triggers.sql` | append-only triggers (audit, status history, commission ledger) |
 
 With psql, from `backend/database/`:
@@ -35,8 +35,14 @@ The extensions need a user allowed to `CREATE EXTENSION` (database owner on
 Postgres 13+ for these two; on managed hosts they are normally allowed).
 
 After the tables exist, start the API once: on startup it inserts its own
-catalog rows (feature flags, permissions, notification events, …). Seed data
-for testing is a separate step.
+catalog rows (feature flags, permissions, notification events, …). The API
+refuses to start without `JWT_ACCESS_SECRET` and `JWT_PATIENT_ACCESS_SECRET`
+(see `backend/.env.example`). Seed data for testing is a separate step:
+`seed/README.md` (`npm run seed`, `npm run seed:check`, `npm run seed:demo`).
+
+`schema/` always holds the **current** shape, including everything in
+`changes/`. So a database built from `schema/` needs **none** of the files in
+`changes/`; only a database built earlier does.
 
 ### Wiping a dev database
 
@@ -59,7 +65,15 @@ Every change touches three places, in the same commit:
 
 Deploying: take a backup, run the new `changes/` files in date order on the
 database, then deploy the new API build. Keep a note (release notes or a
-table) of which change files each database has had.
+table) of which change files each database has had. With psql, from
+`backend/database/`:
+
+```bash
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f changes/2026-11-17_patient_devices_session.sql
+```
+
+The app does not track which files were applied; the existing scripts are
+written to be safe to run twice. `changes/README.md` lists them.
 
 Naming conventions in the scripts: `pk`/primary key inline, `fk_<table>_<column>`,
 `uq_<table>_<columns>`, `idx_<table>_<columns>`, `chk_<table>_…`. Constraint

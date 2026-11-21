@@ -6,7 +6,7 @@ Backend: `../backend` (rules in the root `../CLAUDE.md`). Web: `../web-app`.
 
 ## Start here (every session)
 
-1. [`docs/README.md`](docs/README.md) — doc map, workflow, golden rules.
+1. [`docs/README.md`](docs/README.md) — doc map, workflow, golden rules (build/run/EAS: [`README.md`](README.md), [`docs/RELEASE.md`](docs/RELEASE.md)).
 2. [`docs/PROGRESS.md`](docs/PROGRESS.md) — what is `ready`; pick the first ready card whose deps are done.
 3. Last 3 entries of [`docs/HANDOFF.md`](docs/HANDOFF.md).
 4. Your card in [`docs/10-roadmap-and-tasks.md`](docs/10-roadmap-and-tasks.md) and every doc it lists.
@@ -37,7 +37,8 @@ a HANDOFF entry, and your PROGRESS row → `review`. Rules that fail a review: [
 - **Access:** `useAccess().can('perm')` — never role names.
 - **Style:** theme tokens only (no hex), logical classes (`ms-/me-/ps-/pe-`, never `ml-/mr-`), safe-area utilities,
   `FlashList` for long lists, 44 pt targets, `accessibilityLabel` on every icon-only control.
-- **UI:** no product name, no tooth-only icons (product name undecided; all clinic types).
+- **UI:** the product name is **MedTrackr** (A-25) — use the `PRODUCT_NAME` constant / `BrandMark`, never "DentalFlow" or dental-only wording; no tooth-only icons (all clinic types) — except the welcome hero artwork (A-27).
+- **Theme:** light/dark goes through `useThemePreference` (`core/theme/theme-preference.ts`): own choice → clinic default → phone. Never call `applyThemeMode` / `Uniwind.setTheme` from a screen.
 - **Installs:** never ADD or UPGRADE a package (`npx expo install <pkg>`, `npm i <pkg>`) — write that command in your handoff.
   Installing the EXISTING lockfile in a fresh worktree (`npm install` / `npm ci` with no package name) is allowed and expected.
 - **Generated code:** don't hand-edit `src/core/ui/*` (RNR CLI) except patches listed in `src/core/ui/PATCHES.md`;
@@ -46,16 +47,20 @@ a HANDOFF entry, and your PROGRESS row → `review`. Rules that fail a review: [
 ## Commands
 
 ```bash
-npm run dev          # expo start — needs a development build (native MMKV): npx expo run:android
-npm run lint         # + npm run lint:fences after M0-02
-npm run typecheck
-npm test             # after M0-06
+npm run dev          # expo start — needs a development build (native MMKV)
+npm run android      # expo run:android — builds + runs the dev client (ios: npm run ios)
+npm run lint
+npm run lint:fences  # cross-space imports must fail lint
+npm run typecheck    # in a fresh worktree run `CI=1 npx expo start --offline` once first (route types)
+npm test             # jest-expo; a plain `jest src/shell` may hang on open handles — add --forceExit
+# EAS: npx eas-cli@latest build --profile development|preview|production --platform android (docs/RELEASE.md)
 ```
 
-## Current state (2026-11-11)
+## Current state (2026-11-17)
 
-Baseline only: staff email login, select location, session restore, access loading, placeholder home.
-Code still lives in the pre-split layout (`src/features`, `src/lib`, `src/store`, `src/components`)
-until card **M0-01** moves it into `src/core` / `src/staff` / `src/shell`. Native refresh-token flow:
+All cards of phases 0–4 are merged into `mobile/develop` (staff space, patient space, reminders, live
+token, Urdu, release hardening, MedTrackr brand assets, UI-01 welcome page + web-aligned tokens, the
+independent audit fixes). Open: device checks (M0-D), UI-02 follow-ups, store screenshots, the final app
+identity (O-01) and the legal review — see [`docs/PROGRESS.md`](docs/PROGRESS.md). Native refresh-token flow:
 `x-client-type: mobile` → refresh token in the body → SecureStore → `x-refresh-token`
 (`backend/src/auth/native-client.ts`, honoured only without an `Origin` header).

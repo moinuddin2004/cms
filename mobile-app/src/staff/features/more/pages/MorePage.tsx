@@ -1,10 +1,18 @@
 import { useRouter } from 'expo-router';
 import { ChevronRight, Info, LayoutGrid, MapPin, UserRound } from 'lucide-react-native';
 import { useState } from 'react';
-import { View } from 'react-native';
 
 import { currentVersion } from '@/core/app-version';
-import { EmptyState, ListRow, Screen, ScreenHeader, Spinner } from '@/core/components';
+import {
+  EmptyState,
+  IconTile,
+  ListRow,
+  Screen,
+  ScreenHeader,
+  SettingsGroup,
+  Spinner,
+  ThemeModePicker,
+} from '@/core/components';
 import { switchSpace } from '@/core/space/switch-space';
 import { Icon } from '@/core/ui/icon';
 import { AccessErrorState, useAccess } from '@/staff/features/access';
@@ -20,7 +28,7 @@ import { locationOptions } from '../lib/location-options';
 
 const CHEVRON = <Icon as={ChevronRight} className="text-muted-foreground size-5" />;
 
-/** S-08: profile, switch location, switch space, version, sign out (docs/06). */
+/** S-08: profile, switch location, appearance, switch space, version, sign out (docs/06). */
 export function MorePage() {
   const router = useRouter();
   const access = useAccess();
@@ -50,10 +58,10 @@ export function MorePage() {
         />
       ) : null}
 
-      <View className="bg-card border-border overflow-hidden rounded-xl border">
+      <SettingsGroup title="Clinic">
         {options.length > 1 ? (
           <ListRow
-            leading={<Icon as={MapPin} className="text-muted-foreground size-5" />}
+            leading={<IconTile icon={MapPin} tone="primary" />}
             title="Switch location"
             subtitle={currentLocation}
             disabled={switchLocation.isPending}
@@ -62,15 +70,26 @@ export function MorePage() {
           />
         ) : null}
         <NotificationSoundRow />
+      </SettingsGroup>
+
+      <SettingsGroup
+        title="Appearance"
+        footer="Your choice is saved on this phone and beats the clinic's default."
+        padded>
+        <ThemeModePicker />
+      </SettingsGroup>
+
+      <SettingsGroup title="App">
         <ListRow
-          leading={<Icon as={UserRound} className="text-muted-foreground size-5" />}
+          leading={<IconTile icon={UserRound} tone="success" />}
           title="Switch to patient space"
+          subtitle="Your family's visits, records and reminders"
           trailing={CHEVRON}
           onPress={() => switchSpace('patient')}
         />
         {__DEV__ ? (
           <ListRow
-            leading={<Icon as={LayoutGrid} className="text-muted-foreground size-5" />}
+            leading={<IconTile icon={LayoutGrid} tone="warning" />}
             title="Component gallery"
             subtitle="Development builds only"
             trailing={CHEVRON}
@@ -78,15 +97,15 @@ export function MorePage() {
           />
         ) : null}
         <ListRow
-          leading={<Icon as={Info} className="text-muted-foreground size-5" />}
+          leading={<IconTile icon={Info} tone="neutral" />}
           title="App version"
           meta={currentVersion}
         />
-      </View>
+      </SettingsGroup>
 
-      <View className="bg-card border-border overflow-hidden rounded-xl border">
+      <SettingsGroup>
         <SignOutRow />
-      </View>
+      </SettingsGroup>
 
       <SwitchLocationSheet
         open={sheetOpen}

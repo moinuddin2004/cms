@@ -58,7 +58,13 @@ npm run dev     # starts the web dev server, then the desktop window
 npm run build   # builds web-app, then the installers
 ```
 
-Artifacts land in `src-tauri/target/release/bundle/`.
+`dev` runs `npm --prefix ../web-app run dev -- --strictPort --host` (port 3000, must be free) and points the window at `http://localhost:3000`. Run `npm install` in `web-app/` as well, since the shell builds it. Requires the Rust toolchain (edition 2024) and Tauri v2 prerequisites.
+
+Artifacts land in `src-tauri/target/release/bundle/` (`bundle.targets` is `all`). Package `clinic-desktop` 0.1.0, identifier `com.levo.clinic-management`, product name "Clinic Management".
+
+The window is frameless (`decorations: false`, 1440x900, min 1024x700); the web app draws its own window controls, and the capability file grants minimize / maximize / close / drag.
+
+Tauri plugins in use: `store` (refresh token), `deep-link` and `single-instance` (Google sign-in callback), `opener` (system browser).
 
 ## API URL
 

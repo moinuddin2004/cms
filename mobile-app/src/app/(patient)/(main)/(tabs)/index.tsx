@@ -1,5 +1,5 @@
-import { PatientPlaceholderPage } from '@/patient/navigation';
+import { HomePage } from '@/patient/features/home';
 
 export default function PatientIndexRoute() {
-  return <PatientPlaceholderPage />;
+  return <HomePage />;
 }

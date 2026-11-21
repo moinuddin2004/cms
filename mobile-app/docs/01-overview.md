@@ -13,9 +13,10 @@ One Expo (React Native) app with **two fully separate spaces**:
 | **Staff** | Doctors, receptionists, nurses, owners of a clinic | The things staff do while walking around: run the queue, look up a patient, see today's schedule, get alerts | Existing backend API (same endpoints the web app uses) with the staff JWT |
 | **Patient** | Patients and guardians (families) | One account that holds records from **many clinics**, a family "Today" list of medicine doses built from prescriptions, a live queue token, appointment confirm | New `/patient-api/*` routes with a separate patient JWT |
 
-The product name is **not decided** and the platform serves **every clinic type**, not only dental.
-Never show "DentalFlow" or any product name in UI, and never use tooth-only icons. Use neutral
-medical marks or the clinic's own logo.
+The app is called **MedTrackr** (A-25: the web app's name and "M" mark) and the platform serves
+**every clinic type**, not only dental. Show only "MedTrackr" as the product name (the `PRODUCT_NAME`
+constant in `core/components/brand`) — never "DentalFlow" or any dental-only wording — and never use
+tooth-only icons. Use neutral medical marks or the clinic's own logo.
 
 ## 2. The two-space rule (the most important idea in this codebase)
 
@@ -41,6 +42,10 @@ Build order (see [10-roadmap-and-tasks.md](10-roadmap-and-tasks.md)):
 | 2. Patient core | 13–24 | Patient auth, claim-by-QR, multi-clinic records, family, delete/unlink |
 | 3. Patient hook | 25–30 | "Today" dose reminders (local notifications), live token, appointment confirm |
 | 4. Release | 31–32 | Play Store, pilot training → **patient pilot (Android only)** |
+
+**Status (2026-11-17):** all cards of phases 0–4 are merged into `mobile/develop` (code); what is still
+open is device checks (M0-D), UI-02 follow-ups, store screenshots, the final app identity (O-01) and the
+owner/lawyer review of the legal drafts. The exact per-card state is in [PROGRESS.md](PROGRESS.md).
 
 ### Explicitly out of scope (do not build, even if it looks easy)
 
@@ -76,6 +81,7 @@ cms/
 | Client state | Zustand 5 (memory) |
 | HTTP | axios (one client per space) |
 | Realtime | socket.io-client |
+| Builds / updates | EAS Build + expo-updates, `expo-dev-client` for development builds (`docs/RELEASE.md`) |
 | Secure storage | expo-secure-store (tokens, encryption keys only) |
 | Local storage | react-native-mmkv (encrypted instance for cached data, plain instance for prefs) |
 | Lists | @shopify/flash-list |
@@ -83,9 +89,9 @@ cms/
 | Toasts | sonner-native |
 | Icons | lucide-react-native |
 | Dates | date-fns 4 + @date-fns/tz, only through `@/core/datetime` |
-| Push + local notifications | expo-notifications (to be installed) |
-| Tests | jest-expo + @testing-library/react-native (to be installed) |
-| i18n (patient space) | i18next + react-i18next + expo-localization (to be installed) |
+| Push + local notifications | expo-notifications (installed) |
+| Tests | jest-expo + @testing-library/react-native (installed) |
+| i18n (patient space) | In-house `core/i18n` (typed `en` / `ur` catalogs, `useT()`, A-21) + expo-localization; Urdu in Noto Nastaliq |
 
 Package installs are run **by the user**. When a task needs a package, write the exact
 `npx expo install …` command in the handoff note and continue coding as if it were installed.

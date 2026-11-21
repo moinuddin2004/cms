@@ -4,7 +4,7 @@
 
 <h1>Mobile app</h1>
 
-<p><b>A mobile-first companion for clinic staff, built with Expo.</b></p>
+<p><b>MedTrackr on mobile: a staff space and a patient space in one Expo app.</b></p>
 
 <p>
 <img src="https://img.shields.io/badge/Expo_58-161b22?style=for-the-badge&logo=expo&logoColor=white" alt="Expo 58" />
@@ -30,30 +30,38 @@
 
 ## Quick start
 
-**You need:** Node.js 22, the API running on port `5000`, and Expo Go or a development build.
+**You need:** Node.js 22, the API running on port `5000`, and a **development build** (the app uses native modules such as MMKV, so Expo Go cannot run it).
 
 | Step | Command |
 | --- | --- |
 | 1 · Install | `npm install` |
-| 2 · Configure (optional in development) | Set `EXPO_PUBLIC_API_URL` in `.env` to the API's reachable address |
-| 3 · Start Expo | `npx expo start` |
-| 4 · Open the app | Scan the QR code in Expo Go, or launch an emulator |
+| 2 · Configure (optional in development) | Copy `.env.example` to `.env`; set `EXPO_PUBLIC_API_URL` (and `EXPO_PUBLIC_WEB_URL`) if the defaults do not fit |
+| 3 · Build and run the dev client | `npm run android` (`expo run:android`; creates the git-ignored `android/` folder) or `npm run ios` |
+| 4 · Start the dev server on later runs | `npm run dev` (`expo start`) and open the installed dev client |
 
-During development, the app discovers the Expo host's address and uses port `5000`; Android emulators fall back to `10.0.2.2`. For a physical device, the API must be reachable over the same network. Set `EXPO_PUBLIC_API_URL` explicitly for release builds; the app fails clearly if it is missing.
+An installable development APK without a local Android toolchain: `npx eas-cli@latest build --profile development --platform android` (see [`docs/RELEASE.md`](docs/RELEASE.md)).
+
+During development, the app discovers the Expo host's address and uses port `5000` for the API (and `3000` for the web app's public pages); Android emulators fall back to `10.0.2.2`. For a physical device, the API must be reachable over the same network. Release builds must set `EXPO_PUBLIC_API_URL` (the app fails clearly if it is missing) and should set `EXPO_PUBLIC_WEB_URL` (without it the privacy/terms links are hidden).
+
+| Variable | Used for |
+| --- | --- |
+| `EXPO_PUBLIC_API_URL` | API base URL (required in release builds) |
+| `EXPO_PUBLIC_WEB_URL` | Web origin for the public privacy / terms pages |
+| `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` | Native Google sign-in on iOS (optional) |
+| `APP_VARIANT` | `development` (default) / `preview` / `production` — read by `app.config.ts`; EAS supplies it |
+| `GOOGLE_IOS_URL_SCHEME` | Adds the Google sign-in config plugin for iOS (optional, build time) |
 
 <br />
 
 ## Current scope
 
-The mobile app is an early foundation, not yet a mobile version of every web feature. Its current end-to-end path covers:
+One app, two isolated spaces (see [`docs/01-overview.md`](docs/01-overview.md)). All cards of phases 0–4 are merged into `mobile/develop`; device checks, UI-02 follow-ups, store screenshots and the legal review are still open ([`docs/PROGRESS.md`](docs/PROGRESS.md)).
 
-- Email and password sign-in
-- Selecting an organization and location
-- Restoring a session securely and signing out
-- Loading the access context and showing the current account and clinic
-- Handling offline-at-start and access-loading errors
+**Staff space** — email/password and Google sign-in, organization + location selection, secure session restore, permission-driven tabs (Today, Queue, Patients, Schedule, More), doctor queue, reception board, walk-in, arrivals and close session, patient search / quick register / summary, notifications inbox, push registration and tap routing, "Link app" QR for patients, realtime updates, offline read cache.
 
-Patient, appointment, queue, billing, lab and inventory workflows are not implemented in the mobile app yet. Realtime sockets, push notifications, biometric unlock, Google sign-in and registration are also not built.
+**Patient space** — email-code and Google sign-in, claim a clinic link by QR (`/claim/<token>`, `/c/<token>`), multi-clinic records, family profiles, linked clinics, account deletion, Today with local medicine reminders, live token / visit screen, appointment confirm, contact sheet, push, English + Urdu.
+
+**Not built:** biometric unlock, staff-side booking, payments, prescription writing, offline mutation queue (docs/01 §3).
 
 <br />
 
@@ -61,16 +69,14 @@ Patient, appointment, queue, billing, lab and inventory workflows are not implem
 
 ```text
 src/
-├── app/          Expo Router routes and layouts
-├── features/     Feature pages, components, hooks, API, schemas and types
-├── components/   Shared UI, forms and feedback
-├── lib/          API, environment, secure storage, dates and utilities
-├── providers/    App-wide providers
-├── store/        Zustand state
-└── types/        Shared API types
+├── app/          Expo Router routes only: (staff)/, (patient)/, welcome, claim/[token], c/[token]
+├── shell/        Composition root: root stack, providers, welcome, min-version gate, push-tap router
+├── core/         Shared UI kit, http/query/storage/theme/i18n/notifications, datetime, money
+├── staff/        Staff space: features/, lib/, navigation/, store/
+└── patient/      Patient space: features/, lib/, navigation/, providers/, store/
 ```
 
-Keep route files focused on rendering a feature page. Feature APIs live in their own `api/` folders and are consumed through TanStack Query hooks.
+`core` imports neither space; `staff` and `patient` never import each other; only `shell` sees both (lint-enforced, `npm run lint:fences`). Keep route files focused on rendering a page. Feature APIs live in their own `api/` folders and are consumed through TanStack Query hooks. Full layout: [`docs/02-architecture.md`](docs/02-architecture.md).
 
 <br />
 
@@ -78,12 +84,16 @@ Keep route files focused on rendering a feature page. Feature APIs live in their
 
 | Command | What it does |
 | --- | --- |
-| `npm start` | Start Expo |
-| `npm run android` | Start Expo and open Android |
-| `npm run ios` | Start Expo and open iOS |
+| `npm run dev` | Start the Expo dev server (`expo start`) |
+| `npm run android` | Build and run the dev client on Android (`expo run:android`) |
+| `npm run ios` | Build and run the dev client on iOS (`expo run:ios`) |
 | `npm run web` | Start the web target |
 | `npm run lint` | Run Expo's ESLint configuration |
+| `npm run lint:fences` | Check that cross-space imports fail lint |
+| `npm test` | Jest unit tests |
 | `npm run typecheck` | Run TypeScript without emitting files |
+
+EAS build profiles (`eas.json`): `development` (dev-client APK, internal), `preview` (internal APK, channel `preview`), `production` (Play AAB, channel `production`). Commands and environment setup: [`docs/RELEASE.md`](docs/RELEASE.md).
 
 <br />
 
@@ -107,14 +117,15 @@ Run all four commands before submitting changes — they are the Definition of D
 | Rule | Use |
 | --- | --- |
 | Use Expo Router for navigation | Routes live in `src/app/`; keep feature logic elsewhere |
+| Keep the spaces apart | No imports between `src/staff` and `src/patient`; shared code goes in `src/core` |
 | Use TanStack Form + Zod | Do not use React Hook Form |
-| Store refresh credentials only in SecureStore | Access tokens stay in memory; never persist them |
+| Store refresh credentials only in SecureStore | Access tokens stay in memory; never persist them (`auth.refreshToken` staff, `patient.refreshToken` patient) |
 | Use `useAccess().can(...)` for permissions | Do not check role names |
-| Use `@/lib/datetime` and `@/lib/currency` | Use clinic timezone and shared money formatting |
+| Use `@/staff/lib/datetime` (staff) or `@/core/datetime` `formatInZone` (patient) and `@/core/money` | Clinic timezone and shared money formatting; never `toLocale*String` |
 | Prefer FlashList for long lists | Keep scrolling performant on phones |
 | Use theme tokens and safe-area utilities | Avoid hardcoded colors and device-edge content |
 
-For detailed conventions and Expo SDK guidance, read [`AGENTS.md`](AGENTS.md) and [`CLAUDE.md`](CLAUDE.md).
+For the documentation map, task cards and handoff log start at [`docs/README.md`](docs/README.md); for detailed conventions and Expo SDK 58 guidance read [`CLAUDE.md`](CLAUDE.md) and [`AGENTS.md`](AGENTS.md).
 
 <br />
 

@@ -11,12 +11,20 @@
 
 ### X-01 Welcome (space picker) — `src/app/welcome.tsx`
 
-Shown when `activeSpace == null` (first launch, or after signing out of the last space).
+Shown when `activeSpace == null` (first launch, or after signing out of the last space). Built in
+`shell/WelcomePage.tsx` (UI-01; full-screen redesign 2026-11-21, A-27): English until the user picks Urdu (never the phone language).
+
+**Current layout (A-27):** full-screen blue hero — top bar with M mark + MedTrackr, EN/اردو pill and a
+sun/moon theme button; four swipeable pictures (tooth, live token, medicines, dental chair) with a title
+and line each, auto-advancing every 4.5 s (not with reduced motion / RTL / after a swipe) and tappable
+dots; then a rounded bottom panel (follows light/dark) with the question, tagline, a filled
+"I'm a patient" button, an outlined "I work at a clinic" button and Privacy · Terms. The sketch
+below is the UI-01 original.
 
 ```
 ┌──────────────────────────────┐
-│        [neutral mark]        │
-│   Your health, your clinic   │   ← no product name (F-05)
+│  [M mark]  MedTrackr         │   ← `BrandMark` + `PRODUCT_NAME` (A-25); never "DentalFlow"
+│  value line (shell.welcome.tagline) │
 │                              │
 │ ┌──────────────────────────┐ │
 │ │ 👪  I'm a patient         │ │   card button → activeSpace=patient
@@ -31,7 +39,8 @@ Shown when `activeSpace == null` (first launch, or after signing out of the last
 ```
 
 - Never auto-detect the space from an email (enumeration risk).
-- Language toggle (English / اردو) at top-end — affects patient space only.
+- Language toggle (English / اردو) at top-end — sets `patient.language`; the staff space is always English.
+- Privacy / Terms open the web `/privacy` and `/terms` pages in the in-app browser (`env.webUrl`; hidden in a release build without `EXPO_PUBLIC_WEB_URL`).
 
 ### X-02 Offline — `(staff)/offline.tsx`, `(patient)/offline.tsx`
 
@@ -106,7 +115,7 @@ Gate: `queue.doctor.own` OR `queue.board.view`.
 │ ┌──────────────────────────┐ │
 │ │ NOW   A-007  With doctor │ │  current card (status called or in_consultation)
 │ │ Ali Raza · 34y · M       │ │
-│ │ Reason: Toothache        │ │
+│ │ Reason: Fever            │ │
 │ │ [Patient file]           │ │  → S-05
 │ │ [Send for test] [Done ✓] │ │  in_consultation actions
 │ └──────────────────────────┘ │
@@ -374,7 +383,12 @@ clinic record), linked records per clinic, reminders privacy toggle. "Add a fami
 "Ask the reception at their clinic to show a link code, then choose *My child* or *My parent*." (No
 self-service dependent creation in MVP — F-03 via clinic attestation.)
 
-### P-05 More — `(patient)/(main)/(tabs)/more.tsx`
+### P-05 More — folded into the Home tab (`(tabs)/index.tsx` → `patient/features/home/HomePage`)
+
+> 2026-11-21: Home is no longer a placeholder: greeting card on the brand colour, shortcut cards
+> (Today, Records, Family, Reminders), Linked clinics, **Appearance** (light / dark / system, A-27),
+> **Language** (English / اردو), Account (switch to clinic space, sign out, delete account).
+> Still open from the list below: Privacy/Terms links, a separate Reminders-settings row, Today-first start.
 
 Account (name, email) · Linked clinics (→ P-08) · Reminders settings (private reminders, quiet
 hours, battery-optimisation guide) · Language · Switch to clinic space · Privacy policy / Terms ·

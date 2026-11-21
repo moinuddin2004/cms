@@ -1,8 +1,7 @@
 import { LogOut } from 'lucide-react-native';
 import { useState } from 'react';
 
-import { ConfirmDialog, ListRow } from '@/core/components';
-import { Icon } from '@/core/ui/icon';
+import { ConfirmDialog, IconTile, ListRow } from '@/core/components';
 import { useSignOut } from '@/staff/features/auth';
 
 /** "Sign out" row. Nothing happens until the dialog is confirmed (docs/10 M1-02). */
@@ -13,7 +12,7 @@ export function SignOutRow() {
   return (
     <>
       <ListRow
-        leading={<Icon as={LogOut} className="text-destructive size-5" />}
+        leading={<IconTile icon={LogOut} tone="destructive" />}
         title="Sign out"
         onPress={() => setOpen(true)}
       />

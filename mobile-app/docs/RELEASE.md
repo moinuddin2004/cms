@@ -15,9 +15,9 @@ has its own name, URL scheme and package/bundle id, so two builds can be install
 
 | `APP_VARIANT` | App name | Android package / iOS bundle id | URL scheme |
 | --- | --- | --- | --- |
-| `development` | Clinic (Dev) | `com.placeholder.clinicapp.dev` | `clinicapp-dev` |
-| `preview` | Clinic (Preview) | `com.placeholder.clinicapp.preview` | `clinicapp-preview` |
-| `production` | Clinic | `com.placeholder.clinicapp` | `clinicapp` |
+| `development` | MedTrackr (Dev) | `com.placeholder.clinicapp.dev` | `clinicapp-dev` |
+| `preview` | MedTrackr (Preview) | `com.placeholder.clinicapp.preview` | `clinicapp-preview` |
+| `production` | MedTrackr | `com.placeholder.clinicapp` | `clinicapp` |
 
 Check what Expo resolves without contacting any server:
 
@@ -36,14 +36,15 @@ npx eas-cli@latest init
 ```
 
 `eas init` creates the Expo project and prints its **project id**. `app.config.ts` is a *dynamic*
-config, so EAS cannot write the id into it (it does not edit TypeScript files). Paste the id into the
-one `EAS_PROJECT_ID` constant in `mobile-app/app.config.ts` (empty string today). The updates URL
-(`https://u.expo.dev/<id>`) and `extra.eas.projectId` are derived from that constant. While it is
-empty the app runs embedded JS only (`updates.enabled` is `false`).
+config, so EAS cannot write the id into it (it does not edit TypeScript files). The id is already pasted
+into the one `EAS_PROJECT_ID` constant in `mobile-app/app.config.ts` (project set up 2026-11-17). The
+updates URL (`https://u.expo.dev/<id>`) and `extra.eas.projectId` are derived from that constant. If it
+were empty the app would run embedded JS only (`updates.enabled` is `false`). On a new Expo account or
+project, run `eas init` again and replace the constant.
 
 ### EAS environments (required before any build or update)
 
-`APP_VARIANT` and `EXPO_PUBLIC_API_URL` live in **EAS environments** (`development`, `preview`,
+`APP_VARIANT`, `EXPO_PUBLIC_API_URL` and `EXPO_PUBLIC_WEB_URL` live in **EAS environments** (`development`, `preview`,
 `production`). Build profiles select one with `"environment"` in `eas.json`, and `eas update` reads
 the same one via `--environment`. Replace the URL with the real backend per environment. (The Expo
 docs document `env:set`; it creates or updates a variable.)
@@ -59,7 +60,14 @@ npx eas-cli@latest env:set --name APP_VARIANT --value production --environment p
 npx eas-cli@latest env:set --name EXPO_PUBLIC_API_URL --value https://api.example.com --environment production --visibility plaintext
 ```
 
-Both values are public (they ship inside the app), so `plaintext` is right.
+Also set `EXPO_PUBLIC_WEB_URL` (the web app's origin, e.g. `https://app.example.com`) in the same way for `preview` and `production`: the welcome page's Privacy / Terms links are hidden in a release build without it (`core/env.ts`):
+
+```powershell
+npx eas-cli@latest env:set --name EXPO_PUBLIC_WEB_URL --value https://app.example.com --environment preview --visibility plaintext
+npx eas-cli@latest env:set --name EXPO_PUBLIC_WEB_URL --value https://app.example.com --environment production --visibility plaintext
+```
+
+Optional for Google sign-in on iOS: `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` and `GOOGLE_IOS_URL_SCHEME` (adds the config plugin). All values are public (they ship inside the app), so `plaintext` is right.
 
 **Every `eas update` MUST pass the matching `--environment` (`preview` channel → `preview`, `production` channel → `production`); builds and updates must read the same environment.** An update bundled without `APP_VARIANT` /
 `EXPO_PUBLIC_API_URL` makes `core/env.ts` throw at start and breaks every installed build.
@@ -71,7 +79,7 @@ Both values are public (they ship inside the app), so `plaintext` is right.
 ## 3. Builds
 
 ```powershell
-# Development build (Expo dev client; installs next to preview/production)
+# Development build (Expo dev client, internal APK; installs next to preview/production)
 npx eas-cli@latest build --profile development --platform android
 
 # Preview: internal APK, channel `preview`
@@ -81,10 +89,11 @@ npx eas-cli@latest build --profile preview --platform android
 npx eas-cli@latest build --profile production --platform android
 ```
 
-- The `development` profile needs `expo-dev-client` (`npx expo install expo-dev-client`, in the M0-07 rework handoff). The profile also has to be built once on a device before M0-D can be ticked.
+- The `development` profile uses `expo-dev-client` (installed) and builds an Android **APK** (`android.buildType: "apk"`, set 2026-11-17) you can side-load; run `npm run dev` afterwards and open the app. It has to be installed on a device once before M0-D can be ticked.
 - `appVersionSource` is `remote` and the production profile auto-increments the Android `versionCode`, so every AAB is accepted by Play.
-- Local builds while developing: `$env:APP_VARIANT = "development"; npx expo run:android` (this
-  creates the native folders on your machine only; they stay gitignored).
+- Local builds while developing: `npm run android` (`expo run:android`; `APP_VARIANT` defaults to
+  `development`; this creates the native folders on your machine only; they stay gitignored).
+  `.easignore` keeps `docs/`, `.claude/`, env files and keystores out of the EAS upload.
 - `ios` builds must compile too (docs/01 §3), but only the Android pilot is in scope.
 
 ## 4. Over-the-air updates
@@ -124,9 +133,10 @@ Raise them on the API after a release; no mobile build is needed.
 
 ## 6. Before a store submission (later cards)
 
-Still open: the real app identity (O-01), store listings, signing credentials, the in-app account
-deletion page (M4) and the privacy policy. The placeholder package name cannot be uploaded to Play,
-so do not submit before O-01 is decided.
+Still open: the real app identity (O-01), store listings and screenshots (icon and splash are done, M4-02),
+signing credentials, and the owner/lawyer review of the legal drafts (§6c). The in-app account deletion
+(P-09) and the public pages exist. The placeholder package name cannot be uploaded to Play, so do not
+submit before O-01 is decided.
 
 ## 6b. Demo accounts for store review (M4-03)
 

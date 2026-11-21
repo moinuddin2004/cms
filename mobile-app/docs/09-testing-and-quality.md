@@ -21,17 +21,14 @@ A task is **done** only when all of these are true. The reviewer checks each one
 
 ## 2. Mobile test setup (task M0-06)
 
-Install (user runs):
-
-```bash
-npx expo install jest-expo jest @testing-library/react-native @types/jest
-```
+Installed (M0-06; `npx expo install jest-expo jest @testing-library/react-native @types/jest`):
 
 - `package.json`: `"test": "jest"`, `"jest": { "preset": "jest-expo" }` plus
   `transformIgnorePatterns` per jest-expo docs (SDK 58 docs — check, do not guess).
 - `jest.setup.ts`: mock `expo-secure-store` (in-memory map), `react-native-mmkv` (in-memory),
   `expo-notifications` (scheduled list), NetInfo (online), `expo-crypto.randomUUID` (counter).
 - Tests live next to code: `*.test.ts(x)`.
+- `npm run lint:fences` runs `scripts/check-fences.mjs` (lint fixtures proving cross-space imports fail). Jest hangs after finishing on open handles in some folders (`src/shell`): run per folder in the foreground and add `--forceExit` / `--runInBand` if needed.
 
 ### What must have tests
 
@@ -43,7 +40,7 @@ npx expo install jest-expo jest @testing-library/react-native @types/jest
 | `core/http` idempotent mutation | unit — same key across retries, new key per intent, stops on 4xx |
 | `staff/lib/realtime-invalidation.ts` | unit — event → keys; stale `seq` ignored |
 | Queue row actions by status | component — action set per `EntryStatus` × permissions |
-| `patient/features/reminders/lib/*` (planner, parser) | unit — exhaustive table tests (see M3-03) |
+| `patient/features/medications/lib/*` (planner, scheduler, dose queue) | unit — exhaustive table tests (see M3-03) |
 | Sign-out wipes only that space | unit (mocked storage) |
 
 ## 3. Backend tests

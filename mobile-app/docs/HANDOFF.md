@@ -3434,3 +3434,18 @@ none
 
 ### Verification
 tsc clean (after `CI=1 npx expo start --offline`) · eslint 0 errors (5 old warnings) · lint:fences ok · jest foreground per folder, all green: core/components 11, core/i18n 3, core/theme 5, shell 5 (needs `--forceExit`), staff today 3 + patients 13, patient today 3 + navigation 1.
+
+---
+## UI-02 (part) - theme choice, full-screen welcome, patient Home - 2026-11-21
+Branch: `mobile/develop` (working tree, uncommitted). Done by the team lead on the user's direct request.
+
+- **Theme (A-27):** `core/theme/theme-preference.ts` — zustand `useThemePreference` + pref `app.theme`; rule = own choice → clinic `theme.default_mode` (staff) → phone (web `useTheme`). Applied before the first frame in `RootProviders`; staff `BrandTheme` / `applyCachedBrand` / `StaffLayout` now call `setClinicDefault` instead of forcing the mode. `ThemeModePicker` (core/forms). `expo-status-bar` `StatusBar style="auto"` + sonner `Toaster theme` follow the scheme. Test `theme-preference.test.ts`.
+- **Welcome:** `shell/WelcomePage.tsx` rewritten — blue hero (`HeroBackground`), M mark + name, EN/اردو pill, sun/moon theme button, 4 swipeable vector scenes (`shell/welcome/WelcomeArt.tsx`: tooth, token phone, medicines, dental chair) with auto-advance + dots, bottom panel with filled patient / outlined staff buttons, Privacy · Terms. Existing tests unchanged and green. New strings `shell.welcome.slide*`, `goToSlide`, `lightMode`, `darkMode` (en + ur).
+- **Patient Home:** `patient/features/home/HomePage.tsx` replaces `PatientPlaceholderPage` (deleted): greeting card, shortcut cards, linked clinics, Appearance, Language, Account. Strings `home.*`, `appearance.*`.
+- **Kit polish:** `SettingsGroup` + `IconTile` (core/layout), `ListRow` title `text-base font-semibold`, `StatTile` bigger value + shadow; staff More regrouped (Clinic / Appearance / App / Sign out) with a brand-colour `ProfileCard`.
+
+### Not verified
+No device or web run (the browser pane was blocked); check on a phone: welcome hero on small screens (art scales to `min(68% width, 30% height)`), swipe paging, Urdu (Nastaliq) on the hero, light ↔ dark on More / Home, clinic with forced `default_mode`.
+
+### Verification
+tsc clean · eslint 0 errors (7 old warnings) · lint:fences ok · jest: full run 156 suites green except a TodayPage timeout that passes alone; re-run of core + shell + staff theme/more/navigation green.

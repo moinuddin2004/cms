@@ -36,7 +36,7 @@
 | 2 · Start | `npm run dev` |
 | 3 · Open | Visit [http://localhost:4321](http://localhost:4321) |
 
-The public site is configured with `https://clinicly.pk` as its canonical site URL. There are no app API credentials required for local development.
+The site URL in `astro.config.mjs` is `https://clinicly.pk` (marked as a placeholder in the config) and is used for canonical URLs. There are no app API credentials required for local development.
 
 <br />
 
@@ -50,7 +50,7 @@ The public site is configured with `https://clinicly.pk` as its canonical site U
 | `/terms` | Terms of service |
 | Unknown path | Custom 404 page |
 
-The home page is assembled from reusable sections. Shared navigation, footer, layout and icons live in `src/components/`.
+The home page is assembled from reusable sections. Sections live in `src/components/sections/` (Hero, Features, AllFeatures, Journey, Views, ClinicStrip, Proof, Pricing, Faq, FinalCta); shared navigation, footer, logo, theme toggle and icons live in `src/components/`. Legal pages use `src/layouts/SimplePage.astro`.
 
 <br />
 
@@ -60,8 +60,8 @@ The home page is assembled from reusable sections. Shared navigation, footer, la
 src/
 ├── pages/        Astro page routes
 ├── components/   Shared layout, navigation, footer and page sections
-├── data/         Site copy and structured content
-├── layouts/      Shared document layout
+├── data/         Site copy (site, faq, plans, testimonials)
+├── layouts/      Layout.astro and SimplePage.astro
 └── styles/       Global styles and design tokens
 public/           Static assets
 ```

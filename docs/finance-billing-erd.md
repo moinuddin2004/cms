@@ -1,6 +1,6 @@
 # Billing, Invoices, Expenses, Commissions & Finance — ERD
 
-Generated from the live TypeORM entities (schema source of truth), cross-checked with
+Checked on 2026-11-19 against the entities and `backend/database/schema/02_tables.sql` (hand-maintained SQL), and with
 [`backend/docs/data-model/ENTITY_CATALOG.md`](../backend/docs/data-model/ENTITY_CATALOG.md),
 [`billing-feature-context.md`](billing-feature-context.md) and [`commissions.md`](commissions.md).
 
@@ -14,7 +14,7 @@ Generated from the live TypeORM entities (schema source of truth), cross-checked
 - Actor columns (`created_by`, `issued_by`, `received_by`, …) are logical references to `users`;
   they are not FK-constrained.
 - Money: billing v2 uses `numeric(12,2)` **rupees**; commissions, payroll and the lab module use
-  `bigint` **paisa** (100 paisa = 1 rupee).
+  `bigint` **minor units** named `*_minor` (100 minor = 1 rupee). Decimal-rupee tables (billing v2, `expenses`, `credit_packages`, `patient_credits`, `payroll_records.salary_amount`) have not been converted.
 
 ---
 
@@ -365,7 +365,7 @@ erDiagram
         uuid assignment_id FK
         uuid charge_id FK "nullable"
         uuid lab_invoice_line_id FK "nullable"
-        enum source_type "ALLOCATION | UNAPPLY | CHARGE_ADJUST | VOID"
+        enum source_type "ALLOCATION | UNAPPLY | CHARGE_ADJUST | VOID | MANUAL"
         bigint amount_minor "signed"
         uuid settlement_id FK "nullable"
     }
@@ -437,7 +437,7 @@ erDiagram
   `payroll_records` holds `base_salary_minor + commission_minor = total_minor` and is unique per
   employee × location × month.
 - `ledger_journals` + `ledger_journal_lines` are the **double-entry general ledger** (balanced,
-  paisa, chart of accounts in code). This is separate from the patient statement
+  minor units, chart of accounts in code). This is separate from the patient statement
   `ledger_entries` in diagram 3. Journals are append-only; corrections are mirror journals via
   `reversal_of_id`. `source_type` + `source_id` are polymorphic (no FK).
 
@@ -537,7 +537,7 @@ erDiagram
 **Meaning**
 
 - The lab module has its **own** invoice/payment/refund numbering and its own money columns, all in
-  **paisa**. It is separate from the clinic `invoices` / `payments` / `refunds` in diagram 1.
+  **minor units** (`*_minor`). It is separate from the clinic `invoices` / `payments` / `refunds` in diagram 1.
 - A `draft` lab invoice is only an estimate: no number, editable, owes nothing. Issuing freezes it.
 - `lab_payments` belongs to the patient. Unallocated + unrefunded money is the patient's advance.
   A wrong payment is never deleted — it gets a mirror row (`amount_minor < 0`, `reversal_of_id`).
@@ -739,8 +739,8 @@ erDiagram
 | Patient statement ≠ general ledger | `ledger_entries` vs `ledger_journals` + lines |
 | Commission snapshot is taken on the charge; entries are append-only and signed | `charges.commission_*`, `commission_entries` |
 | Salary + commission are settled through one payroll record | `commission_settlements` → `payroll_records` |
-| Lab billing is a separate realm with its own tables and paisa columns | `lab_*` tables |
-| Two money units coexist: rupees in billing v2, paisa in commission/payroll/lab | `numeric(12,2)` vs `bigint` |
+| Lab billing is a separate realm with its own tables and `*_minor` columns | `lab_*` tables |
+| Two money units coexist: rupees in billing v2, minor units in commission/payroll/lab/general ledger | `numeric(12,2)` vs `bigint` |
 
 ---
 

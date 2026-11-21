@@ -179,7 +179,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_user_devices_token ON user_devices (expo_pu
 CREATE INDEX IF NOT EXISTS idx_user_devices_user_id ON user_devices (user_id);
 
 -- patient_devices: same shape, account_id → patient_accounts(id) ON DELETE CASCADE,
--- uq_patient_devices_token, idx_patient_devices_account_id.
+-- uq_patient_devices_token, idx_patient_devices_account_id, plus
+-- session_id uuid (no FK; the patient_sessions row that registered the token — logout / reuse-revoke
+-- delete that session's devices; idx_patient_devices_session_id; changes/2026-11-17_patient_devices_session.sql, audit M4).
 ```
 
 Notification outbox (same change file as M1-04):
@@ -247,14 +249,14 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_medication_dose_events_schedule_due ON medi
 No FK from `medication_schedules.organization_id / prescription_*` to clinic tables: the schedule is
 the patient's property and must survive a clinic deleting its data (plan §4.4).
 
-## 6. Other (later phases)
+## 6. Other tables and columns (built unless marked)
 
 | Table / column | Phase | Shape |
 | --- | --- | --- |
-| `queue_visit_tokens` | M3-05 | `id, organization_id, entry_id → queue_entries, token_hash char(64) unique, expires_at, created_at` |
-| `appointments.patient_confirmed_at timestamptz` | M3-08 | nullable |
-| `appointment_patient_requests` | P07 requests (pilot phase) | `id, organization_id, appointment_id, kind ('reschedule','cancel'), requested_by_account_id, preferred_times jsonb, note, status ('open','accepted','declined'), resolved_by uuid, resolved_at, created_at` |
-| `product_events` | M2-13 | `id bigserial, actor_type ('staff','patient','anon'), actor_id uuid, organization_id uuid, name varchar(60), props jsonb, at timestamptz` + `idx_product_events_org_name_at` |
+| `queue_visit_tokens` | M3-05 (built) | `id, organization_id, entry_id → queue_entries, token_hash char(64) unique, expires_at, created_at` |
+| `appointments.patient_confirmed_at timestamptz` | M3-08 (built, `changes/2026-11-16_appointment_patient_confirmed.sql`) | nullable |
+| `appointment_patient_requests` | **not built** — P07 requests (pilot phase) | `id, organization_id, appointment_id, kind ('reschedule','cancel'), requested_by_account_id, preferred_times jsonb, note, status ('open','accepted','declined'), resolved_by uuid, resolved_at, created_at` |
+| `product_events` | M2-13 (built) | `id bigserial, actor_type ('staff','patient','anon'), actor_id uuid, organization_id uuid, name varchar(60), props jsonb, at timestamptz` + `idx_product_events_name_at (name, at)` |
 
 ## 7. Entities
 

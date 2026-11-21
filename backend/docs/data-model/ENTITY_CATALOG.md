@@ -3,6 +3,8 @@
 Data model of the clinic management backend (`backend/src`), derived from code only — no database was opened.
 Generated 2026-10-24 from the TypeORM entity classes plus the three files in `src/migrations/`.
 
+> **Status note (2026-11-19).** Sections 1 to 10 are the 2026-10-24 snapshot and were not regenerated. Since then the schema became hand-maintained SQL: `backend/database/schema/` builds an empty database (172 tables in `02_tables.sql`) and `backend/database/changes/` alters existing ones. `synchronize` is off everywhere, `src/migrations/` and `schema:sync:prod` are gone, and the app never changes the schema (see [`database/README.md`](../../database/README.md)). Where Sections 1 to 3 say otherwise, they describe the old setup. What changed in the data model since is in [Section 11](#11-added-since-2026-11-02): 23 tables added, 4 catalog entries gone, and new columns or constraints on 16 existing tables.
+
 **Legend.** **VERIFIED** = read directly from code (entity decorators, migration SQL, or an entity source comment).
 **INFERRED** = a conclusion drawn from names or conventions; the code does not state it. Everything in the column, index, key and
 FK tables below is VERIFIED unless the row says INFERRED.
@@ -19,6 +21,7 @@ FK tables below is VERIFIED unless the row says INFERRED.
 8. [Tenant scope](#8-tenant-scope)
 9. [Ownership — unclear or shared](#9-ownership--unclear-or-shared)
 10. [Ambiguities and open questions](#10-ambiguities-and-open-questions)
+11. [Added since 2026-11-02](#11-added-since-2026-11-02) (new tables, new columns, removed entries)
 
 ## 1. Schema source of truth
 
@@ -2435,6 +2438,8 @@ Foreign keys (enforced):
 - (treatment_plan_template_id) → `treatment_plan_templates`(id) ON DELETE SET NULL — `treatmentPlanTemplate` (many-to-one)
 
 <a id="treatment-plan-template-medicines"></a>
+> **Removed (checked 2026-11-19).** See the note under `treatment_plan_templates`.
+
 #### `TreatmentPlanTemplateMedicine` → `treatment_plan_template_medicines`
 
 > A medicine line inside a reusable treatment-plan template. `medicineDirectoryId` links back to the catalog row that seeded this line — but `medicineName` (and the rest) are stored DENORMALIZED so the template keeps working unchanged if the directory row is renamed or disabled later.
@@ -2472,6 +2477,8 @@ Foreign keys (enforced):
 - (medicine_directory_id) → `medicine_directory`(id) ON DELETE SET NULL — `medicineDirectory` (many-to-one)
 
 <a id="treatment-plan-templates"></a>
+> **Removed (checked 2026-11-19).** `treatment_plan_templates` and `treatment_plan_template_medicines` are not in `database/schema/` and have no entity any more; `prescription_presets` and `prescription_preset_medicines` replace them (Section 11), and `prescriptions.treatment_plan_template_id` became `prescription_preset_id`.
+
 #### `TreatmentPlanTemplate` → `treatment_plan_templates`
 
 > A predefined, reusable prescription protocol — e.g. "Root Canal Aftercare" or "Scaling Post-care". Selecting one in the prescription builder pre-fills the medicines, further-plan text, and bilingual instructions; the doctor can still edit anything before finalizing. Medicines are eager-loaded becau…
@@ -4066,6 +4073,8 @@ Foreign keys (enforced):
 - (organizationId) → `organizations`(id) ON DELETE CASCADE — `organization` (many-to-one)
 
 <a id="inventory"></a>
+> **Not a table in the schema (checked 2026-11-19).** `src/inventory/entities/inventory.entity.ts` is still in the source tree but registered by no module and absent from `database/schema/`; the live stock tables are `inventory_items`, `stock_movements` and the others in this module.
+
 #### `Inventory` → `inventory`
 
 - **File:** `src/inventory/entities/inventory.entity.ts` — ⚠ not registered in any `forFeature` (CLI glob only)
@@ -4395,6 +4404,8 @@ Foreign keys (enforced):
 
 <a id="chairs"></a>
 #### `Chair` → `chairs`
+
+> **Removed (checked 2026-11-19).** The `Chair` entity (`src/chairs/`) no longer exists and `chairs` is not in `database/schema/`. Locations only keep a `total_chairs` count. See Section 11.
 
 - **File:** `src/chairs/entities/chair.entity.ts` — ⚠ not registered in any `forFeature` (CLI glob only)
 - **PK:** `id` (uuid, generated: uuid)
@@ -7483,3 +7494,773 @@ The following modules have **no entities**: `reports`, `lab-finance`, `common/cl
 
 **Outdated project docs.** CLAUDE.md calls `invoices` and `inventory` stubs and lists `chairs`, `inventory` and `invoices` as "entity-only". In the code, `invoices` (billing v2) and the inventory module are implemented, and only `chairs` and the single `inventory` table are unregistered. VERIFIED.
 
+## 11. Added since 2026-11-02
+
+Checked 2026-11-19 against `backend/database/schema/02_tables.sql` and the entity files (nothing was run against a database). Every table below is built by `schema/02_tables.sql`; the `changes/` script that introduced it is named under each group. Entries use a reduced form of the Section 5 format: the SQL type, null and default come straight from `02_tables.sql`, and the TypeScript property name column is left out. "Tenant scope" is stated in words because most of these tables belong to the patient space, which is keyed by account, not by clinic.
+
+### 11.1 New tables (23)
+
+| Group | Tables | Introduced by |
+|---|---|---|
+| Staff sign-in and clinic access | [`clinic_invites`](#clinic-invites), [`clinic_join_requests`](#clinic-join-requests), [`desktop_auth_handoffs`](#desktop-auth-handoffs) | schema baseline (invites, join requests); `2026-11-08_desktop_auth_handoffs.sql` |
+| Email and notifications | [`email_log`](#email-log), [`notification_platform_overrides`](#notification-platform-overrides), [`user_notification_prefs`](#user-notification-prefs), [`user_devices`](#user-devices) | schema baseline; `2026-11-11_push_devices.sql` (`user_devices`) |
+| Patient space: identity | [`patient_accounts`](#patient-accounts), [`patient_account_identities`](#patient-account-identities), [`patient_sessions`](#patient-sessions), [`patient_login_codes`](#patient-login-codes), [`patient_profiles`](#patient-profiles), [`patient_record_links`](#patient-record-links), [`patient_claim_tokens`](#patient-claim-tokens), [`patient_account_consents`](#patient-account-consents), [`patient_access_log`](#patient-access-log) | `2026-11-12_patient_identity.sql`, `2026-11-15_patient_profiles_soft_delete.sql` |
+| Patient space: devices and queue | [`patient_devices`](#patient-devices), [`queue_visit_tokens`](#queue-visit-tokens) | `2026-11-16_patient_push.sql`, `2026-11-17_patient_devices_session.sql`; `2026-11-15_queue_visit_tokens.sql` |
+| Medications | [`medication_schedules`](#medication-schedules), [`medication_dose_events`](#medication-dose-events) | `2026-11-15_medications.sql` |
+| Analytics | [`product_events`](#product-events) | `2026-11-15_product_events.sql` |
+| Prescriptions | [`prescription_presets`](#prescription-presets), [`prescription_preset_medicines`](#prescription-preset-medicines) | schema baseline |
+
+Owning modules: `clinic-access`, `auth`, `common/mail`, `notifications`, `devices`, `patient-auth`, `patient-app`, `patient-links`, `patient-devices`, `queue`, `medications`, `product-events`, `prescriptions`.
+
+<a id="clinic-invites"></a>
+#### `ClinicInvite` → `clinic_invites`
+
+> Shareable "join this clinic" link (`/join/<token>`) that an owner or manager sends to staff. It grants no access by itself: opening it lets someone sign in with Google and send a join request, which is approved under Employees with a role. 7-day lifetime; `uses` counts redemptions.
+
+- **File:** `src/clinic-access/entities/clinic-invite.entity.ts`
+- **PK:** `id` (uuid, default gen_random_uuid())
+- **Tenant scope:** organization
+- **Timestamps:** `created_at`
+- **Soft delete:** none
+
+| Column | Type | Null | Default | Notes |
+|---|---|---|---|---|
+| `id` | uuid | no | gen_random_uuid() | PK |
+| `organization_id` | uuid | no |  |  |
+| `token` | varchar(64) | no |  |  |
+| `created_by` | uuid | yes |  |  |
+| `expires_at` | timestamptz | no |  |  |
+| `revoked_at` | timestamptz | yes |  |  |
+| `uses` | integer | no | 0 |  |
+| `created_at` | timestamptz | no | now() |  |
+
+Indexes:
+
+- INDEX `idx_clinic_invites_organization_id` (organization_id)
+- UNIQUE INDEX `idx_clinic_invites_token` (token)
+
+<a id="clinic-join-requests"></a>
+#### `ClinicJoinRequest` → `clinic_join_requests`
+
+> A person asking to join a clinic, created from an invite link or a Google Workspace domain match. Approved (with a role) or rejected under Employees; approval creates the employee and sets `employee_id`.
+
+- **File:** `src/clinic-access/entities/clinic-join-request.entity.ts`
+- **PK:** `id` (uuid, default gen_random_uuid())
+- **Tenant scope:** organization
+- **Timestamps:** `created_at`, `updated_at`
+- **Soft delete:** none
+
+| Column | Type | Null | Default | Notes |
+|---|---|---|---|---|
+| `id` | uuid | no | gen_random_uuid() | PK |
+| `organization_id` | uuid | no |  |  |
+| `user_id` | uuid | no |  |  |
+| `email` | varchar(255) | no |  |  |
+| `name` | varchar(255) | no |  |  |
+| `phone` | varchar(20) | no |  |  |
+| `message` | varchar(500) | yes |  |  |
+| `status` | clinic_join_requests_status_enum | no | 'pending' |  |
+| `decided_by` | uuid | yes |  |  |
+| `decided_at` | timestamptz | yes |  |  |
+| `decision_note` | varchar(500) | yes |  |  |
+| `employee_id` | uuid | yes |  |  |
+| `created_at` | timestamptz | no | now() |  |
+| `updated_at` | timestamptz | no | now() |  |
+
+Indexes:
+
+- INDEX `idx_clinic_join_requests_user_id` (user_id)
+- INDEX `idx_clinic_join_requests_organization_id_status` (organization_id, status)
+
+<a id="desktop-auth-handoffs"></a>
+#### `DesktopAuthHandoff` → `desktop_auth_handoffs`
+
+> One-time code for desktop (Tauri) Google sign-in. The system browser verifies the Google ID token and mints the code; the desktop app redeems it for a session. Stored hashed, single use.
+
+- **File:** `src/auth/entities/DesktopAuthHandoff.ts`
+- **PK:** `uuid` (uuid, default gen_random_uuid())
+- **Tenant scope:** global (platform identity: `user_id`)
+- **Timestamps:** `created_at`
+- **Soft delete:** none
+
+| Column | Type | Null | Default | Notes |
+|---|---|---|---|---|
+| `uuid` | uuid | no | gen_random_uuid() | PK |
+| `user_id` | uuid | no |  |  |
+| `code_hash` | varchar(64) | no |  |  |
+| `state` | varchar(128) | no |  |  |
+| `auth_domain` | varchar(255) | yes |  |  |
+| `expires_at` | timestamptz | no |  |  |
+| `used_at` | timestamptz | yes |  |  |
+| `created_at` | timestamptz | no | now() |  |
+
+Constraints:
+
+- CONSTRAINT fk_desktop_auth_handoffs_user_id
+- FOREIGN KEY (user_id) REFERENCES users (uuid) ON DELETE CASCADE
+
+Indexes:
+
+- UNIQUE INDEX `uq_desktop_auth_handoffs_code_hash` (code_hash)
+- INDEX `idx_desktop_auth_handoffs_expires_at` (expires_at)
+
+<a id="email-log"></a>
+#### `EmailLog` → `email_log`
+
+> Log of emails sent through `MailService` and the email channel: recipient, kind, status, provider message id, error.
+
+- **File:** `src/common/mail/email-log.entity.ts`
+- **PK:** `id` (uuid, default uuid_generate_v7())
+- **Tenant scope:** global (optional `user_id`; no organization column)
+- **Timestamps:** `created_at`
+- **Soft delete:** none
+
+| Column | Type | Null | Default | Notes |
+|---|---|---|---|---|
+| `id` | uuid | no | uuid_generate_v7() | PK |
+| `to_address` | text | no |  |  |
+| `kind` | text | no |  |  |
+| `status` | text | no |  |  |
+| `user_id` | uuid | yes |  |  |
+| `provider_message_id` | text | yes |  |  |
+| `error` | text | yes |  |  |
+| `created_at` | timestamptz | no | now() |  |
+
+Indexes:
+
+- INDEX `idx_email_log_created` (created_at)
+
+<a id="notification-platform-overrides"></a>
+#### `NotificationPlatformOverride` → `notification_platform_overrides`
+
+> Super-admin override per clinic, event and channel: force a mandatory event's email `on` or `off` over the owner's switch.
+
+- **File:** `src/notifications/entities/notification-platform-override.entity.ts`
+- **PK:** composite (organization_id, event_code, channel)
+- **Tenant scope:** organization (composite PK)
+- **Timestamps:** `updated_at`
+- **Soft delete:** none
+
+| Column | Type | Null | Default | Notes |
+|---|---|---|---|---|
+| `organization_id` | uuid | no |  |  |
+| `event_code` | text | no |  |  |
+| `channel` | text | no |  |  |
+| `mode` | text | no |  |  |
+| `updated_by` | uuid | yes |  |  |
+| `updated_at` | timestamptz | no | now() |  |
+
+Constraints:
+
+- `chk_notification_platform_overrides_mode` CHECK ("mode" IN ('on', 'off'))
+
+<a id="user-devices"></a>
+#### `UserDevice` → `user_devices`
+
+> Staff phone registered for Expo push (`/me/devices`). One row per push token.
+
+- **File:** `src/devices/entities/user-device.entity.ts`
+- **PK:** `id` (uuid, default gen_random_uuid())
+- **Tenant scope:** global (user)
+- **Timestamps:** `created_at`
+- **Soft delete:** none
+
+| Column | Type | Null | Default | Notes |
+|---|---|---|---|---|
+| `id` | uuid | no | gen_random_uuid() | PK |
+| `user_id` | uuid | no |  |  |
+| `expo_push_token` | varchar(200) | no |  |  |
+| `platform` | varchar(10) | no |  |  |
+| `device_label` | varchar(80) | yes |  |  |
+| `app_version` | varchar(20) | yes |  |  |
+| `last_seen_at` | timestamptz | no | now() |  |
+| `created_at` | timestamptz | no | now() |  |
+
+Constraints:
+
+- `chk_user_devices_platform` CHECK ("platform" IN ('android', 'ios'))
+- `fk_user_devices_user_id` FOREIGN KEY (user_id) REFERENCES users (uuid) ON DELETE CASCADE
+
+Indexes:
+
+- UNIQUE INDEX `uq_user_devices_token` (expo_push_token)
+- INDEX `idx_user_devices_user_id` (user_id)
+
+<a id="user-notification-prefs"></a>
+#### `UserNotificationPref` → `user_notification_prefs`
+
+> A staff member's personal notification switches (sound, per-event email), keyed by `key`.
+
+- **File:** `src/notifications/entities/user-notification-pref.entity.ts`
+- **PK:** composite (user_id, key)
+- **Tenant scope:** global (user; composite PK)
+- **Timestamps:** `updated_at`
+- **Soft delete:** none
+
+| Column | Type | Null | Default | Notes |
+|---|---|---|---|---|
+| `user_id` | uuid | no |  |  |
+| `key` | text | no |  |  |
+| `enabled` | boolean | no |  |  |
+| `updated_at` | timestamptz | no | now() |  |
+
+Constraints:
+
+- `fk_user_notification_prefs_user_id` FOREIGN KEY (user_id) REFERENCES users (uuid) ON DELETE CASCADE
+
+<a id="medication-schedules"></a>
+#### `MedicationSchedule` → `medication_schedules`
+
+> A patient-app medication reminder schedule. Built from a finalized prescription (`source = prescription`) or typed by the patient (`manual`). `hidden` is set when the clinic revokes the record link.
+
+- **File:** `src/medications/entities/medication-schedule.entity.ts`
+- **PK:** `id` (uuid, default gen_random_uuid())
+- **Tenant scope:** patient profile (optional `organization_id` for clinic-sourced rows)
+- **Timestamps:** `created_at`, `updated_at`
+- **Soft delete:** none
+
+| Column | Type | Null | Default | Notes |
+|---|---|---|---|---|
+| `id` | uuid | no | gen_random_uuid() | PK |
+| `profile_id` | uuid | no |  |  |
+| `source` | varchar(15) | no |  |  |
+| `organization_id` | uuid | yes |  |  |
+| `prescription_id` | uuid | yes |  |  |
+| `prescription_medicine_id` | uuid | yes |  |  |
+| `name` | varchar(200) | no |  |  |
+| `name_urdu` | varchar(200) | yes |  |  |
+| `dose_text` | varchar(120) | no |  |  |
+| `times` | jsonb | no | '[]' |  |
+| `meal_relation` | varchar(20) | no | 'NONE' |  |
+| `start_date` | date | no |  |  |
+| `end_date` | date | yes |  |  |
+| `end_date_source` | varchar(10) | no | 'unknown' |  |
+| `status` | varchar(10) | no | 'active' |  |
+| `instructions` | text | yes |  |  |
+| `instructions_urdu` | text | yes |  |  |
+| `patient_edited` | boolean | no | false |  |
+| `prescription_version` | int | yes |  | prescriptions.version the schedule was last synced from (sweep marker) |
+| `hidden` | boolean | no | false | clinic revoked the link (A-23): not listed, not editable |
+| `created_at` | timestamptz | no | now() |  |
+| `updated_at` | timestamptz | no | now() |  |
+
+Constraints:
+
+- `fk_medication_schedules_profile_id` FOREIGN KEY (profile_id) REFERENCES patient_profiles (id) ON DELETE CASCADE
+- `chk_medication_schedules_source` CHECK (source IN ('prescription','manual'))
+- `chk_medication_schedules_status` CHECK (status IN ('active','paused','completed','stopped'))
+- `chk_medication_schedules_end_source` CHECK (end_date_source IN ('parsed','patient','unknown'))
+
+Indexes:
+
+- INDEX `idx_medication_schedules_profile_status` (profile_id, status)
+- INDEX `idx_medication_schedules_profile_updated` (profile_id, updated_at)
+
+<a id="medication-dose-events"></a>
+#### `MedicationDoseEvent` → `medication_dose_events`
+
+> A dose the patient marked taken or skipped; one row per (schedule, due time).
+
+- **File:** `src/medications/entities/medication-dose-event.entity.ts`
+- **PK:** `id` (uuid, default gen_random_uuid())
+- **Tenant scope:** patient profile (through `schedule_id`)
+- **Timestamps:** `created_at`
+- **Soft delete:** none
+
+| Column | Type | Null | Default | Notes |
+|---|---|---|---|---|
+| `id` | uuid | no | gen_random_uuid() | PK |
+| `schedule_id` | uuid | no |  |  |
+| `due_at` | timestamptz | no |  |  |
+| `action` | varchar(10) | no |  |  |
+| `acted_at` | timestamptz | no |  |  |
+| `created_at` | timestamptz | no | now() |  |
+
+Constraints:
+
+- `fk_medication_dose_events_schedule_id` FOREIGN KEY (schedule_id) REFERENCES medication_schedules (id) ON DELETE CASCADE
+- `chk_medication_dose_events_action` CHECK (action IN ('taken','skipped'))
+
+Indexes:
+
+- UNIQUE INDEX `uq_medication_dose_events_schedule_due` (schedule_id, due_at)
+
+<a id="patient-accounts"></a>
+#### `PatientAccount` → `patient_accounts`
+
+> A patient-space login (the mobile app). Signs in with an emailed 6-digit code or Google; one account can own several profiles and link to many clinics.
+
+- **File:** `src/patient-auth/entities/patient-account.entity.ts`
+- **PK:** `id` (uuid, default gen_random_uuid())
+- **Tenant scope:** global (patient-space identity, separate from `users`)
+- **Timestamps:** `created_at`, `updated_at`
+- **Soft delete:** `deleted_at`
+
+| Column | Type | Null | Default | Notes |
+|---|---|---|---|---|
+| `id` | uuid | no | gen_random_uuid() | PK |
+| `full_name` | varchar(150) | yes |  |  |
+| `email` | varchar(254) | no |  |  |
+| `email_verified_at` | timestamptz | yes |  |  |
+| `phone` | varchar(20) | yes |  |  |
+| `phone_verified_at` | timestamptz | yes |  |  |
+| `status` | varchar(20) | no | 'active' |  |
+| `deleted_at` | timestamptz | yes |  |  |
+| `created_at` | timestamptz | no | now() |  |
+| `updated_at` | timestamptz | no | now() |  |
+
+Constraints:
+
+- `chk_patient_accounts_status` CHECK (status IN ('active','disabled','deleted'))
+
+Indexes:
+
+- INDEX `idx_patient_accounts_phone` (phone)
+
+<a id="patient-account-identities"></a>
+#### `PatientAccountIdentity` → `patient_account_identities`
+
+> How an account signs in: `google`, `apple` or `email` plus the provider subject (Google `sub` or lower-cased email).
+
+- **File:** `src/patient-auth/entities/patient-account-identity.entity.ts`
+- **PK:** `id` (uuid, default gen_random_uuid())
+- **Tenant scope:** global (account)
+- **Timestamps:** `created_at`
+- **Soft delete:** none
+
+| Column | Type | Null | Default | Notes |
+|---|---|---|---|---|
+| `id` | uuid | no | gen_random_uuid() | PK |
+| `account_id` | uuid | no |  |  |
+| `provider` | varchar(20) | no |  | google | apple | email |
+| `subject` | varchar(255) | no |  | google sub / apple sub / lower(email) |
+| `created_at` | timestamptz | no | now() |  |
+
+Constraints:
+
+- `fk_patient_account_identities_account_id` FOREIGN KEY (account_id) REFERENCES patient_accounts (id) ON DELETE CASCADE
+- `chk_patient_account_identities_provider` CHECK (provider IN ('google','apple','email'))
+
+Indexes:
+
+- UNIQUE INDEX `uq_patient_account_identities_provider_subject` (provider, subject)
+
+<a id="patient-sessions"></a>
+#### `PatientSession` → `patient_sessions`
+
+> A patient refresh-token session. Only sha256 hashes are stored; the previous hash is kept so a reused rotated token revokes the session. Sliding expiry plus an absolute cap (`PATIENT_SESSION_MAX_DAYS`).
+
+- **File:** `src/patient-auth/entities/patient-session.entity.ts`
+- **PK:** `id` (uuid, default gen_random_uuid())
+- **Tenant scope:** global (account)
+- **Timestamps:** `created_at`
+- **Soft delete:** none
+
+| Column | Type | Null | Default | Notes |
+|---|---|---|---|---|
+| `id` | uuid | no | gen_random_uuid() | PK |
+| `account_id` | uuid | no |  |  |
+| `refresh_token_hash` | char(64) | no |  | sha256 hex of the current token |
+| `previous_token_hash` | char(64) | yes |  | last rotated token: reuse → revoke session |
+| `device_label` | varchar(80) | yes |  |  |
+| `ip` | varchar(64) | yes |  |  |
+| `expires_at` | timestamptz | no |  | 60 days sliding |
+| `last_used_at` | timestamptz | no | now() |  |
+| `revoked_at` | timestamptz | yes |  |  |
+| `created_at` | timestamptz | no | now() |  |
+
+Constraints:
+
+- `fk_patient_sessions_account_id` FOREIGN KEY (account_id) REFERENCES patient_accounts (id) ON DELETE CASCADE
+
+Indexes:
+
+- INDEX `idx_patient_sessions_account_id` (account_id)
+- UNIQUE INDEX `uq_patient_sessions_refresh_token_hash` (refresh_token_hash)
+
+<a id="patient-login-codes"></a>
+#### `PatientLoginCode` → `patient_login_codes`
+
+> Emailed sign-in code, stored as sha256(code + pepper). 10-minute lifetime, attempt counter. Purged by the retention job.
+
+- **File:** `src/patient-auth/entities/patient-login-code.entity.ts`
+- **PK:** `id` (uuid, default gen_random_uuid())
+- **Tenant scope:** global (email)
+- **Timestamps:** `created_at`
+- **Soft delete:** none
+
+| Column | Type | Null | Default | Notes |
+|---|---|---|---|---|
+| `id` | uuid | no | gen_random_uuid() | PK |
+| `email` | varchar(254) | no |  | lower-cased |
+| `code_hash` | char(64) | no |  | sha256(code + pepper) |
+| `attempts` | smallint | no | 0 |  |
+| `expires_at` | timestamptz | no |  | 10 min |
+| `used_at` | timestamptz | yes |  |  |
+| `created_at` | timestamptz | no | now() |  |
+
+Indexes:
+
+- INDEX `idx_patient_login_codes_email` (email, created_at DESC)
+
+<a id="patient-profiles"></a>
+#### `PatientProfile` → `patient_profiles`
+
+> A person under a patient account: self, child, parent, spouse or other. At most one `self` per account. Soft-deleted with `deleted_at` (personal data stripped, link history kept).
+
+- **File:** `src/patient-app/entities/patient-profile.entity.ts`
+- **PK:** `id` (uuid, default gen_random_uuid())
+- **Tenant scope:** global (account)
+- **Timestamps:** `created_at`, `updated_at`
+- **Soft delete:** `deleted_at`
+
+| Column | Type | Null | Default | Notes |
+|---|---|---|---|---|
+| `id` | uuid | no | gen_random_uuid() | PK |
+| `account_id` | uuid | no |  |  |
+| `relation` | varchar(10) | no |  |  |
+| `full_name` | varchar(150) | no |  |  |
+| `dob` | date | yes |  |  |
+| `gender` | varchar(10) | yes |  |  |
+| `private_reminders` | boolean | no | false |  |
+| `deleted_at` | timestamptz | yes |  | soft delete (A-22): PII stripped, link history kept |
+| `created_at` | timestamptz | no | now() |  |
+| `updated_at` | timestamptz | no | now() |  |
+
+Constraints:
+
+- `fk_patient_profiles_account_id` FOREIGN KEY (account_id) REFERENCES patient_accounts (id) ON DELETE CASCADE
+- `chk_patient_profiles_relation` CHECK (relation IN ('self','child','parent','spouse','other'))
+- `chk_patient_profiles_gender` CHECK (gender IS NULL OR gender IN ('male','female','other'))
+
+Indexes:
+
+- INDEX `idx_patient_profiles_account_id` (account_id)
+
+<a id="patient-record-links"></a>
+#### `PatientRecordLink` → `patient_record_links`
+
+> Links a profile to one clinic patient record, made by staff QR / claim token. A patient record has at most one active link. Revocation records who (`patient`, `clinic` or `system`) and why.
+
+- **File:** `src/patient-app/entities/patient-record-link.entity.ts`
+- **PK:** `id` (uuid, default gen_random_uuid())
+- **Tenant scope:** organization (+ patient)
+- **Timestamps:** `created_at`, `updated_at`
+- **Soft delete:** none
+
+| Column | Type | Null | Default | Notes |
+|---|---|---|---|---|
+| `id` | uuid | no | gen_random_uuid() | PK |
+| `profile_id` | uuid | no |  |  |
+| `organization_id` | uuid | no |  |  |
+| `patient_id` | uuid | no |  |  |
+| `status` | varchar(10) | no | 'active' |  |
+| `link_method` | varchar(20) | no | 'staff_qr' |  |
+| `verified_by_user_id` | uuid | yes |  |  |
+| `verified_at` | timestamptz | yes |  |  |
+| `revoked_at` | timestamptz | yes |  |  |
+| `revoked_by_type` | varchar(10) | yes |  | patient | clinic | system |
+| `revoked_by_id` | uuid | yes |  |  |
+| `revoke_reason` | varchar(200) | yes |  |  |
+| `created_at` | timestamptz | no | now() |  |
+| `updated_at` | timestamptz | no | now() |  |
+
+Constraints:
+
+- `fk_patient_record_links_profile_id` FOREIGN KEY (profile_id) REFERENCES patient_profiles (id) ON DELETE CASCADE
+- `fk_patient_record_links_organization_id` FOREIGN KEY (organization_id) REFERENCES organizations (id) ON DELETE CASCADE
+- `fk_patient_record_links_patient_id` FOREIGN KEY (patient_id) REFERENCES patients (id) ON DELETE CASCADE
+- `chk_patient_record_links_status` CHECK (status IN ('active','frozen','revoked'))
+- `chk_patient_record_links_method` CHECK (link_method IN ('staff_qr'))
+
+Indexes:
+
+- INDEX `idx_patient_record_links_profile_id` (profile_id)
+- INDEX `idx_patient_record_links_org_patient` (organization_id, patient_id)
+
+<a id="patient-claim-tokens"></a>
+#### `PatientClaimToken` → `patient_claim_tokens`
+
+> Short-lived token staff create so a patient can claim their record in the app. Only the sha256 is stored.
+
+- **File:** `src/patient-links/entities/patient-claim-token.entity.ts`
+- **PK:** `id` (uuid, default gen_random_uuid())
+- **Tenant scope:** organization (+ patient)
+- **Timestamps:** `created_at`
+- **Soft delete:** none
+
+| Column | Type | Null | Default | Notes |
+|---|---|---|---|---|
+| `id` | uuid | no | gen_random_uuid() | PK |
+| `organization_id` | uuid | no |  |  |
+| `patient_id` | uuid | no |  |  |
+| `token_hash` | char(64) | no |  |  |
+| `created_by_user_id` | uuid | no |  |  |
+| `expires_at` | timestamptz | no |  |  |
+| `used_at` | timestamptz | yes |  |  |
+| `used_by_account_id` | uuid | yes |  |  |
+| `invalidated_at` | timestamptz | yes |  |  |
+| `created_at` | timestamptz | no | now() |  |
+
+Constraints:
+
+- `fk_patient_claim_tokens_organization_id` FOREIGN KEY (organization_id) REFERENCES organizations (id) ON DELETE CASCADE
+- `fk_patient_claim_tokens_patient_id` FOREIGN KEY (patient_id) REFERENCES patients (id) ON DELETE CASCADE
+
+Indexes:
+
+- UNIQUE INDEX `uq_patient_claim_tokens_token_hash` (token_hash)
+- INDEX `idx_patient_claim_tokens_org_patient` (organization_id, patient_id)
+
+<a id="patient-account-consents"></a>
+#### `PatientAccountConsent` → `patient_account_consents`
+
+> Consent a patient accepted: terms, privacy, per-clinic link, or WhatsApp opt-in, with version and IP.
+
+- **File:** `src/patient-app/entities/patient-account-consent.entity.ts`
+- **PK:** `id` (uuid, default gen_random_uuid())
+- **Tenant scope:** global (account; optional organization for `link`)
+- **Timestamps:** none
+- **Soft delete:** none
+
+| Column | Type | Null | Default | Notes |
+|---|---|---|---|---|
+| `id` | uuid | no | gen_random_uuid() | PK |
+| `account_id` | uuid | no |  |  |
+| `kind` | varchar(20) | no |  | terms | privacy | link | whatsapp_opt_in |
+| `version` | varchar(20) | no |  |  |
+| `organization_id` | uuid | yes |  | for kind = link |
+| `accepted_at` | timestamptz | no | now() |  |
+| `ip` | varchar(64) | yes |  |  |
+
+Constraints:
+
+- `fk_patient_account_consents_account_id` FOREIGN KEY (account_id) REFERENCES patient_accounts (id) ON DELETE CASCADE
+- `chk_patient_account_consents_kind` CHECK (kind IN ('terms','privacy','link','whatsapp_opt_in'))
+
+Indexes:
+
+- INDEX `idx_patient_account_consents_account_kind` (account_id, kind)
+
+<a id="patient-access-log"></a>
+#### `PatientAccessLog` → `patient_access_log`
+
+> Log of what a patient account viewed, downloaded or (un)linked at a clinic. No foreign key on `account_id`, so it survives account deletion. `id` is a `bigserial`.
+
+- **File:** `src/patient-app/entities/patient-access-log.entity.ts`
+- **PK:** `id` (bigserial)
+- **Tenant scope:** organization (+ patient)
+- **Timestamps:** none
+- **Soft delete:** none
+
+| Column | Type | Null | Default | Notes |
+|---|---|---|---|---|
+| `id` | bigserial | no |  | PK |
+| `account_id` | uuid | no |  | no FK: survives account deletion |
+| `profile_id` | uuid | yes |  |  |
+| `organization_id` | uuid | no |  |  |
+| `patient_id` | uuid | no |  |  |
+| `action` | varchar(30) | no |  | view_list | view_detail | link | unlink | download |
+| `resource_type` | varchar(30) | no |  | prescription | visit | invoice | appointment | document | link |
+| `resource_id` | uuid | yes |  |  |
+| `at` | timestamptz | no | now() |  |
+
+Indexes:
+
+- INDEX `idx_patient_access_log_org_patient_at` (organization_id, patient_id, at)
+- INDEX `idx_patient_access_log_account_at` (account_id, at)
+
+<a id="patient-devices"></a>
+#### `PatientDevice` → `patient_devices`
+
+> Patient phone registered for Expo push. `session_id` (no FK) is the `patient_sessions` row that registered it; the devices are deleted when that session is revoked.
+
+- **File:** `src/patient-devices/patient-device.entity.ts`
+- **PK:** `id` (uuid, default gen_random_uuid())
+- **Tenant scope:** global (account)
+- **Timestamps:** `created_at`
+- **Soft delete:** none
+
+| Column | Type | Null | Default | Notes |
+|---|---|---|---|---|
+| `id` | uuid | no | gen_random_uuid() | PK |
+| `account_id` | uuid | no |  |  |
+| `session_id` | uuid | yes |  | patient_sessions.id that registered it (no FK) |
+| `expo_push_token` | varchar(200) | no |  |  |
+| `platform` | varchar(10) | no |  |  |
+| `device_label` | varchar(80) | yes |  |  |
+| `app_version` | varchar(20) | yes |  |  |
+| `last_seen_at` | timestamptz | no | now() |  |
+| `created_at` | timestamptz | no | now() |  |
+
+Constraints:
+
+- `chk_patient_devices_platform` CHECK ("platform" IN ('android', 'ios'))
+- `fk_patient_devices_account_id` FOREIGN KEY (account_id) REFERENCES patient_accounts (id) ON DELETE CASCADE
+
+Indexes:
+
+- UNIQUE INDEX `uq_patient_devices_token` (expo_push_token)
+- INDEX `idx_patient_devices_account_id` (account_id)
+- INDEX `idx_patient_devices_session_id` (session_id)
+
+<a id="prescription-presets"></a>
+#### `PrescriptionPreset` → `prescription_presets`
+
+> A reusable prescription (a set of medicines plus instructions), by category and specialty tags. `prescriptions.prescription_preset_id` points here. Replaces the removed `treatment_plan_templates`.
+
+- **File:** `src/prescriptions/entities/prescription-preset.entity.ts`
+- **PK:** `id` (uuid, default gen_random_uuid())
+- **Tenant scope:** organization
+- **Timestamps:** `created_at`, `updated_at`
+- **Soft delete:** `is_active`
+
+| Column | Type | Null | Default | Notes |
+|---|---|---|---|---|
+| `id` | uuid | no | gen_random_uuid() | PK |
+| `organization_id` | uuid | no |  |  |
+| `name` | varchar(200) | no |  |  |
+| `description` | text | yes |  |  |
+| `category` | prescription_presets_category_enum | no | 'GENERAL' |  |
+| `specialty_tags` | jsonb | no | '["general"]' |  |
+| `further_plan` | text | yes |  |  |
+| `instructions_english` | text | yes |  |  |
+| `instructions_urdu` | text | yes |  |  |
+| `is_active` | boolean | no | true |  |
+| `created_by` | uuid | yes |  |  |
+| `created_at` | timestamptz | no | now() |  |
+| `updated_at` | timestamptz | no | now() |  |
+
+Constraints:
+
+- `fk_prescription_presets_organization_id` FOREIGN KEY (organization_id) REFERENCES organizations (id) ON DELETE CASCADE
+
+Indexes:
+
+- INDEX `idx_prescription_presets_organization_id_category` (organization_id, category)
+- INDEX `idx_prescription_presets_organization_id_is_active` (organization_id, is_active)
+
+<a id="prescription-preset-medicines"></a>
+#### `PrescriptionPresetMedicine` → `prescription_preset_medicines`
+
+> One medicine line of a preset; same fields as `prescription_medicines`.
+
+- **File:** `src/prescriptions/entities/prescription-preset-medicine.entity.ts`
+- **PK:** `id` (uuid, default gen_random_uuid())
+- **Tenant scope:** organization (through `preset_id`)
+- **Timestamps:** none
+- **Soft delete:** none
+
+| Column | Type | Null | Default | Notes |
+|---|---|---|---|---|
+| `id` | uuid | no | gen_random_uuid() | PK |
+| `preset_id` | uuid | no |  |  |
+| `medicine_directory_id` | uuid | yes |  |  |
+| `medicine_name` | varchar(200) | no |  |  |
+| `medicine_name_urdu` | varchar(200) | yes |  |  |
+| `type` | varchar(30) | yes |  |  |
+| `dosage` | varchar(50) | no |  |  |
+| `frequency` | varchar(100) | no |  |  |
+| `frequency_timing` | jsonb | no | '[]' |  |
+| `meal_relation` | prescription_preset_medicines_meal_relation_enum | no | 'NONE' |  |
+| `duration` | varchar(50) | no |  |  |
+| `special_instructions` | text | yes |  |  |
+| `special_instructions_urdu` | text | yes |  |  |
+| `sort_order` | integer | no | 0 |  |
+
+Constraints:
+
+- `fk_prescription_preset_medicines_preset_id` FOREIGN KEY (preset_id) REFERENCES prescription_presets (id) ON DELETE CASCADE
+- `fk_prescription_preset_medicines_medicine_directory_id` FOREIGN KEY (medicine_directory_id) REFERENCES medicine_directory (id) ON DELETE SET NULL
+
+Indexes:
+
+- INDEX `idx_prescription_preset_medicines_preset_id` (preset_id)
+
+<a id="product-events"></a>
+#### `ProductEvent` → `product_events`
+
+> Privacy-safe usage events from the staff and patient apps (`POST me/events`, `patient-api/events`). `id` is a `bigserial`. Purged after `PRODUCT_EVENT_RETENTION_DAYS`.
+
+- **File:** `src/product-events/entities/product-event.entity.ts`
+- **PK:** `id` (bigserial)
+- **Tenant scope:** optional organization (only when the server knows it)
+- **Timestamps:** none
+- **Soft delete:** none
+
+| Column | Type | Null | Default | Notes |
+|---|---|---|---|---|
+| `id` | bigserial | no |  | PK |
+| `actor_type` | varchar(10) | no |  | staff | patient | anon |
+| `actor_id` | uuid | yes |  | users.uuid / patient_accounts.id |
+| `organization_id` | uuid | yes |  | only when the server knows it |
+| `name` | varchar(60) | no |  |  |
+| `props` | jsonb | no | '{}'::jsonb |  |
+| `at` | timestamptz | no | now() |  |
+
+Constraints:
+
+- `chk_product_events_actor_type` CHECK (actor_type IN ('staff','patient','anon'))
+
+Indexes:
+
+- INDEX `idx_product_events_name_at` (name, at)
+
+<a id="queue-visit-tokens"></a>
+#### `QueueVisitToken` → `queue_visit_tokens`
+
+> Token for the public visit page of a queue entry. Only the sha256 is stored.
+
+- **File:** `src/queue/entities/queue-visit-token.entity.ts`
+- **PK:** `id` (uuid, default gen_random_uuid())
+- **Tenant scope:** organization (+ queue entry)
+- **Timestamps:** `created_at`
+- **Soft delete:** none
+
+| Column | Type | Null | Default | Notes |
+|---|---|---|---|---|
+| `id` | uuid | no | gen_random_uuid() | PK |
+| `organization_id` | uuid | no |  |  |
+| `entry_id` | uuid | no |  |  |
+| `token_hash` | char(64) | no |  |  |
+| `expires_at` | timestamptz | no |  |  |
+| `created_at` | timestamptz | no | now() |  |
+
+Constraints:
+
+- `fk_queue_visit_tokens_organization_id` FOREIGN KEY (organization_id) REFERENCES organizations (id) ON DELETE CASCADE
+- `fk_queue_visit_tokens_entry_id` FOREIGN KEY (entry_id) REFERENCES queue_entries (id) ON DELETE CASCADE
+
+Indexes:
+
+- UNIQUE INDEX `uq_queue_visit_tokens_token_hash` (token_hash)
+- INDEX `idx_queue_visit_tokens_entry_id` (entry_id)
+- INDEX `idx_queue_visit_tokens_expires_at` (expires_at)
+
+### 11.2 New columns on existing tables
+
+| Table | Column(s) | Notes |
+|---|---|---|
+| `users` | `avatar_key` varchar(500); `email_verification_due_at` timestamptz | Storage key of the profile photo (`2026-11-06_users-avatar-key.sql`). Date after which an unverified password account is limited to `/auth/*` (`EmailVerifiedGuard`) |
+| `user_sessions` | `auth_method` varchar(16) default `'password'`; `auth_domain` varchar(255) | How the session signed in (password or Google) and the Workspace domain, for the clinic sign-in policy |
+| `organizations` | `approval_status` (enum `pending`/`approved`/`rejected`, default `approved`); `approval_decided_at`; `approval_decided_by`; `approval_note` | Clinic approval by a super admin; self-signup clinics start `pending` |
+| `labs` | `email_verified_at`, `email_verify_token`, `email_verify_expires` | Lab contact address confirmation |
+| `appointments` | `patient_confirmed_at` timestamptz | Patient confirmed the appointment from the app (`2026-11-16_appointment_patient_confirmed.sql`) |
+| `queue_policies` | `patient_turn_near_ahead` integer default 2 (CHECK 0 to 20) | "Your turn is near" push threshold (`2026-11-16_patient_push.sql`) |
+| `queue_entries` | `turn_near_notified_at` timestamptz | Once-per-entry marker for that push |
+| `notification_events` | `email_default` boolean default false; `channels` text[] | Seeded email default and channel limit per event |
+| `patient_treatment_plans` | `encounter_id`, `plan_template_id`, `discount_kind`, `discount_value`, `invoice_id`, `started_at` | The visit it was made in, the template it started from, a package discount (percent or amount) and the one invoice for the whole plan (locks services and prices once set) |
+| `treatment_plan_items` | `service_id` uuid | Catalog service of the item (its price is locked in the item cost) |
+| `treatments` | `plan_item_id` uuid | Plan item this treatment fulfils |
+| `plan_templates` | `discount_kind`, `discount_value` | Template-level discount |
+| `prescriptions` | `prescription_preset_id` uuid (replaces `treatment_plan_template_id`) | See 11.3 |
+| `notification_outbox`, `notification_templates`, `notification_rules` | CHECK constraints on `channel` (and outbox `status`) widened | Adds the `push` channel and the `skipped_no_device` outbox status (`2026-11-11_push_devices.sql`) |
+
+Enum type changes are not repeated here; the `CREATE TYPE` lines in `02_tables.sql` are authoritative.
+
+### 11.3 Changed and removed
+
+- `prescriptions.prescription_number`: unique per clinic, constraint `uq_prescriptions_organization_id_prescription_number` (`organization_id, prescription_number`), instead of unique across all clinics (`2026-11-08_prescriptions-number-per-clinic.sql`). The Section 5 entry for `prescriptions` still shows the old global unique key.
+- Removed: `chairs` (no entity), `treatment_plan_templates`, `treatment_plan_template_medicines`. `inventory` stays an unregistered legacy entity that is not in the schema. Net count: 153 catalog tables, minus the 4 above, plus the 23 here, equals the 172 tables in `02_tables.sql`.
+- The tables `migrations` (TypeORM bookkeeping) and the `src/migrations/` files described in Sections 1 to 3 no longer exist; `reject_append_only_mutation()`, `commission_entries_append_only()` and their triggers now live in `schema/01_extensions_functions.sql` and `schema/05_triggers.sql`.
+- Not re-checked: columns on other existing tables were compared by name only (a column present in the SQL but missing from this catalog is listed in 11.2); type and constraint changes on existing columns were not diffed.

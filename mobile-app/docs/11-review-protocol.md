@@ -52,6 +52,8 @@
 
 ## 4. Review file format (`docs/reviews/<TASK-ID>/review.md`)
 
+> In practice only the early cards (M0–M2-03) have a `reviews/<TASK-ID>/review.md`. From the baseline waves on (2026-11-15) the team lead logs verdicts and rework requests as `REVIEW …` / `Rework <ID> #n` entries in `HANDOFF.md`, and uses `reviews/<TASK-ID>/` (M4-05) or `reviews/<AREA>-<date>/` (`AUDIT-2026-11`, `UI-UX-2026-11`) for reports and screenshots. Either record is fine; do not leave a verdict only in chat.
+
 ```markdown
 # Review <TASK-ID> — <title>
 Date: YYYY-MM-DD · Reviewer: architect · Verdict: done | changes-requested

@@ -29,12 +29,12 @@ export function StatTile({ label, value, hint, tone }: StatTileProps) {
     <View
       accessible
       accessibilityLabel={[label, String(value), hint].filter(Boolean).join(', ')}
-      className="border-border bg-card min-w-28 flex-1 gap-1 rounded-xl border p-4">
+      className="border-border bg-card min-w-28 flex-1 gap-1 rounded-2xl border p-4 shadow-sm shadow-black/5">
       <View className="flex-row items-center gap-2">
         {tone ? <View className={cn('size-2 rounded-full', MARKER[tone])} /> : null}
         <Text variant="muted">{label}</Text>
       </View>
-      <Text variant="h3" className="tabular-nums">
+      <Text className="text-3xl font-bold tracking-tight tabular-nums">
         {value}
       </Text>
       {hint ? <Text variant="muted">{hint}</Text> : null}

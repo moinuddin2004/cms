@@ -38,7 +38,17 @@
 | 2 · Configure (optional) | Set `VITE_API_BASE_URL` if the API is not at `http://localhost:5000` |
 | 3 · Start                | `npm run dev`                                                        |
 
-Open [http://localhost:3000](http://localhost:3000). The default API URL is `http://localhost:5000`; no web-specific `.env` file is required for local development.
+Open [http://localhost:3000](http://localhost:3000). The default API URL is `http://localhost:5000`; no web-specific `.env` file is required for local development (copy `.env.example` to `.env` to override).
+
+### Environment variables
+
+All are build-time `VITE_*` values baked into the static bundle (`.env.example`).
+
+| Variable                                  | Purpose                                                                                                                       | Default                 |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| `VITE_API_BASE_URL`                       | Backend API base URL (`src/lib/api.ts`; also a Docker build arg)                                                              | `http://localhost:5000` |
+| `VITE_APP_SCHEME`                         | Deep-link scheme of the mobile app for the patient link page `/c/:token` (`clinicapp-dev`, `clinicapp-preview`, `clinicapp`) | `clinicapp`             |
+| `VITE_PLAY_STORE_URL` / `VITE_APP_STORE_URL` | Store listings shown when the mobile app is not installed                                                                  | empty                   |
 
 <br />
 
@@ -96,7 +106,7 @@ npm run test
 npm run build
 ```
 
-Vitest uses Testing Library for component and hook tests. The production build is a static SPA bundle in `.output/public` (`index.html` plus hashed assets) that talks to the API directly — no Node server at runtime. nginx serves it via the `Dockerfile`; the Tauri shell in [`desktop-app/`](../desktop-app/) serves the same bundle.
+Vitest uses Testing Library for component and hook tests. The production build is a static SPA bundle in `.output/public` (`index.html` plus hashed assets) that talks to the API directly — no Node server at runtime. nginx serves it via the `Dockerfile` (Node 22 build stage, `nginx.conf` falls back to `index.html`); the Tauri shell in [`desktop-app/`](../desktop-app/) serves the same bundle.
 
 <br />
 

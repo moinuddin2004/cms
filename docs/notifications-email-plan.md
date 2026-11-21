@@ -1,8 +1,46 @@
 # Notifications + Email — Plan
 
-Status (2026-11-05): **all phases built.** P0 + P1 committed; P2–P5 uncommitted.
-Browser-checked on the acceptance harness (schema `acceptit`, SMTP forced to
-bad credentials so nothing real is sent).
+Status (re-checked against code 2026-11-19): **all phases built and merged**
+(the clinic-user in-app + email project below). Later additions, not part of the
+original plan text (the sections below are the historical plan; where they say
+"patients get nothing" read "Since then" first):
+
+Since then (mobile app):
+- **Push channel.** `NotificationChannel.PUSH` + `ExpoPushProvider`
+  (`delivery/expo-push.provider.ts`, `expo-server-sdk` loaded lazily, optional
+  `EXPO_ACCESS_TOKEN`). Staff: `user_devices` via `POST/DELETE /me/devices`
+  (`src/devices/`); doctor / coordinator / staff audiences can use push for
+  events whose seed lists `push` (e.g. `queue.patient_checked_in` is in-app +
+  push). No device = outbox status `skipped_no_device` (never a failure).
+  Expo receipts are re-checked after ~15 min; `DeviceNotRegistered` drops the
+  device row. Queue pushes carry a 300 s TTL.
+- **Patient push (the "Patients later" idea, push only).**
+  `CHANNELS_BY_AUDIENCE.patient = [PUSH]`; still no email / SMS / WhatsApp to
+  patients (`notifications.enums.spec.ts` guards it, `AddressVerifier` still
+  returns not-verified for patients). Devices are per patient ACCOUNT:
+  `patient_devices` (`src/patient-devices/`, `POST/DELETE /patient-api/devices`,
+  tied to the registering `patient_sessions.id` so sign-out removes the
+  phone). Recipients resolve clinic patient → active `patient_record_links` →
+  app account → devices (`recipients/patient-recipients.ts`), and a push is
+  sent only when the clinic has the `patient_app` feature on. Wording is
+  privacy-safe (clinic name, token, doctor name, time; never clinical text;
+  `push-template-safety.spec.ts`).
+- **Patient events** (seeds): `queue.turn_near` (when the patient has
+  `queue_policies.patient_turn_near_ahead` (default 2) or fewer people ahead;
+  once per entry via `queue_entries.turn_near_notified_at`), `queue.called`
+  (doctor called the patient), `appointment.reminder` (24 h before, scheduled
+  and cancelled by `appointments/appointment-reminders.service.ts`). All three
+  fired from `queue/` and `appointments/`, not from this module's callers
+  list below. Medication reminders are NOT server notifications: prescriptions
+  sync to `medication_schedules` (`src/medications/`) and the app schedules
+  them itself.
+- Schema is hand-written SQL (`backend/database/`): `changes/2026-11-11_push_devices.sql`,
+  `2026-11-16_patient_push.sql`, `2026-11-17_patient_devices_session.sql`.
+  `notification_outbox` CHECKs include channel `push` and status
+  `skipped_no_device`.
+
+Original status note (2026-11-05): all phases built; browser-checked on the
+acceptance harness (schema `acceptit`, SMTP forced to bad credentials).
 
 P3–P5 as built — deviations / decisions:
 - Transport: `common/mail/mail-transport.service.ts` (generic SMTP env, Gmail
@@ -17,9 +55,9 @@ P3–P5 as built — deviations / decisions:
 - Events carry `email_default` + `channels` (seed keeps them in step on boot).
   New audience `staff`; recipients by owner / permission
   (`notifications/recipients/staff-recipients.ts`).
-- Migration `1793900000000-notification-staff-email-checks` replaces the
-  audience / status CHECK constraints (synchronize keeps a same-named CHECK
-  whose expression changed) — run `schema:sync:prod` + migrations on deploy.
+- (Historical: this was a TypeORM migration, `1793900000000-notification-staff-email-checks`.
+  There are no TypeORM migrations or `synchronize` any more — the CHECKs now
+  live in `backend/database/schema/02_tables.sql` and `changes/*.sql`.)
 - Wired events: appointment booked / moved / cancelled (doctor; not when
   the doctor did it), queue check-in (in-app only), inventory low stock +
   expiring (daily digest to owners + `inventory.po.manage`), join request
@@ -97,8 +135,9 @@ P0/P1 as built — deviations from the text below:
 
 1. Every clinic-side person — owner, doctors, reception/staff, lab users and lab
    contacts — gets notifications **in-app (instantly, no reload)** and **by email**.
-2. **Patients get nothing for now.** The system is for clinic users only;
-   patient email follow-ups come later (see "Patients later").
+2. **Patients get no email.** Clinic users only for email / in-app; patients
+   now get app **push only** (see "Since then" in the status block and
+   "Patients later" for email follow-ups).
 3. **No system email ever goes to an unverified address.** Super admin can mark
    any user's email as verified.
 
@@ -135,7 +174,7 @@ P0/P1 as built — deviations from the text below:
 | D1 | Email provider | **Free SMTP only, no paid API.** Generic SMTP env (`SMTP_HOST/PORT/SECURE/USER/PASS/FROM`) — switching provider = changing env, no code. Start on Gmail app password; Brevo free SMTP as the next step (see "SMTP choice"). No `SMTP_HOST` → dev-log stays. |
 | D2 | Unverified password users | **Hard block:** they can sign in, but every tenant request is refused (`EMAIL_NOT_VERIFIED`) until verified. Only verify / resend / logout work. |
 | D3 | Existing unverified users at rollout | **Open — see "Open questions".** |
-| D4 | Patients | **Not now, but built to be switched on later** (patient email follow-ups are a later project). Patient audience hidden in the UI; `CHANNELS_BY_AUDIENCE.patient` stays `[]`; a spec guards it. Nothing patient-related is deleted — see "Patients later". |
+| D4 | Patients | **Not now (email) — push added later for the patient app.** Built to be switched on later (patient email follow-ups are a later project). Patient audience hidden in the UI; `CHANNELS_BY_AUDIENCE.patient` was `[]` and is now `[PUSH]` only; a spec guards it. Nothing patient-related is deleted — see "Patients later". |
 | D5 | Email default | **Decided 2026-11-05:** email is ON by default only for *important* events (`EventSeed.emailDefault: true`); frequent events default to in-app only. **Every** event that allows email shows an email on/off toggle — clinic-wide in Settings → Notifications (owner) and personal in My account → Notifications (each user) — so any event's email can be switched on or off. |
 | D6 | Bell polling | 10 minutes as a fallback; the socket gives the instant update. |
 
@@ -369,6 +408,11 @@ Two levels of switches; email goes out only when **both** allow it:
   `sound`. The table itself is created in P0 for the sound pref.
 
 ## Patients later (keep it extendable)
+
+> Update 2026-11-19: the patient **push** channel is built (see status block).
+> What remains "later" is patient **email / SMS / WhatsApp**, the patient email
+> confirm + unsubscribe flow and the patient settings card. Rules below still
+> apply to those.
 
 Patient email follow-ups are a separate later project. Rules now, so turning
 them on later is configuration plus a little UI, not a rewrite:

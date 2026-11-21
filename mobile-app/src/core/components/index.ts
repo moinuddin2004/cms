@@ -4,6 +4,12 @@ export { Screen, type ScreenProps } from './layout/Screen';
 export { ScreenHeader, type ScreenHeaderProps } from './layout/ScreenHeader';
 export { ListRow, type ListRowProps } from './layout/ListRow';
 export { SectionHeader, type SectionHeaderProps } from './layout/SectionHeader';
+export {
+  IconTile,
+  SettingsGroup,
+  type IconTileProps,
+  type SettingsGroupProps,
+} from './layout/SettingsGroup';
 export { FAB, type FABProps } from './layout/FAB';
 export { Spinner, type SpinnerProps } from './layout/Spinner';
 
@@ -32,6 +38,7 @@ export { fieldError } from './forms/fieldError';
 export { SearchBar, type SearchBarProps } from './forms/SearchBar';
 export { FilterChips, type FilterChipsProps, type FilterChipOption } from './forms/FilterChips';
 export { SegmentedControl, type SegmentedControlProps, type Segment } from './forms/SegmentedControl';
+export { ThemeModePicker, type ThemeModePickerProps } from './forms/ThemeModePicker';
 
 export { FormSheet, type FormSheetProps } from './overlays/FormSheet';
 export { ReadOnlySheet, type ReadOnlySheetProps } from './overlays/ReadOnlySheet';

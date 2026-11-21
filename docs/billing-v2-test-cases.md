@@ -6,10 +6,10 @@ Manual, click-through testing of the billing feature in the running app (web-app
 
 | # | Step | Expected |
 |---|---|---|
-| 0.1 | Dev DB only: old billing rows block the schema sync. **Ask the owner before** running `TRUNCATE invoices, invoice_items, payments, coupons CASCADE;` | Owner confirms; backend starts without TypeORM sync errors |
+| 0.1 | Dev DB only: the database must have the billing v2 schema (`backend/database/schema/02_tables.sql` or the `changes/` scripts applied). TypeORM no longer syncs. Old pre-v2 rows (`invoice_items`, `coupons`) no longer have tables | Backend starts and connects without schema errors |
 | 0.2 | Start backend (`npm run start:dev`) and web-app (`npm run dev`) | Both start, no errors in console |
 | 0.3 | Log in as **clinic admin** with the portal credentials the owner gave; select a location | Dashboard loads |
-| 0.4 | Organization features: `billing.invoices` and `billing.discounts` ON | Sidebar shows Billing, Invoices, Payments, Billing activity, Doctor revenue |
+| 0.4 | Organization features: `billing.invoices` and `billing.discounts` ON | Sidebar shows Billing desk, Invoices, Payments, Billing activity, Doctor revenue |
 
 Test data used below: **Consultation Rs 1,200**, **Scaling Rs 3,000** (day 1), **Filling Rs 1,800** (day 2), one test patient "Ali Khan" (plus one patient with an Urdu name).
 
@@ -24,7 +24,7 @@ Test data used below: **Consultation Rs 1,200**, **Scaling Rs 3,000** (day 1), *
 | 1.5 | Add account "Meezan Bank", kind Bank transfer | Reference "Required" on by default, cash count off |
 | 1.6 | Add "JazzCash" (Online wallet), then deactivate it with the switch | Becomes inactive |
 | 1.7 | Try deactivating Cash (the default) | Error toast: choose another default first |
-| 1.8 | Services tab → add "Consultation" (kind Consultation, Rs 1,200), "Scaling" (Procedure, 3,000), "Filling" (Procedure, 1,800) | All listed with prices |
+| 1.8 | Services and prices tab → add "Consultation" (kind Consultation, Rs 1,200), "Scaling" (Procedure, 3,000), "Filling" (Procedure, 1,800) | All listed with prices |
 | 1.9 | Add a service with a duplicate name | Error toast "already exists" |
 | 1.10 | Add price override: Scaling, all doctors, Rs 2,800; then Scaling for Dr X, Rs 2,500 | Both overrides listed |
 | 1.11 | Payments and printing → Consultation fee service = Consultation → Save | Saved |
@@ -137,7 +137,7 @@ Fresh patient with Consultation 1,200 + Scaling 3,000 (day 1) and Filling 1,800 
 |---|---|---|
 | 10.1 | Log in as **doctor** | No billing sidebar items, no Billing tab, no badges, no Bill button, no amounts |
 | 10.2 | Doctor opens `/invoices` directly | "You don't have access" page |
-| 10.3 | As **receptionist** | Billing, Invoices, Payments visible; Billing activity, Doctor revenue, Settings → Billing hidden |
+| 10.3 | As **receptionist** | Billing desk, Invoices, Payments visible; Billing activity, Doctor revenue, Settings → Billing hidden |
 | 10.4 | Receptionist opens `/settings/billing` directly | Access denied page |
 | 10.5 | Switch to another location | Billing data is per location; numbers use that location's code |
 

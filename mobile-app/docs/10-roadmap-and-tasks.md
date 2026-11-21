@@ -7,6 +7,11 @@
 > Phase 0 and Phase 1 cards are fully specified. Phase 2–4 cards are specified at contract level;
 > the architect expands each to full detail (and marks it `ready`) before it starts.
 >
+> **Status (2026-11-17):** every card below is done and merged into `mobile/develop` except M2-16 and
+> M4-06 (see [PROGRESS.md](PROGRESS.md)); the cards are kept as the spec history. Where a card and the
+> code differ (paths, names), the code and docs 02/06/07/08 win — e.g. the M0-01 move table below
+> describes the old `src/lib` layout, and M4-02 landed as MedTrackr brand assets (A-25), not "neutral".
+>
 > Sizes: **S** ≤ 1 day · **M** 1–3 days · **L** 3–5 days (one implementer + AI). Area tags:
 > `MOB` mobile-app · `BE` backend · `WEB` web-app.
 
@@ -1119,7 +1124,7 @@ BE · S · Depends: M0-09 · Branch `mobile/M2-12-patient-app-keys`
 | ID | Area | Size | Title |
 | --- | --- | --- | --- |
 | M4-01 | MOB | M | Urdu translation pass + Noto Nastaliq font + layout check (O-06) |
-| M4-02 | MOB | S | Store assets: icon, splash (neutral), screenshots (3 patient, 3 staff) |
+| M4-02 | MOB | S | Store assets: icon, splash (MedTrackr, A-25) — done; screenshots (3 patient, 3 staff) still need a device |
 | M4-03 | BE | S | Demo clinic seed + demo staff/patient accounts for store review |
 | M4-04 | ALL | M | Privacy policy, terms, Data safety form inputs, account-deletion web URL |
 | M4-05 | MOB | M | Release hardening: crash/error reporting decision (no PHI), performance budgets, final QA (patient gate) |
