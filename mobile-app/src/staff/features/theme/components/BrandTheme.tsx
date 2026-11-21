@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 
 import { applyBrand } from '@/core/theme/apply-brand';
-import { applyThemeMode } from '@/core/theme/apply-theme-mode';
+import { useThemePreference } from '@/core/theme/theme-preference';
 import { useStaffAuthStore } from '@/staff/store/useStaffAuthStore';
 
 import { useClinicTheme } from '../hooks/useClinicTheme';
@@ -24,7 +24,8 @@ export function BrandTheme() {
     if (!orgId || !data) return;
     const cached = cacheClinicTheme(orgId, data);
     applyBrand(cached.brandColor);
-    applyThemeMode(cached.defaultMode);
+    // The clinic's mode is only a default: a person's own light/dark choice wins (web `useTheme`).
+    useThemePreference.getState().setClinicDefault(cached.defaultMode);
   }, [orgId, data]);
 
   return null;

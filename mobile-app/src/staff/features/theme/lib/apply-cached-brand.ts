@@ -1,5 +1,5 @@
 import { applyBrand } from '@/core/theme/apply-brand';
-import { applyThemeMode } from '@/core/theme/apply-theme-mode';
+import { useThemePreference } from '@/core/theme/theme-preference';
 
 import { readCachedTheme } from './theme-cache';
 
@@ -12,5 +12,5 @@ import { readCachedTheme } from './theme-cache';
 export function applyCachedBrand(): void {
   const cached = readCachedTheme();
   applyBrand(cached?.brandColor ?? null);
-  applyThemeMode(cached?.defaultMode);
+  useThemePreference.getState().setClinicDefault(cached?.defaultMode);
 }

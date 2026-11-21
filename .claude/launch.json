@@ -78,6 +78,20 @@
       "port": 5100,
       "cwd": "backend",
       "autoPort": false
+    },
+    {
+      "name": "mobile-web",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "expo",
+        "start",
+        "--web",
+        "--port",
+        "8081"
+      ],
+      "port": 8081,
+      "cwd": "mobile-app",
+      "autoPort": false
     }
   ]
 }

@@ -35,7 +35,7 @@
    (`<space>.cacheKey`). Sign-out of a space: clear its query cache, delete its MMKV instance,
    delete its cache key, delete its refresh token, unregister its push device.
 6. **Prefs MMKV (unencrypted)** may hold only: active space, last tab, theme cache (colours, logo
-   URL), dismissed tips, language. Never names, phone numbers, ids of patients, or anything else
+   URL), the light/dark choice (`app.theme`), dismissed tips, language. Never names, phone numbers, ids of patients, or anything else
    from the API.
 7. **Logs**: no `console.log` of API responses, tokens, or patient data. Use `core/log.ts`
    (`log.debug` is stripped in release; `log.error` sends only error name/code/route, never the

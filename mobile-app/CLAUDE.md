@@ -37,7 +37,8 @@ a HANDOFF entry, and your PROGRESS row → `review`. Rules that fail a review: [
 - **Access:** `useAccess().can('perm')` — never role names.
 - **Style:** theme tokens only (no hex), logical classes (`ms-/me-/ps-/pe-`, never `ml-/mr-`), safe-area utilities,
   `FlashList` for long lists, 44 pt targets, `accessibilityLabel` on every icon-only control.
-- **UI:** the product name is **MedTrackr** (A-25) — use the `PRODUCT_NAME` constant / `BrandMark`, never "DentalFlow" or dental-only wording; no tooth-only icons (all clinic types).
+- **UI:** the product name is **MedTrackr** (A-25) — use the `PRODUCT_NAME` constant / `BrandMark`, never "DentalFlow" or dental-only wording; no tooth-only icons (all clinic types) — except the welcome hero artwork (A-27).
+- **Theme:** light/dark goes through `useThemePreference` (`core/theme/theme-preference.ts`): own choice → clinic default → phone. Never call `applyThemeMode` / `Uniwind.setTheme` from a screen.
 - **Installs:** never ADD or UPGRADE a package (`npx expo install <pkg>`, `npm i <pkg>`) — write that command in your handoff.
   Installing the EXISTING lockfile in a fresh worktree (`npm install` / `npm ci` with no package name) is allowed and expected.
 - **Generated code:** don't hand-edit `src/core/ui/*` (RNR CLI) except patches listed in `src/core/ui/PATCHES.md`;

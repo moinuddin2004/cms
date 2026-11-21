@@ -10,6 +10,7 @@ import { createMMKV } from 'react-native-mmkv';
  */
 export type PrefKey =
   | 'space.active'
+  | 'app.theme'
   | 'staff.queue.segment'
   | 'staff.theme.cache'
   | 'staff.lastTab'

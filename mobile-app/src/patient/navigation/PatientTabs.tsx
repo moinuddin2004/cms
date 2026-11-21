@@ -12,7 +12,7 @@ function useTokenColor(name: string): string | undefined {
 /**
  * The patient bottom tabs (docs/02 §4): Home, Today, Records, Family. Every
  * route file under `(tabs)/` must be declared here, or Expo Router shows it
- * with its raw file name and a fallback icon. Home → More is UI-02.
+ * with its raw file name and a fallback icon. Home carries the settings (UI-02).
  */
 export function PatientTabs() {
   const { t } = useT();

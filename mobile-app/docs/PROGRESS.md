@@ -86,7 +86,7 @@
 | M4-02 | Store assets: icon, adaptive/monochrome icons, splash (A-25 MedTrackr) | MOB | S | — | done (icons + splash); store screenshots need a device | team lead | 2026-11-17 | regenerate with `scripts/make-brand-assets.py` |
 | M4-06 | Require `aud` on staff tokens | BE | S | — | spec | | | one release after launch |
 | UI-01 | UI/UX review + welcome page | MOB | M | — | review (merged into develop 2026-11-17) | Opus session | 2026-11-17 | report `docs/reviews/UI-UX-2026-11/report.md`; needs device check (light/dark, Urdu toggle, 1.5x font) |
-| UI-02 | UI/UX follow-ups (patient Home → Today first + More screen, patient offline banner in Urdu, Walk-in header, DoseRow / Reminders padding + RTL chevron) | MOB | M | UI-01 | spec | | | proposed in the UI-01 report (P1-11 … P1-15) |
+| UI-02 | UI/UX follow-ups (patient Home → Today first + More screen, patient offline banner in Urdu, Walk-in header, DoseRow / Reminders padding + RTL chevron) | MOB | M | UI-01 | in progress | | | 2026-11-21: light/dark/system picker (A-27), full-screen welcome, patient Home with settings, More page groups done; open: offline banner Urdu, Walk-in header, DoseRow/Reminders padding, Today-first |
 | AUDIT | Final independent audit + fixes (notify/realtime, account/auth, patient mobile, staff mobile) | ALL | L | M4-05 | done (in develop) | Opus audit + Sonnet fix sessions | 2026-11-17 | `docs/reviews/AUDIT-2026-11/report.md`; backend `POST /auth/devices/unregister` still missing (staff mobile M4) |
 | EAS | EAS project id, development APK profile, run scripts, `.easignore` | MOB | S | M0-07 | done (in develop) | user | 2026-11-17 | commit 17d26689; `docs/RELEASE.md` |
 

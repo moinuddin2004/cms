@@ -7,7 +7,7 @@ import { currentVersion } from '@/core/app-version';
 import { markReady } from '@/core/splash';
 import { openSecureCache } from '@/core/storage/secure-cache';
 import { applyBrand } from '@/core/theme/apply-brand';
-import { applyThemeMode } from '@/core/theme/apply-theme-mode';
+import { useThemePreference } from '@/core/theme/theme-preference';
 import { applyTextScale } from '@/core/theme/apply-text-scale';
 import { useRestoreStaffSession } from '@/staff/features/auth';
 import { PendingDeviceCleanup } from '@/staff/features/devices';
@@ -95,13 +95,13 @@ export function StaffLayout() {
   // The clinic brand is painted from prefs before the theme query answers, so
   // a returning user never sees the platform colour (docs/10 M0-05 step 4).
   // Leaving the staff space restores the platform palette: the welcome screen
-  // is never branded, and the forced light/dark mode goes back to the phone's.
+  // is never branded, and the clinic's default light/dark mode no longer applies (the person's own choice stays).
   useEffect(() => {
     applyTextScale('staff');
     applyCachedBrand();
     return () => {
       applyBrand(null);
-      applyThemeMode('system');
+      useThemePreference.getState().setClinicDefault(null);
       applyTextScale('staff');
     };
   }, []);
