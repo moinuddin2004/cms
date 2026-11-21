@@ -6,12 +6,12 @@ import { leaveSpaceAfterSignOut } from '@/core/space/switch-space';
 import { dropSession } from '@/staff/lib/api';
 import { wipeStaffPersistedCache } from '@/staff/lib/persist-cache';
 
-import { unregisterThisDevice } from '@/staff/features/devices';
+import { unregisterThisDevice } from '@/staff/features/devices/lib/device-registration';
 import { logout } from '../api/auth.api';
 import { useSignOut } from './useSignOut';
 
 jest.mock('../api/auth.api', () => ({ logout: jest.fn() }));
-jest.mock('@/staff/features/devices', () => ({ unregisterThisDevice: jest.fn() }));
+jest.mock('@/staff/features/devices/lib/device-registration', () => ({ unregisterThisDevice: jest.fn() }));
 jest.mock('@/staff/lib/api', () => ({
   beginStaffSignOut: jest.fn(async () => undefined),
   dropSession: jest.fn(),

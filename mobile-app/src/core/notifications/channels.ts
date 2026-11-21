@@ -35,7 +35,8 @@ export async function createNotificationChannels(): Promise<void> {
         name: 'Medicine reminders',
         description: 'Reminders for medicine doses.',
         importance: AndroidImportance.HIGH,
-        sound: 'default',
+        // No `sound` key = the phone's default notification sound. Any string is a bundled
+        // file name: 'default' is not one, so Android made the channel silent.
         showBadge: true,
       }),
       setNotificationChannelAsync(NOTIFICATION_CHANNELS.general, {

@@ -3,7 +3,8 @@ import { View } from 'react-native';
 
 import { ErrorState, ListRow, LoadingSkeleton, NoResultsState, SearchBar } from '@/core/components';
 import { Text } from '@/core/ui/text';
-import { maskPhone, usePatientsInfinite } from '@/staff/features/patients';
+import { usePatientsInfinite } from '@/staff/features/patients/hooks/usePatientsInfinite';
+import { maskPhone } from '@/staff/features/patients/lib/mask-phone';
 
 export interface PickedPatient {
   id: string;

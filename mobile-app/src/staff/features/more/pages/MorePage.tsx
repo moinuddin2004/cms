@@ -9,7 +9,7 @@ import { switchSpace } from '@/core/space/switch-space';
 import { Icon } from '@/core/ui/icon';
 import { AccessErrorState, useAccess } from '@/staff/features/access';
 import { NotificationBell, NotificationSoundRow } from '@/staff/features/notifications';
-import { visibleTabs } from '@/staff/navigation';
+import { visibleTabs } from '@/staff/navigation/tab-access';
 import { activeOrganization, useStaffAuthStore } from '@/staff/store/useStaffAuthStore';
 
 import { ProfileCard } from '../components/ProfileCard';

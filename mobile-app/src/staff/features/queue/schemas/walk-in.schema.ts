@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { isValidPhone } from '@/staff/features/patients';
+import { isValidPhone } from '@/staff/features/patients/schemas/quick-register.schema';
 
 /**
  * S-02c walk-in. Either an existing patient (`mode: 'existing'` + `patientId`)

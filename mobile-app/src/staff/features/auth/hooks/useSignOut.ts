@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { leaveSpaceAfterSignOut } from '@/core/space/switch-space';
-import { unregisterThisDevice } from '@/staff/features/devices';
+import { unregisterThisDevice } from '@/staff/features/devices/lib/device-registration';
 import { clearThemeCache } from '@/staff/features/theme';
 import { clearStaffEvents } from '@/staff/lib/analytics';
 import { beginStaffSignOut, dropSession, endStaffSignOut } from '@/staff/lib/api';

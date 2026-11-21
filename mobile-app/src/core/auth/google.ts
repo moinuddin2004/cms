@@ -9,6 +9,8 @@
  * reports itself unavailable and the Google button stays hidden.
  */
 
+import { log } from '@/core/log';
+
 type GoogleSigninModule = {
   GoogleSignin: {
     configure: (options: { webClientId: string; iosClientId?: string; scopes?: string[] }) => void;
@@ -49,16 +51,33 @@ export async function getGoogleIdToken(
   if (!mod) throw new Error('Google sign-in is not available in this build.');
   const { GoogleSignin } = mod;
 
-  GoogleSignin.configure({
-    webClientId,
-    iosClientId: iosClientId || undefined,
-  });
-  await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-  // Always show the account chooser instead of silently reusing the last account.
-  await GoogleSignin.signOut().catch(() => undefined);
+  try {
+    GoogleSignin.configure({
+      webClientId,
+      iosClientId: iosClientId || undefined,
+    });
+    await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+    // Always show the account chooser instead of silently reusing the last account.
+    await GoogleSignin.signOut().catch(() => undefined);
 
-  const response = await GoogleSignin.signIn();
-  if (response.type !== 'success') return null;
-  if (!response.data.idToken) throw new Error('Google did not return an ID token.');
-  return response.data.idToken;
+    const response = await GoogleSignin.signIn();
+    if (response.type !== 'success') return null;
+    if (!response.data.idToken) throw new Error('Google did not return an ID token.');
+    return response.data.idToken;
+  } catch (err) {
+    logGoogleError(err, webClientId);
+    throw err;
+  }
+}
+
+/**
+ * Dev builds only: the screen shows a generic message, so print Google's own code (e.g.
+ * DEVELOPER_ERROR = this build's package + SHA-1 is not an Android OAuth client in the web
+ * client's project). Google's code/message and the public client id carry no personal data.
+ */
+function logGoogleError(err: unknown, webClientId: string): void {
+  const { code, message } = (err ?? {}) as { code?: unknown; message?: unknown };
+  log.warn(
+    `[google-signin] failed: code=${String(code)} message=${String(message)} webClientId=${webClientId}`,
+  );
 }

@@ -4,6 +4,7 @@ import { fetchMinVersion } from './min-version';
 import { RootShell } from './RootShell';
 
 jest.mock('./min-version', () => ({ fetchMinVersion: jest.fn() }));
+jest.mock('./DevRouteTrace', () => ({ DevRouteTrace: () => null }));
 jest.mock('./notification-router', () => ({ useNotificationTaps: jest.fn() }));
 jest.mock('./RootProviders', () => ({
   RootProviders: function RootProviders({ children }: { children: React.ReactNode }) {

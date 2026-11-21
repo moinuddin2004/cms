@@ -8,6 +8,8 @@ import { installForegroundHandler } from '@/core/notifications/foreground';
 import { useSpaceStore } from '@/core/space/useSpaceStore';
 import { replanPatientReminders } from '@/patient';
 
+import { DevRouteTrace } from './DevRouteTrace';
+import { entryHref } from './EntryRedirect';
 import { fetchMinVersion } from './min-version';
 import { useNotificationTaps } from './notification-router';
 import { RootProviders } from './RootProviders';
@@ -37,6 +39,7 @@ function checkMinVersion(): ReturnType<typeof fetchMinVersion> {
  */
 export function RootShell() {
   const activeSpace = useSpaceStore((s) => s.activeSpace);
+  const entry = entryHref(activeSpace);
   useNotificationTaps();
   const [updateRequired, setUpdateRequired] = useState<{ message?: string } | null>(null);
 
@@ -74,18 +77,23 @@ export function RootShell() {
 
   return (
     <RootProviders>
+      {__DEV__ ? <DevRouteTrace /> : null}
       {updateRequired ? (
         <UpdateRequiredPage message={updateRequired.message} />
       ) : (
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="index" />
-          <Stack.Protected guard={activeSpace === null}>
+          {/* `redirectTo`: a space that just closed goes straight to the new entry screen. Without
+              it the router falls back to "/", which the patient home tab `(tabs)/index` also
+              matches; while the patient space is guarded that bounced "/" → "/" forever
+              ("Maximum update depth" on the Back button of staff login / patient sign-in). */}
+          <Stack.Protected guard={activeSpace === null} redirectTo={entry}>
             <Stack.Screen name="welcome" />
           </Stack.Protected>
-          <Stack.Protected guard={activeSpace === 'staff'}>
+          <Stack.Protected guard={activeSpace === 'staff'} redirectTo={entry}>
             <Stack.Screen name="(staff)" />
           </Stack.Protected>
-          <Stack.Protected guard={activeSpace === 'patient'}>
+          <Stack.Protected guard={activeSpace === 'patient'} redirectTo={entry}>
             <Stack.Screen name="(patient)" />
           </Stack.Protected>
         </Stack>
